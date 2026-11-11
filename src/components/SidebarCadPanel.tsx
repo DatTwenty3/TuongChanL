@@ -645,7 +645,7 @@ export const SidebarCadPanel: React.FC = () => {
                       <span>
                         <DraftRebarNum
                           value={r.n ?? 2}
-                          width={40}
+                          width={52}
                           isInt
                           onCommit={(v) =>
                             updateProject((d) => {
@@ -656,7 +656,7 @@ export const SidebarCadPanel: React.FC = () => {
                         {' thanh/sườn · '}
                         <DraftRebarNum
                           value={r.ng ?? 2}
-                          width={36}
+                          width={50}
                           isInt
                           onCommit={(v) =>
                             updateProject((d) => {
@@ -672,7 +672,7 @@ export const SidebarCadPanel: React.FC = () => {
                       <span>
                         <DraftRebarNum
                           value={r.n ?? 2}
-                          width={52}
+                          width={62}
                           isInt
                           onCommit={(v) =>
                             updateProject((d) => {
@@ -688,7 +688,7 @@ export const SidebarCadPanel: React.FC = () => {
                       <span>
                         <DraftRebarNum
                           value={r.n ?? 8}
-                          width={52}
+                          width={62}
                           isInt
                           onCommit={(v) =>
                             updateProject((d) => {
@@ -704,7 +704,7 @@ export const SidebarCadPanel: React.FC = () => {
                       <span>
                         <DraftRebarNum
                           value={r.n ?? 2}
-                          width={52}
+                          width={62}
                           isInt
                           onCommit={(v) =>
                             updateProject((d) => {
@@ -720,7 +720,7 @@ export const SidebarCadPanel: React.FC = () => {
                       <span>
                         <DraftRebarNum
                           value={r.a ?? 100}
-                          width={48}
+                          width={60}
                           onCommit={(v) =>
                             updateProject((d) => {
                               d.rb[k].a = v;
@@ -730,7 +730,7 @@ export const SidebarCadPanel: React.FC = () => {
                         {' × '}
                         <DraftRebarNum
                           value={r.ah ?? 100}
-                          width={48}
+                          width={60}
                           onCommit={(v) =>
                             updateProject((d) => {
                               d.rb[k].ah = v;
@@ -744,7 +744,7 @@ export const SidebarCadPanel: React.FC = () => {
                       <span>
                         <DraftRebarNum
                           value={r.a ?? 20}
-                          width={60}
+                          width={70}
                           onCommit={(v) =>
                             updateProject((d) => {
                               d.rb[k].a = v;
@@ -767,7 +767,7 @@ export const SidebarCadPanel: React.FC = () => {
                     cell = (
                       <DraftRebarNum
                         value={r.a ?? 20}
-                        width={70}
+                        width={80}
                         onCommit={(v) =>
                           updateProject((d) => {
                             d.rb[k].a = v;
