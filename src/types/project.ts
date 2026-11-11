@@ -968,8 +968,6 @@ export interface V3Visibility {
   edges: boolean;
   blind: boolean;
   soil: boolean;
-  /** Địa tầng nền đất. */
-  strata: boolean;
   grid: boolean;
   rebar: boolean;
 }

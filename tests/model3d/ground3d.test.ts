@@ -6,7 +6,7 @@ import {
   presetCanti,
   type EngineProject,
 } from '../../src/engine/index.ts';
-import { groundColor, m3Ground, model3D } from '../../src/model3d/index';
+import { V3, groundColor, m3Ground, model3D } from '../../src/model3d/index';
 
 /** Khối đất nền 3D: chỉ để hiển thị, không đổi conc/lean/soil/bbox/sig của mô hình gốc. */
 describe('ground3d – địa tầng nền trong mô hình 3D', () => {
@@ -55,5 +55,18 @@ describe('ground3d – địa tầng nền trong mô hình 3D', () => {
     const m = model3D(a, buildBars(a));
     expect(m.bbox.y0).toBeGreaterThan(-100);
     expect(m.sig).not.toContain('ground');
+  });
+
+  it('độ mờ bề mặt: mặc định 50%, kẹp 0..100%, độ mờ bê tông suy ra theo bình phương', () => {
+    const v = new V3();
+    expect(v.surf).toBe(0.5);
+    expect(v.alpha).toBeCloseTo(0.25, 9);
+    v.setSurf(1.4);
+    expect(v.surf).toBe(1);
+    expect(v.alpha).toBe(1);
+    v.setSurf(-1);
+    expect(v.surf).toBe(0);
+    expect(v.alpha).toBe(0);
+    expect('strata' in v.vis).toBe(false);
   });
 });

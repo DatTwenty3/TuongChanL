@@ -467,7 +467,6 @@ export class V3 implements V3State {
     edges: true,
     blind: true,
     soil: true,
-    strata: true,
     grid: true,
     rebar: true,
   };
@@ -476,7 +475,9 @@ export class V3 implements V3State {
   hover: V3HoverHit | null = null;
   cam: V3CameraState = { tx: 0, ty: 0, tz: 0, dist: 1e3, yaw: 1, pitch: 0.42, ortho: false };
   fov = (35 * Math.PI) / 180;
-  alpha = 0.2;
+  /** Độ mờ đục bề mặt 0..1 (0 = trong suốt, 1 = đặc); `alpha` (bê tông) suy ra từ đây. */
+  surf = 0.5;
+  alpha = 0.25;
   kd = 1;
   colorMode: V3ColorMode = 'mark';
   clip: V3ClipState = { axis: '', t: 1, flip: false };
@@ -1098,7 +1099,7 @@ export class V3 implements V3State {
         if (this.vis.conc) lines(m.gpu.pile, [0.86, 0.78, 0.6], 0.9);
         if (this.vis.blind) lines(m.gpu.lean, [0.62, 0.64, 0.66], 0.8);
         if (this.vis.soil) lines(m.gpu.soil, [0.72, 0.55, 0.36], 0.55);
-        if (this.vis.strata && m.ground) {
+        if (m.ground) {
           m.gpu.ground?.forEach((gm, gi) => {
             const c = m.ground![gi].color;
             lines(gm, [c[0] * 0.7, c[1] * 0.7, c[2] * 0.7], 0.6);
@@ -1134,9 +1135,9 @@ export class V3 implements V3State {
         [number, number, number],
         number,
       ][] = [];
-      if (this.vis.blind) layers.push([m.gpu.lean, [0.66, 0.68, 0.7], Math.min(0.7, this.alpha * 1.6)]);
+      if (this.vis.blind) layers.push([m.gpu.lean, [0.66, 0.68, 0.7], Math.min(1, this.alpha * 1.6)]);
       if (this.vis.conc) layers.push([m.gpu.conc, [0.55, 0.72, 0.9], this.alpha]);
-      if (this.vis.conc && m.gpu.pile) layers.push([m.gpu.pile, [0.84, 0.74, 0.52], Math.min(0.7, this.alpha * 1.3)]);
+      if (this.vis.conc && m.gpu.pile) layers.push([m.gpu.pile, [0.84, 0.74, 0.52], Math.min(1, this.alpha * 1.3)]);
       gl.cullFace(gl.FRONT);
       layers.forEach((l) => drawMesh(l[0], l[1], l[2]));
       gl.cullFace(gl.BACK);
@@ -1152,20 +1153,20 @@ export class V3 implements V3State {
         topK: number;
         band: number;
       }> = [];
-      const aG = Math.min(0.85, 0.3 + this.alpha * 1.5);
-      if (this.vis.strata && m.ground) {
+      const aG = this.surf;
+      if (m.ground) {
         m.ground.forEach((gp, gi) => {
           soilItems.push({
             o: m.gpu?.ground?.[gi],
             col: gp.color,
-            a: gp.kind === 'cover' ? Math.min(0.9, aG + 0.1) : aG,
+            a: gp.kind === 'cover' ? Math.min(1, aG + 0.1) : aG,
             topK: gp.kind === 'cover' ? 1 : 0,
             band: gp.mat,
           });
         });
       }
       if (this.vis.soil) {
-        soilItems.push({ o: m.gpu.soil, col: [0.6, 0.44, 0.26], a: Math.min(0.8, 0.22 + this.alpha), topK: 1, band: 0.5 });
+        soilItems.push({ o: m.gpu.soil, col: [0.6, 0.44, 0.26], a: this.surf * 0.85, topK: 1, band: 0.5 });
       }
       if (PS && soilItems.length) {
         gl.useProgram(PS.pr);
@@ -1255,6 +1256,13 @@ export class V3 implements V3State {
 
   setColorMode(mode: V3ColorMode): void {
     this.colorMode = mode;
+    this.notify();
+    this.redraw();
+  }
+
+  setSurf(s: number): void {
+    this.surf = Math.max(0, Math.min(1, s));
+    this.alpha = this.surf * this.surf;
     this.notify();
     this.redraw();
   }

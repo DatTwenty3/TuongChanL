@@ -154,12 +154,11 @@ export const Model3DViewport: React.FC = () => {
     edges: true,
     blind: true,
     soil: true,
-    strata: true,
     grid: true,
     rebar: true,
   };
   const ortho = v3?.cam.ortho ?? false;
-  const alpha = v3?.alpha ?? 0.2;
+  const surf = v3?.surf ?? 0.5;
   const kd = v3?.kd ?? 1;
   const colorMode: V3ColorMode = v3?.colorMode ?? 'mark';
   const clip = v3?.clip ?? { axis: '', t: 1, flip: false };
@@ -172,7 +171,6 @@ export const Model3DViewport: React.FC = () => {
     ['Nét viền', 'edges'],
     ['Bê tông lót', 'blind'],
     ['Đất đắp', 'soil'],
-    ['Địa tầng nền', 'strata'],
     ['Cốt thép', 'rebar'],
     ['Lưới nền', 'grid'],
   ];
@@ -252,16 +250,17 @@ export const Model3DViewport: React.FC = () => {
         <div className="v3g">
           <span className="v3t">Độ hiển thị</span>
           <label className="v3s">
-            <span>Độ trong bê tông</span>
+            <span>Độ mờ bề mặt</span>
             <input
               type="range"
-              min={0.03}
-              max={0.6}
+              id="v3surf"
+              min={0}
+              max={1}
               step={0.01}
-              value={alpha}
-              onChange={(e) => v3?.setAlpha(parseFloat(e.target.value))}
+              value={surf}
+              onChange={(e) => v3?.setSurf(parseFloat(e.target.value))}
             />
-            <b>{Math.round((1 - alpha) * 100)}%</b>
+            <b>{Math.round(surf * 100)}%</b>
           </label>
           <label className="v3s">
             <span>Phóng to đường kính thép</span>
@@ -398,7 +397,7 @@ export const Model3DViewport: React.FC = () => {
               : ''}
           </div>
 
-          {model?.ground && model.ground.length > 0 && vis.strata ? (
+          {model?.ground && model.ground.length > 0 ? (
             <div id="v3soil">
               <b>Địa tầng</b>
               {model.ground.map((gp) => (
