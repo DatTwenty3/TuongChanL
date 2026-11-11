@@ -528,6 +528,8 @@ export interface V3AttachOptions {
   getLegOffsetPx?: () => number;
   isHidden?: () => boolean;
   onChange?: () => void;
+  /** Gọi sau mỗi lần vẽ xong (dùng cập nhật lớp nhãn phủ lên canvas). */
+  onDraw?: () => void;
   onHover?: (hit: V3HoverHit | null, mouse: { x: number; y: number } | null) => void;
 }
 
@@ -540,10 +542,13 @@ export class V3 implements V3State {
     blind: true,
     soil: true,
     strata: true,
+    labels: true,
     grid: true,
     rebar: true,
   };
   hidden: Set<string> = new Set();
+  /** Id khối đất (Model3DGroundPart.id) đang bị ẩn trong chú giải. */
+  hiddenGround: Set<string> = new Set();
   focus: string | null = null;
   hover: V3HoverHit | null = null;
   cam: V3CameraState = { tx: 0, ty: 0, tz: 0, dist: 1e3, yaw: 1, pitch: 0.42, ortho: false };
@@ -1244,6 +1249,7 @@ export class V3 implements V3State {
       const soilItems: Array<{ o: GMesh; col: [number, number, number]; a: number; topK: number; kind: number }> = [];
       if (this.vis.strata && m.ground) {
         m.ground.forEach((gp, gi) => {
+          if (this.hiddenGround.has(gp.id)) return;
           soilItems.push({
             o: m.gpu?.ground?.[gi],
             col: gp.color,
@@ -1288,6 +1294,7 @@ export class V3 implements V3State {
         if (this.vis.soil) lines(m.gpu.soil, [0.72, 0.55, 0.36], 0.55);
         if (this.vis.strata && m.ground) {
           m.gpu.ground?.forEach((gm, gi) => {
+            if (this.hiddenGround.has(m.ground![gi].id)) return;
             const c = m.ground![gi].color;
             lines(gm, [c[0] * 0.6, c[1] * 0.6, c[2] * 0.6], 0.55);
           });
@@ -1307,6 +1314,7 @@ export class V3 implements V3State {
 
     gl.depthMask(true);
     v3AxisDraw(this.ax, M.view);
+    this.opts.onDraw?.();
   }
 
   pick(mx: number, my: number): V3HoverHit | null {
@@ -1326,6 +1334,27 @@ export class V3 implements V3State {
   setGroupVisible(id: string, visible: boolean): void {
     if (visible) this.hidden.delete(id);
     else this.hidden.add(id);
+    this.notify();
+    this.redraw();
+  }
+
+  /** Chiếu điểm mô hình (cm) ra toạ độ px CSS của canvas; null khi chưa vẽ hoặc ở sau camera / bị mặt cắt cắt mất. */
+  toScreen(x: number, y: number, z: number): { x: number; y: number } | null {
+    const vp = this.vp;
+    if (!vp || this.W <= 0 || this.H <= 0) return null;
+    const cl = v3ClipVec(this.model, this.clip);
+    if (cl[0] * x + cl[1] * y + cl[2] * z > cl[3]) return null;
+    const w = vp[3] * x + vp[7] * y + vp[11] * z + vp[15];
+    if (!(w > 1e-6)) return null;
+    return {
+      x: (((vp[0] * x + vp[4] * y + vp[8] * z + vp[12]) / w) * 0.5 + 0.5) * this.W,
+      y: (1 - (((vp[1] * x + vp[5] * y + vp[9] * z + vp[13]) / w) * 0.5 + 0.5)) * this.H,
+    };
+  }
+
+  setGroundVisible(id: string, visible: boolean): void {
+    if (visible) this.hiddenGround.delete(id);
+    else this.hiddenGround.add(id);
     this.notify();
     this.redraw();
   }

@@ -1,3 +1,4 @@
+import { renderSoilLabels } from './soilLabels';
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   V3,
@@ -63,6 +64,7 @@ export const Model3DViewport: React.FC = () => {
     quantitiesRes: QuantitiesResult;
   } | null>(null);
   const legMountedRef = useRef(false);
+  const labRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const cv = glCanvasRef.current;
@@ -80,6 +82,12 @@ export const Model3DViewport: React.FC = () => {
       isHidden: () => viewModeRef.current !== '3d',
       onChange: () => {
         bumpV3Rev();
+      },
+      onDraw: () => {
+        const leg = legRef.current;
+        const narrow = window.matchMedia?.('(max-width: 900px)').matches;
+        const reserve = !leg || leg.hidden || leg.classList.contains('min') || narrow ? 0 : leg.offsetWidth + 14;
+        renderSoilLabels(v3, labRef.current, reserve);
       },
       onHover: (hit: V3HoverHit | null, mouse: { x: number; y: number } | null) => {
         if (!hit || !mouse) {
@@ -155,6 +163,7 @@ export const Model3DViewport: React.FC = () => {
     blind: true,
     soil: true,
     strata: true,
+    labels: true,
     grid: true,
     rebar: true,
   };
@@ -173,6 +182,7 @@ export const Model3DViewport: React.FC = () => {
     ['Bê tông lót', 'blind'],
     ['Đất đắp', 'soil'],
     ['Đất nền', 'strata'],
+    ['Nhãn đất', 'labels'],
     ['Cốt thép', 'rebar'],
     ['Lưới nền', 'grid'],
   ];
@@ -326,6 +336,7 @@ export const Model3DViewport: React.FC = () => {
 
       <div id="v3wrap" ref={wrapRef}>
         <canvas ref={glCanvasRef} id="gl" />
+        <div id="v3lab" ref={labRef} aria-hidden="true" />
 
         <div ref={legRef} id="v3leg" className={'pn' + (legMin ? ' min' : '')}>
           <div className="v3h">
@@ -403,19 +414,29 @@ export const Model3DViewport: React.FC = () => {
             <div id="v3soil">
               <b>Địa tầng</b>
               {model.ground.map((gp) => (
-                <div key={gp.id} className="sl" title={gp.name}>
+                <div key={gp.id} className="sl" data-id={gp.id} title={`${gp.name} – ${gp.kindText}
+${gp.props.join(' · ')}`}>
+                  <input
+                    type="checkbox"
+                    checked={!v3?.hiddenGround.has(gp.id)}
+                    onChange={(e) => v3?.setGroundVisible(gp.id, e.target.checked)}
+                  />
                   <i
                     className="sw"
                     style={{
                       background: `rgb(${gp.color.map((v) => Math.round(v * 255)).join(',')})`,
                     }}
                   />
-                  <span className="nm">{gp.name}</span>
+                  <span className="nm">
+                    {gp.name}
+                    <small>{gp.kindText}</small>
+                  </span>
                   <em>
                     {gp.kind === 'cover'
                       ? `+${fmt(gp.y1 / 100, 1)} m`
                       : `${fmt(-gp.y1 / 100, 1)} → ${fmt(-gp.y0 / 100, 1)} m`}
                   </em>
+                  <span className="pr">{gp.props.join(' · ')}</span>
                 </div>
               ))}
             </div>

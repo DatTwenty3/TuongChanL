@@ -12,6 +12,7 @@
 
 import type { EngineBarsResult, EngineProject } from '../engine';
 import type { BarsResult, Model3DGroundPart, Project } from '../types/project';
+import { fmt } from '../cad/layers';
 import { M3Mesh } from './mesh';
 
 type RGB = [number, number, number];
@@ -21,6 +22,59 @@ export function groundLook(l: { kind: 'sand' | 'clay' | 'rock'; IL?: number }): 
   if (l.kind === 'rock') return 'rock';
   if (l.kind === 'sand') return 'sand';
   return (l.IL ?? 0.5) >= 0.75 ? 'mud' : 'clay';
+}
+
+const GRAIN_TXT: Record<string, string> = {
+  gravelly: 'Cát lẫn sỏi sạn',
+  coarse: 'Cát thô',
+  medium: 'Cát vừa',
+  fine: 'Cát mịn',
+  silt: 'Cát bụi',
+};
+const CLAY_TXT: Record<string, string> = { sandy: 'Cát pha', loam: 'Sét pha', clay: 'Sét' };
+
+/** Trạng thái đất dính theo độ sệt IL (TCVN 9362 / 10304). */
+export function clayState(il: number): string {
+  if (il <= 0) return 'cứng';
+  if (il <= 0.25) return 'nửa cứng';
+  if (il <= 0.5) return 'dẻo cứng';
+  if (il <= 0.75) return 'dẻo mềm';
+  if (il <= 1) return 'dẻo chảy';
+  return 'chảy';
+}
+
+/** Tên loại đất hiển thị trên nhãn 3D, ví dụ "Sét dẻo cứng" hay "Cát vừa". */
+export function layerKindText(l: {
+  kind: 'sand' | 'clay' | 'rock';
+  IL?: number;
+  grain?: string;
+  clayType?: string;
+}): string {
+  if (l.kind === 'rock') return 'Đá';
+  if (l.kind === 'sand') return GRAIN_TXT[l.grain ?? 'medium'] ?? 'Cát';
+  return `${CLAY_TXT[l.clayType ?? 'clay'] ?? 'Sét'} ${clayState(l.IL ?? 0.5)}`;
+}
+
+/** Các chỉ tiêu cơ lý có giá trị (khác 0) của một lớp đất nhập trong mô đun cọc. */
+export function layerProps(l: {
+  kind: 'sand' | 'clay' | 'rock';
+  gamma: number;
+  c: number;
+  phi: number;
+  Su: number;
+  IL: number;
+  N: number;
+  E: number;
+}): string[] {
+  const o: string[] = [];
+  if (l.gamma > 0) o.push(`γ = ${fmt(l.gamma, 1)} kN/m³`);
+  if (l.kind === 'clay') o.push(`IL = ${fmt(l.IL, 2)}`);
+  if (l.c > 0) o.push(`c = ${fmt(l.c, 0)} kPa`);
+  if (l.phi > 0) o.push(`φ = ${fmt(l.phi, 1)}°`);
+  if (l.kind === 'clay' && l.Su > 0) o.push(`Su = ${fmt(l.Su, 0)} kPa`);
+  if (l.N > 0) o.push(`N = ${fmt(l.N, 0)}`);
+  if (l.E > 0) o.push(`E = ${fmt(l.E, 0)} MPa`);
+  return o;
 }
 
 export function groundColor(l: {
@@ -91,6 +145,8 @@ export function m3Ground(pIn: Project | EngineProject, resIn: BarsResult | Engin
         name: l.name || `Lớp ${i + 1}`,
         kind: 'strata',
         color: groundColor(l),
+        kindText: layerKindText(l),
+        props: layerProps(l),
         look: groundLook(l),
         mesh: box(xa, xb, top, bot),
         y0: bot,
@@ -105,6 +161,8 @@ export function m3Ground(pIn: Project | EngineProject, resIn: BarsResult | Engin
         name: 'Đất phủ mặt – trước mũi tường',
         kind: 'cover',
         color: groundColor(l),
+        kindText: `${layerKindText(l)} (đất tự nhiên)`,
+        props: layerProps(l),
         look: groundLook(l),
         mesh: box(xa, 0, z0, 0),
         y0: 0,
@@ -121,6 +179,13 @@ export function m3Ground(pIn: Project | EngineProject, resIn: BarsResult | Engin
       name: rock ? 'Nền đá' : clay ? 'Nền đất dính' : 'Nền đất rời',
       kind: 'strata',
       color: rock ? groundColor({ kind: 'rock' }) : clay ? groundColor({ kind: 'clay', IL: 0.3 }) : groundColor({ kind: 'sand' }),
+      kindText: rock ? 'Đá' : clay ? 'Đất dính' : 'Đất rời',
+      props: [
+        ...(c && c.gf > 0 ? [`γ = ${fmt(c.gf, 1)} kN/m³`] : []),
+        ...(c && c.phif > 0 ? [`φ = ${fmt(c.phif, 1)}°`] : []),
+        ...(c && c.cf > 0 ? [`c = ${fmt(c.cf, 0)} kPa`] : []),
+        ...(c && c.Su > 0 && clay ? [`Su = ${fmt(c.Su, 0)} kPa`] : []),
+      ],
       look: rock ? 'rock' : clay ? 'clay' : 'sand',
       mesh: box(xa, xb, 0, -depth),
       y0: -depth,

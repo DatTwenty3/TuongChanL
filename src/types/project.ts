@@ -931,6 +931,10 @@ export interface Model3DGroundPart {
   name: string;
   kind: 'strata' | 'cover';
   color: [number, number, number];
+  /** Loại / trạng thái đất (vd. "Sét dẻo cứng"). */
+  kindText: string;
+  /** Các chỉ tiêu hiển thị trong chú giải (vd. "γ = 18 kN/m³"). */
+  props: string[];
   /** Kiểu bề mặt vật liệu (quyết định hoa văn shader). */
   look: 'sand' | 'clay' | 'mud' | 'rock';
   mesh: M3MeshData;
@@ -971,6 +975,8 @@ export interface V3Visibility {
   soil: boolean;
   /** Đất nền theo địa tầng. */
   strata: boolean;
+  /** Nhãn chú thích lớp đất chĩa ra từ mô hình. */
+  labels: boolean;
   grid: boolean;
   rebar: boolean;
 }
