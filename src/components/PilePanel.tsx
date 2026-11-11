@@ -2,11 +2,11 @@ import React from 'react';
 import {
   pileDefaults,
   pileNewLayer,
-  pileNewRow,
+  BORED_METHOD_LABEL,
   type EngineProject,
 } from '../engine';
 import { useAppStore } from '../state/appStore';
-import type { PileConfig, PileSoilKind } from '../types/project';
+import type { PileClayType, PileConfig, PileSandGrain, PileSoilKind } from '../types/project';
 import { CellNum, NumField, OptNumField, SelField, TxtField } from './FieldControls';
 import { Icon } from './Icon';
 
@@ -15,6 +15,22 @@ const KIND_LABEL: Array<[PileSoilKind, string]> = [
   ['sand', 'Đất rời'],
   ['rock', 'Đá'],
 ];
+
+const GRAIN_LABEL: Array<[PileSandGrain, string]> = [
+  ['gravelly', 'Cát lẫn sỏi sạn'],
+  ['coarse', 'Cát thô'],
+  ['medium', 'Cát vừa'],
+  ['fine', 'Cát mịn'],
+  ['silt', 'Cát bụi'],
+];
+
+const CLAY_LABEL: Array<[PileClayType, string]> = [
+  ['sandy', 'Cát pha'],
+  ['loam', 'Sét pha'],
+  ['clay', 'Sét'],
+];
+
+const BORED_OPTIONS = Object.entries(BORED_METHOD_LABEL) as Array<[string, string]>;
 
 type LayerNumKey = 'thk' | 'gamma' | 'c' | 'phi' | 'Su' | 'IL' | 'N' | 'E';
 
@@ -28,139 +44,6 @@ const LAYER_FIELDS: Array<[LayerNumKey, string, number]> = [
   ['N', 'SPT N', 1],
   ['E', 'E (MPa)', 1],
 ];
-
-/** Bảng tra nhập tay (hàng = độ sâu z, cột = nhóm đất). */
-const LookupEditor: React.FC<{
-  which: 'fi' | 'qb';
-  title: string;
-  hint: string;
-}> = ({ which, title, hint }) => {
-  const { project, updateProject } = useAppStore();
-  const q = project.pile as PileConfig;
-  const t = q[which];
-
-  const mut = (f: (tb: PileConfig['fi']) => void) =>
-    updateProject((d) => {
-      if (d.pile) f(d.pile[which]);
-    });
-
-  return (
-    <div className="pgrp" data-table={which}>
-      <div className="pgrp-h">{title}</div>
-      <div className="hint">{hint}</div>
-      <div className="ptab">
-        <table className="rb">
-          <thead>
-            <tr>
-              <th>z (m)</th>
-              {t.cols.map((c, ci) => (
-                <th key={ci}>
-                  <input
-                    type="text"
-                    value={c}
-                    aria-label={`Tên cột ${ci + 1}`}
-                    onChange={(e) =>
-                      mut((tb) => {
-                        tb.cols[ci] = e.target.value;
-                      })
-                    }
-                  />
-                </th>
-              ))}
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {t.rows.map((r) => (
-              <tr key={r.id}>
-                <td>
-                  <CellNum
-                    value={r.z}
-                    step={0.5}
-                    ariaLabel="Độ sâu z"
-                    onCommit={(v) =>
-                      mut((tb) => {
-                        const row = tb.rows.find((x) => x.id === r.id);
-                        if (row && v != null) row.z = v;
-                      })
-                    }
-                  />
-                </td>
-                {t.cols.map((_, ci) => (
-                  <td key={ci}>
-                    <CellNum
-                      value={r.v[ci]}
-                      nullable
-                      step={1}
-                      ariaLabel={`Giá trị cột ${ci + 1}`}
-                      onCommit={(v) =>
-                        mut((tb) => {
-                          const row = tb.rows.find((x) => x.id === r.id);
-                          if (row) row.v[ci] = v;
-                        })
-                      }
-                    />
-                  </td>
-                ))}
-                <td>
-                  <button
-                    type="button"
-                    className="pbtn"
-                    aria-label="Xóa hàng"
-                    title="Xóa hàng"
-                    onClick={() =>
-                      mut((tb) => {
-                        tb.rows = tb.rows.filter((x) => x.id !== r.id);
-                      })
-                    }
-                  >
-                    <Icon name="close" size={13} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      <div className="prow2">
-        <button
-          type="button"
-          onClick={() =>
-            mut((tb) => {
-              const last = tb.rows[tb.rows.length - 1];
-              tb.rows.push(pileNewRow(tb.cols.length, last ? last.z + 2 : 1));
-            })
-          }
-        >
-          <Icon name="plus" size={13} /> Hàng
-        </button>
-        <button
-          type="button"
-          onClick={() =>
-            mut((tb) => {
-              tb.cols.push(`Cột ${tb.cols.length + 1}`);
-              tb.rows.forEach((r) => r.v.push(null));
-            })
-          }
-        >
-          <Icon name="plus" size={13} /> Cột
-        </button>
-        <button
-          type="button"
-          disabled={t.cols.length <= 1}
-          onClick={() =>
-            mut((tb) => {
-              tb.cols.pop();
-              tb.rows.forEach((r) => r.v.pop());
-            })
-          }
-        >
-          <Icon name="minus" size={13} /> Cột
-        </button>
-      </div>
-    </div>
-  );
-};
 
 export const PilePanel: React.FC = () => {
   const { project, updateProject } = useAppStore();
@@ -189,8 +72,8 @@ export const PilePanel: React.FC = () => {
       <>
         {toggleBox}
         <div className="hint">
-          Mô đun mở rộng: khai báo cọc, địa tầng nhiều lớp và bảng tra; mô phỏng và kiểm toán cọc
-          thêm vào ở các bước sau. Khi tắt, mọi kết quả của tường giữ nguyên.
+          Mô đun mở rộng: khai báo cọc, địa tầng nhiều lớp; tính sức chịu tải dọc trục và phản lực đầu
+          cọc theo TCVN 10304:2025. Khi tắt, mọi kết quả của tường giữ nguyên.
         </div>
       </>
     );
@@ -363,41 +246,77 @@ export const PilePanel: React.FC = () => {
                 </label>
               ))}
             </div>
-            {q.method === 'tcvn' ? (
+            {q.method !== 'test' && l.kind === 'sand' ? (
               <div className="pgrid pgrid2">
                 <label className="pcell">
-                  <span>Cột bảng fi</span>
+                  <span>Loại hạt cát</span>
                   <select
-                    value={l.fiCol}
+                    value={l.grain}
+                    aria-label={`Loại hạt – lớp ${i + 1}`}
                     onChange={(e) =>
                       mutLayer(l.id, (x) => {
-                        x.fiCol = parseInt(e.target.value, 10);
+                        x.grain = e.target.value as PileSandGrain;
                       })
                     }
                   >
-                    {colOpts(q.fi.cols).map(([v, t]) => (
-                      <option key={v} value={v}>
+                    {GRAIN_LABEL.map(([k, t]) => (
+                      <option key={k} value={k}>
                         {t}
                       </option>
                     ))}
                   </select>
                 </label>
+              </div>
+            ) : null}
+            {q.method !== 'test' && l.kind === 'clay' ? (
+              <div className="pgrid pgrid2">
                 <label className="pcell">
-                  <span>Cột bảng qb</span>
+                  <span>Loại đất dính</span>
                   <select
-                    value={l.qbCol}
+                    value={l.clayType}
+                    aria-label={`Loại đất dính – lớp ${i + 1}`}
                     onChange={(e) =>
                       mutLayer(l.id, (x) => {
-                        x.qbCol = parseInt(e.target.value, 10);
+                        x.clayType = e.target.value as PileClayType;
                       })
                     }
                   >
-                    {colOpts(q.qb.cols).map(([v, t]) => (
-                      <option key={v} value={v}>
+                    {CLAY_LABEL.map(([k, t]) => (
+                      <option key={k} value={k}>
                         {t}
                       </option>
                     ))}
                   </select>
+                </label>
+              </div>
+            ) : null}
+            {q.method === 'tcvn' ? (
+              <div className="pgrid pgrid2">
+                <label className="pcell">
+                  <span>Hệ số hiệu chỉnh fi</span>
+                  <CellNum
+                    value={l.kf}
+                    step={0.05}
+                    ariaLabel={`Hệ số fi – lớp ${i + 1}`}
+                    onCommit={(v) =>
+                      mutLayer(l.id, (x) => {
+                        if (v != null && v > 0) x.kf = v;
+                      })
+                    }
+                  />
+                </label>
+                <label className="pcell">
+                  <span>Hệ số hiệu chỉnh qb</span>
+                  <CellNum
+                    value={l.kb}
+                    step={0.05}
+                    ariaLabel={`Hệ số qb – lớp ${i + 1}`}
+                    onCommit={(v) =>
+                      mutLayer(l.id, (x) => {
+                        if (v != null && v > 0) x.kb = v;
+                      })
+                    }
+                  />
                 </label>
               </div>
             ) : null}
@@ -422,59 +341,114 @@ export const PilePanel: React.FC = () => {
         </div>
       </div>
 
-      <div className="pgrp">
-        <div className="pgrp-h">Phương pháp xác định sức chịu tải</div>
+      <div className="pgrp" data-grp="design">
+        <div className="pgrp-h">Sức chịu tải – TCVN 10304:2025</div>
         <SelField
           path="pile.method"
           label="Phương pháp"
           stack
           options={[
-            ['tcvn', 'TCVN 10304:2014 – theo chỉ tiêu cơ lý (bảng tra nhập tay)'],
-            ['spt', 'Theo SPT (hệ số nhập tay)'],
+            ['tcvn', 'Theo chỉ tiêu cơ lý (Điều 7.2 – bảng tra tự động)'],
+            ['spt', 'Theo SPT (Phụ lục D)'],
             ['test', 'Nhập sức chịu tải từ thí nghiệm'],
           ]}
         />
+        <SelField
+          path="pile.design.cls"
+          label="Cấp công trình (γn)"
+          stack
+          options={[
+            ['C1', 'Cấp 1 – γn = 1,00'],
+            ['C2', 'Cấp 2 – γn = 1,15'],
+            ['C3', 'Cấp 3 – γn = 1,20'],
+          ]}
+        />
+        <NumField path="pile.design.z0" label="Đáy đài cách mặt đất tự nhiên" unit="m" min={0} max={30} step={0.1} />
         {q.method === 'test' ? (
-          <OptNumField path="pile.Qtest" label="Sức chịu tải giới hạn của một cọc" unit="kN" step={10} min={0} />
-        ) : null}
-        {q.method === 'tcvn' ? (
           <>
-            <OptNumField path="pile.coef.gc" label="Hệ số điều kiện làm việc của cọc γc" step={0.05} min={0} />
-            <OptNumField path="pile.coef.gcq" label="Hệ số điều kiện làm việc dưới mũi γcq" step={0.05} min={0} />
-            <OptNumField path="pile.coef.gcf" label="Hệ số điều kiện làm việc thân cọc γcf" step={0.05} min={0} />
+            <OptNumField path="pile.Qtest" label="Sức chịu tải giới hạn của một cọc" unit="kN" step={10} min={0} />
+            <SelField
+              path="pile.design.testKind"
+              label="Loại thí nghiệm (γk)"
+              stack
+              options={[
+                ['static', 'Nén tĩnh'],
+                ['dynElastic', 'Động, có xét biến dạng đàn hồi'],
+                ['dynNoElastic', 'Động, không xét biến dạng đàn hồi'],
+              ]}
+            />
           </>
         ) : null}
-        {q.method === 'spt' ? (
+        {q.method === 'tcvn' && q.type !== 'bored' ? (
+          <SelField
+            path="pile.design.install"
+            label="Phương pháp hạ cọc (γR)"
+            stack
+            options={[
+              ['hammer', 'Đóng bằng búa'],
+              ['press', 'Ép'],
+              ['custom', 'Nhập hệ số'],
+            ]}
+          />
+        ) : null}
+        {q.method === 'tcvn' && q.type !== 'bored' && q.design.install === 'custom' ? (
           <>
-            <OptNumField path="pile.spt.ksSand" label="Ma sát hông đất rời = ks × N" unit="kPa/búa" step={0.5} min={0} />
-            <OptNumField path="pile.spt.ksClay" label="Ma sát hông đất dính = ks × N" unit="kPa/búa" step={0.5} min={0} />
-            <OptNumField path="pile.spt.kbSand" label="Sức kháng mũi đất rời = kb × N" unit="kPa/búa" step={10} min={0} />
-            <OptNumField path="pile.spt.kbClay" label="Sức kháng mũi đất dính = kb × N" unit="kPa/búa" step={10} min={0} />
-            <OptNumField path="pile.spt.fsMax" label="Giới hạn ma sát hông" unit="kPa" step={5} min={0} />
-            <OptNumField path="pile.spt.qbMax" label="Giới hạn sức kháng mũi" unit="kPa" step={100} min={0} />
+            <NumField path="pile.design.gRR" label="γR,R dưới mũi" min={0.1} max={2} step={0.05} />
+            <NumField path="pile.design.gRf" label="γR,f thân cọc" min={0.1} max={2} step={0.05} />
           </>
         ) : null}
-        <OptNumField path="pile.coef.gk" label="Hệ số an toàn theo đất γk" step={0.05} min={0} />
+        {q.method === 'tcvn' && q.type === 'bored' ? (
+          <SelField path="pile.design.bored" label="Phương pháp thi công (Bảng 6)" stack options={BORED_OPTIONS} />
+        ) : null}
+        {q.method === 'tcvn' && q.type === 'bored' ? (
+          <label className="chk">
+            <input
+              type="checkbox"
+              checked={q.design.srLow}
+              data-path="pile.design.srLow"
+              onChange={(e) =>
+                updateProject((d) => {
+                  if (d.pile) d.pile.design.srLow = e.target.checked;
+                })
+              }
+            />
+            {' Mũi cọc tựa đất sét có Sr < 0,85 (γc = 0,8)'}
+          </label>
+        ) : null}
+        {q.type === 'phc' ? (
+          <label className="chk">
+            <input
+              type="checkbox"
+              checked={q.design.tipClosed}
+              data-path="pile.design.tipClosed"
+              onChange={(e) =>
+                updateProject((d) => {
+                  if (d.pile) d.pile.design.tipClosed = e.target.checked;
+                })
+              }
+            />
+            {' Cọc có mũi thép kín'}
+          </label>
+        ) : null}
+        <label className="chk">
+          <input
+            type="checkbox"
+            checked={q.design.selfWeight}
+            data-path="pile.design.selfWeight"
+            onChange={(e) =>
+              updateProject((d) => {
+                if (d.pile) d.pile.design.selfWeight = e.target.checked;
+              })
+            }
+          />
+          {' Kể trọng lượng bản thân cọc vào tải tác dụng'}
+        </label>
         <div className="hint">
-          Ứng dụng không tự điền số liệu tra bảng của tiêu chuẩn: ô để trống nghĩa là chưa nhập và
-          phần tính sức chịu tải sẽ báo thiếu số liệu thay vì cho kết quả.
+          Các bảng tra qb, fi (Bảng 2, 3, 6, 7, 8 và Phụ lục D) được nhúng sẵn và tự tra theo từng lớp
+          đất: độ sâu tính từ mặt đất tự nhiên, nội suy tuyến tính theo độ sâu và độ sệt IL. Tải trọng lấy
+          từ các tổ hợp của tường theo TCVN 11823 (đã nhân hệ số), sức kháng của cọc theo TCVN 10304.
         </div>
       </div>
-
-      {q.method === 'tcvn' ? (
-        <>
-          <LookupEditor
-            which="fi"
-            title="Bảng ma sát hông fi (kPa)"
-            hint="Mỗi hàng là một độ sâu trung bình z của lớp đất (m, tính từ mặt đất theo bảng tiêu chuẩn); mỗi cột là một nhóm đất / độ sệt. Giá trị được nội suy theo z."
-          />
-          <LookupEditor
-            which="qb"
-            title="Bảng sức kháng mũi qb (kPa)"
-            hint="Mỗi hàng là độ sâu mũi cọc z (m); mỗi cột là một nhóm đất dưới mũi. Giá trị được nội suy theo z."
-          />
-        </>
-      ) : null}
 
       <label className="chk">
         <input

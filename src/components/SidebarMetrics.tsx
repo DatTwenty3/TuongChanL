@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  calcChecks,
+  allChecks,
   calcFeStale,
   fmt,
   fmt2,
@@ -69,7 +69,7 @@ export const SidebarMetrics: React.FC = () => {
       );
     }
 
-    const checks = calcChecks(R);
+    const checks = allChecks(project, R);
     const bad = checks.filter((x) => !x.ok && !x.info);
     const inf = checks.filter((x) => !x.ok && x.info);
     const feStale = calcFeStale(project);
@@ -87,7 +87,9 @@ export const SidebarMetrics: React.FC = () => {
                 key={x.id}
                 className={cls}
                 title={
-                  x.info
+                  x.tip
+                    ? x.tip
+                    : x.info
                     ? 'Đối chiếu bằng mô hình FE, không tính vào kết luận (đổi ở mục 7)'
                     : 'Hệ số sử dụng = nhu cầu / khả năng (≤ 1 là đạt)'
                 }

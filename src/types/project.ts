@@ -224,6 +224,8 @@ export type LegacyCalcConfigInput = Partial<CalcConfig> & {
 export type PileType = 'sq' | 'phc' | 'bored';
 export type PileMethod = 'tcvn' | 'spt' | 'test';
 export type PileSoilKind = 'sand' | 'clay' | 'rock';
+export type PileSandGrain = 'gravelly' | 'coarse' | 'medium' | 'fine' | 'silt';
+export type PileClayType = 'sandy' | 'loam' | 'clay';
 
 /** Một lớp đất, độ sâu tính từ đáy bản đáy (đáy đài) xuống. */
 export interface PileSoilLayer {
@@ -246,50 +248,16 @@ export interface PileSoilLayer {
   N: number;
   /** Mô đun biến dạng E (MPa). */
   E: number;
-  /** Chỉ số cột trong bảng fi (ma sát hông) cho lớp này; -1 = chưa chọn. */
-  fiCol: number;
-  /** Chỉ số cột trong bảng qb (sức kháng mũi) khi mũi cọc nằm trong lớp; -1 = chưa chọn. */
-  qbCol: number;
+  /** Loại hạt của đất rời (tra Bảng 2 / 3 của TCVN 10304:2025). */
+  grain: PileSandGrain;
+  /** Loại đất dính (tra Bảng 6 khi cọc khoan nhồi): cát pha / sét pha / sét. */
+  clayType: PileClayType;
+  /** Hệ số hiệu chỉnh fi theo Chú thích của Bảng 3 (ví dụ cát chặt: 1,30); mặc định 1. */
+  kf: number;
+  /** Hệ số hiệu chỉnh qb theo Chú thích của Bảng 2; mặc định 1. */
+  kb: number;
   /** Hệ số nền ngang K (kN/m⁴) – dùng cho cọc chịu tải ngang; null = chưa nhập. */
   K: number | null;
-}
-
-export interface PileLookupRow {
-  id: string;
-  /** Độ sâu z (m) mà hàng này áp dụng; nội suy tuyến tính giữa các hàng. */
-  z: number;
-  /** Giá trị theo từng cột; null = ô trống. */
-  v: Array<number | null>;
-}
-
-/** Bảng tra do người dùng tự nhập (ví dụ bảng fi, qb theo tiêu chuẩn). */
-export interface PileLookupTable {
-  cols: string[];
-  rows: PileLookupRow[];
-}
-
-/** Hệ số do người dùng nhập; null = chưa nhập (không tính). */
-export interface PileCoef {
-  /** Hệ số điều kiện làm việc của cọc trong đất. */
-  gc: number | null;
-  /** Hệ số điều kiện làm việc của đất dưới mũi cọc. */
-  gcq: number | null;
-  /** Hệ số điều kiện làm việc của đất trên thân cọc. */
-  gcf: number | null;
-  /** Hệ số an toàn theo đất. */
-  gk: number | null;
-}
-
-/** Hệ số tương quan SPT do người dùng nhập (kPa trên mỗi búa); null = chưa nhập. */
-export interface PileSptParams {
-  ksSand: number | null;
-  ksClay: number | null;
-  kbSand: number | null;
-  kbClay: number | null;
-  /** Giới hạn trên của ma sát hông (kPa). */
-  fsMax: number | null;
-  /** Giới hạn trên của sức kháng mũi (kPa). */
-  qbMax: number | null;
 }
 
 /** Lồng thép cọc do người dùng nhập (cọc vuông đúc sẵn / khoan nhồi). Cọc ly tâm là sản phẩm chế tạo sẵn nên không có lồng thép rời. */
@@ -308,6 +276,34 @@ export interface PileCage {
   Lend: number;
   /** Chiều dài móc neo mỗi đai (mm), cộng thêm vào chiều dài đai. */
   hook: number;
+}
+
+export type PileStructClass = 'C1' | 'C2' | 'C3';
+export type PileInstallDriven = 'hammer' | 'press' | 'custom';
+export type PileBoredMethod = 'cast' | 'vibro' | 'dry' | 'wet' | 'dryHard' | 'barrette';
+export type PileTestKind = 'static' | 'dynElastic' | 'dynNoElastic';
+
+/** Thông số tính sức chịu tải cọc theo TCVN 10304:2025. */
+export interface PileDesign {
+  /** Cấp hậu quả của công trình → γn = 1,0 / 1,15 / 1,20 (Điều 7.1.6.1). */
+  cls: PileStructClass;
+  /** Độ sâu đáy đài so với mặt đất tự nhiên / quy hoạch (m); bảng tra tính độ sâu từ mặt đất này. */
+  z0: number;
+  /** Phương pháp hạ cọc đóng / ép (Bảng 4). */
+  install: PileInstallDriven;
+  /** γR,R và γR,f khi `install === 'custom'`. */
+  gRR: number;
+  gRf: number;
+  /** Phương pháp thi công cọc khoan nhồi (Bảng 6). */
+  bored: PileBoredMethod;
+  /** Mũi cọc tựa đất loại sét có độ bão hòa Sr < 0,85 → γc = 0,8 (Điều 7.2.3.1). */
+  srLow: boolean;
+  /** Cọc ly tâm có mũi thép kín (η = 1; không xét hiệu ứng mũi hở). */
+  tipClosed: boolean;
+  /** Kể trọng lượng bản thân cọc vào tải tác dụng lên cọc (Chú thích 2, Điều 7.1.6.1). */
+  selfWeight: boolean;
+  /** Loại thí nghiệm khi `method === 'test'` (quyết định γk). */
+  testKind: PileTestKind;
 }
 
 export interface PileConfig {
@@ -344,10 +340,7 @@ export interface PileConfig {
   method: PileMethod;
   /** Sức chịu tải giới hạn một cọc từ thí nghiệm (kN) khi `method === 'test'`. */
   Qtest: number | null;
-  coef: PileCoef;
-  spt: PileSptParams;
-  fi: PileLookupTable;
-  qb: PileLookupTable;
+  design: PileDesign;
 
   /** Khi bật cọc: kiểm tra sức kháng nền nông / trượt đáy móng chỉ mang tính tham khảo. */
   ignoreShallow: boolean;
@@ -1827,7 +1820,7 @@ export type CalcRunResult =
 // ---------------------------------------------------------------------------
 
 export type AppViewMode = '2d' | '3d' | 'calc';
-export type CalcSubTab = 'sheet' | 'gs' | 'rb' | 'fe';
+export type CalcSubTab = 'sheet' | 'gs' | 'rb' | 'fe' | 'pile';
 export type ToastKind = '' | 'ok' | 'err' | 'wait';
 
 export interface ToastAction {

@@ -64,7 +64,7 @@ import { setCalcDec as setReportDec, type FeInteractiveState } from '../reports'
 import type { CadSheet, QuantitiesResult } from '../types/project';
 
 export type WorkspaceViewMode = '2d' | '3d' | 'calc';
-export type CalcSubTab = 'sheet' | 'gs' | 'rb' | 'fe';
+export type CalcSubTab = 'sheet' | 'gs' | 'rb' | 'fe' | 'pile';
 export type ToastKind = '' | 'ok' | 'err' | 'wait';
 
 export interface ToastMessage {

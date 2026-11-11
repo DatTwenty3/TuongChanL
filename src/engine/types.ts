@@ -569,6 +569,8 @@ export interface EngineCheckItem {
   v: number;
   ok: boolean;
   info?: boolean;
+  /** Chú thích hiển thị khi rê chuột (nếu có). */
+  tip?: string;
 }
 
 export interface EngineRebarCandidate {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { SHEET_DEFS } from './cad';
-import { calcBadgeStatus, fmt } from './engine';
+import { badgeStatusAll, fmt } from './engine';
 import {
   Cad2DViewport,
   CalcReportViewport,
@@ -61,7 +61,7 @@ const AppWorkspace: React.FC = () => {
     () => typeof window === 'undefined' || !window.matchMedia?.('(max-width: 900px)').matches,
   );
 
-  const badge = calcBadgeStatus(calcResult, project);
+  const badge = badgeStatusAll(calcResult, project);
   const sh = getSheet(curSheet);
   const sinfoText = `Cụm chi tiết · tỷ lệ 1/${sh.S} · rộng ${fmt((sh.W * 10) / sh.S, 0)} × cao ${fmt((sh.H * 10) / sh.S, 0)} mm trên giấy${
     sh.fits || sh.noScale ? '' : ` · ⚠ vượt khổ ${project.paper} (chọn tỷ lệ nhỏ hơn)`

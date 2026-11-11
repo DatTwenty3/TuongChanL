@@ -4,6 +4,7 @@ import {
   calcFeStale,
   getFeCache,
   isCalcValid,
+  pileOn,
   setCalcDec as setEngineCalcDec,
   type EngineProject,
 } from '../engine';
@@ -11,6 +12,7 @@ import {
   FE_KLAB,
   FE_VIEWS,
   calcGsView,
+  calcPileSheetHtml,
   calcRbView,
   calcSheetHTML,
   cfFeContour,
@@ -264,13 +266,16 @@ export const CalcReportViewport: React.FC = () => {
   const hostRef = useRef<HTMLDivElement | null>(null);
 
   const feOn = Boolean(project.calc?.feOn);
-  const activeSub = !feOn && calcSub === 'fe' ? 'sheet' : calcSub;
+  const pileShown = pileOn(project);
+  const activeSub =
+    (!feOn && calcSub === 'fe') || (!pileShown && calcSub === 'pile') ? 'sheet' : calcSub;
 
   const helperTexts: Record<string, string> = {
     sheet: 'Bảng tính kiểm toán đầy đủ (in, xuất Word)',
     gs: 'Hệ số an toàn trượt, lật, cung trượt Bishop; bản đồ áp lực nước lỗ rỗng, vùng chảy dẻo, chuyển vị và lưới biến dạng',
     rb: 'Sơ đồ bố trí cốt thép có mác, bảng thống kê chi tiết cho 1 m dài tường, kết luận',
     fe: 'M, V, N của từng phần tử thân – bản đáy – sườn, theo tổ hợp',
+    pile: 'Sức chịu tải cọc, phản lực đầu cọc theo tổ hợp, kiểm tra theo TCVN 10304:2025',
   };
 
   const valid = isCalcValid(calcResult);
@@ -290,6 +295,7 @@ export const CalcReportViewport: React.FC = () => {
     setReportDec(dec);
     setEngineCalcDec(dec);
     if (activeSub === 'fe') return '';
+    if (activeSub === 'pile') return calcPileSheetHtml(project, calcResult);
     if (activeSub === 'gs' && valid && calcResult.g) {
       return calcGsView(project, calcResult);
     }
@@ -323,6 +329,15 @@ export const CalcReportViewport: React.FC = () => {
         >
           Bố trí thép
         </button>
+        {pileShown ? (
+          <button
+            type="button"
+            className={activeSub === 'pile' ? 'on' : undefined}
+            onClick={() => setCalcSub('pile')}
+          >
+            Móng cọc
+          </button>
+        ) : null}
         {feOn ? (
           <button
             type="button"

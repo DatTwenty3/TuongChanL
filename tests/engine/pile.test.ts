@@ -33,12 +33,12 @@ describe('pile – nền tảng dữ liệu (tắt = không ảnh hưởng)', ()
     const p = presetCanti(500) as EngineProject;
     p.pile = pileDefaults();
     p.pile.L = 24.5;
-    p.pile.coef.gk = 1.4;
+    p.pile.design.z0 = 1.4;
     p.pile.layers.push(pileNewLayer({ name: 'Lớp thêm', thk: 3 }));
     const back = parseProjectFile(serializeProject(p));
     expect(back.pile).toBeDefined();
     expect(back.pile?.L).toBe(24.5);
-    expect(back.pile?.coef.gk).toBe(1.4);
+    expect(back.pile?.design.z0).toBe(1.4);
     expect(back.pile?.layers.length).toBe(4);
     const once = JSON.stringify(back.pile);
     pileEnsure(back);
@@ -52,21 +52,20 @@ describe('pile – nền tảng dữ liệu (tắt = không ảnh hưởng)', ()
     expect(q.L).toBe(30);
     expect(q.type).toBe('sq');
     expect(q.layers.length).toBeGreaterThan(0);
-    expect(q.fi.cols.length).toBeGreaterThan(0);
-    // hàng bảng luôn có đủ số ô theo số cột
-    for (const r of q.fi.rows) expect(r.v.length).toBe(q.fi.cols.length);
+    // cấu hình thiết kế được điền đủ
+    expect(q.design.cls).toBe('C2');
+    expect(q.layers.every((l) => l.kf === 1 && l.kb === 1)).toBe(true);
     // id lớp đất duy nhất
     const ids = q.layers.map((l) => l.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it('bảng tra và hệ số mặc định để trống (không nhúng số liệu tiêu chuẩn)', () => {
+  it('mặc định thiết kế: cấp 2, tra bảng tự động, không có bảng nhập tay', () => {
     const d = pileDefaults();
-    expect(Object.values(d.coef).every((v) => v === null)).toBe(true);
-    expect(Object.values(d.spt).every((v) => v === null)).toBe(true);
+    expect(d.method).toBe('tcvn');
+    expect(d.design.cls).toBe('C2');
     expect(d.Qtest).toBeNull();
-    for (const t of [d.fi, d.qb]) {
-      for (const r of t.rows) expect(r.v.every((v) => v === null)).toBe(true);
-    }
+    expect('fi' in d).toBe(false);
+    expect('coef' in d).toBe(false);
   });
 });

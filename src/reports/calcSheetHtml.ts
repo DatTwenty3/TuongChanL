@@ -1,8 +1,10 @@
+import { calcPileSheetHtml } from './calcPileSheet';
 import {
   CALC,
   buildBars,
   calcGsOut,
   keyOn,
+  pileOn,
   quantities,
   setCalcDec as setEngineCalcDec,
   unitW,
@@ -1393,8 +1395,10 @@ export function calcSheetHTML(
     return `<p class="small">${R.msg}</p>`;
   }
   const Rv = R as CalcValidResult;
-  if (Rv.model === 'canti') {
-    return calcSheetCanti(P, Rv as CantiCalcResult);
-  }
-  return calcSheetRib(P, Rv as RibCalcResult);
+  const main =
+    Rv.model === 'canti'
+      ? calcSheetCanti(P, Rv as CantiCalcResult)
+      : calcSheetRib(P, Rv as RibCalcResult);
+  // Móng cọc (mô đun mở rộng): chỉ nối thêm khi bật; tắt thì kết quả giữ nguyên từng ký tự.
+  return pileOn(P) ? main + calcPileSheetHtml(P, R) : main;
 }

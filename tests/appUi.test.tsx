@@ -928,7 +928,7 @@ describe('TuongChanL Web App UI integration (Easy -> Medium -> Hard -> Special)'
     expect(errorSpy).not.toHaveBeenCalled();
   }, 45000);
 
-  it('Móng cọc: bật/tắt mục 12, sửa địa tầng và bảng tra mà không ảnh hưởng kết quả tường', async () => {
+  it('Móng cọc: bật/tắt mục 12, sửa địa tầng và thông số thiết kế mà không ảnh hưởng kết quả tường', async () => {
     await mountApp();
     const kpi = () => Array.from(container.querySelectorAll('#sum .card')).map((c) => c.textContent);
     const kpi0 = kpi();
@@ -969,23 +969,20 @@ describe('TuongChanL Web App UI integration (Easy -> Medium -> Hard -> Special)'
     });
     expect(container.querySelectorAll('#panel [data-layer]').length).toBe(3);
 
-    // ô hệ số trống = null (chưa nhập), nhập được 0 và số thực
-    const gk = container.querySelector('#panel input[data-path="pile.coef.gk"]') as HTMLInputElement;
-    expect(gk.value).toBe('');
+    // ô thiết kế: nhập số thực; bảng tra nhúng sẵn nên không còn bảng nhập tay
+    const z0 = container.querySelector('#panel input[data-path="pile.design.z0"]') as HTMLInputElement;
+    expect(z0.value).toBe('1');
     await act(async () => {
-      setInputValue(gk, '1.4');
+      setInputValue(z0, '1.4');
     });
-    expect((container.querySelector('#panel input[data-path="pile.coef.gk"]') as HTMLInputElement).value).toBe('1.4');
-
-    // bảng tra fi: thêm hàng và cột
-    const fiBox = container.querySelector('#panel [data-table="fi"]') as HTMLElement;
-    const rows0 = fiBox.querySelectorAll('tbody tr').length;
-    await act(async () => {
-      Array.from(fiBox.querySelectorAll<HTMLButtonElement>('.prow2 button'))
-        .find((b) => b.textContent?.includes('Hàng'))!
-        .click();
-    });
-    expect((container.querySelector('#panel [data-table="fi"]') as HTMLElement).querySelectorAll('tbody tr').length).toBe(rows0 + 1);
+    expect((container.querySelector('#panel input[data-path="pile.design.z0"]') as HTMLInputElement).value).toBe('1.4');
+    expect(container.querySelector('#panel [data-table]')).toBeNull();
+    // mỗi lớp đất sét có bộ chọn loại đất dính; có kiểm tra cọc ở thanh bên và tab con "Móng cọc"
+    expect(container.querySelector('#panel [data-layer] select[aria-label^="Loại đất dính"]')).not.toBeNull();
+    expect(container.querySelector('#sum')?.textContent).toContain('Sức chịu tải cọc');
+    expect(
+      Array.from(container.querySelectorAll('#calcv .csub button')).some((b) => b.textContent === 'Móng cọc'),
+    ).toBe(true);
 
     // tắt cọc: các lớp biến mất khỏi UI nhưng KPI tường không đổi
     await act(async () => {
