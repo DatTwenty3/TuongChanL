@@ -229,12 +229,12 @@ export function gammaKCompression(
   test: TestKind,
   n: number,
   NdMax: number,
-  pile: 'sq' | 'phc' | 'bored',
+  pile: 'sq' | 'rc' | 'phc' | 'bored',
 ): { v: number; note: string } {
   let v = method === 'spt' ? 1.5 : method === 'test' ? (test === 'static' ? 1.2 : test === 'dynElastic' ? 1.25 : 1.4) : 1.4;
   let note = method === 'spt' ? 'xác định theo SPT' : method === 'test' ? 'theo thí nghiệm' : 'tính theo các bảng tra của tiêu chuẩn';
   if (n === 1 && method !== 'test') {
-    const lim = pile === 'sq' ? 600 : pile === 'bored' ? 2500 : Infinity;
+    const lim = pile === 'sq' || pile === 'rc' ? 600 : pile === 'bored' ? 2500 : Infinity;
     if (NdMax > lim) {
       v = 1.6;
       note += `; móng một cọc có tải > ${lim} kN`;

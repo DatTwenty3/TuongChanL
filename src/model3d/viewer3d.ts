@@ -114,25 +114,97 @@ export const V3_FS_MESH =
   V3_FS_HEAD +
   'varying vec3 vN;\nvoid main(){ if (dot(uClip.xyz, vW) > uClip.w) discard; float d = abs(dot(normalize(vN), uL)); gl_FragColor = vec4(uCol * (0.6 + 0.4 * d), uA); }';
 
-/**
- * Bề mặt vật liệu đất (mở rộng): hạt + vân lớp trầm tích + mặt trên phủ cỏ. Tách khỏi `V3_FS_MESH`
- * (giữ nguyên để đối chiếu bản gốc); dùng chung `V3_VS_MESH`.
- */
-export const V3_FS_SOIL =
-  V3_FS_HEAD +
-  `varying vec3 vN; uniform vec3 uTop; uniform float uTopK; uniform float uBand;
+/** Hàm nhiễu dùng chung cho shader bề mặt vật liệu (bê tông, đất). Mờ dần các tầng nhiễu nhỏ hơn điểm ảnh để không lấp lánh. */
+const V3_GLSL_NOISE = `varying vec3 vN;
+#ifdef GL_OES_standard_derivatives
+float pxw(){ return length(fwidth(vW)); }
+#else
+float pxw(){ return 0.8; }
+#endif
 float hh(vec3 p){ return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
 float vn(vec3 p){ vec3 i = floor(p); vec3 f = fract(p); f = f * f * (3.0 - 2.0 * f);
   float a = hh(i), b = hh(i + vec3(1.0, 0.0, 0.0)), c = hh(i + vec3(0.0, 1.0, 0.0)), d = hh(i + vec3(1.0, 1.0, 0.0));
   float e = hh(i + vec3(0.0, 0.0, 1.0)), g = hh(i + vec3(1.0, 0.0, 1.0)), k = hh(i + vec3(0.0, 1.0, 1.0)), l = hh(i + vec3(1.0, 1.0, 1.0));
   return mix(mix(mix(a, b, f.x), mix(c, d, f.x), f.y), mix(mix(e, g, f.x), mix(k, l, f.x), f.y), f.z); }
+float nz(vec3 p, float s, float fw){ return mix(0.5, vn(p / s), 1.0 - smoothstep(0.35 * s, 1.1 * s, fw)); }
+float ridge(vec3 p, float s, float fw){ return mix(0.7, abs(vn(p / s) * 2.0 - 1.0), 1.0 - smoothstep(0.35 * s, 1.1 * s, fw)); }
+`;
+
+/**
+ * Bê tông (mở rộng): xám xi măng, đốm cốt liệu, lỗ rỗng, mối nối ván khuôn và lỗ ty xuyên.
+ * uMode: 0 = bê tông tường / bản (có ván khuôn), 1 = bê tông lót (nhám), 2 = cọc (nhẵn, không ván khuôn).
+ * Tách khỏi `V3_FS_MESH` (giữ nguyên để đối chiếu bản gốc).
+ */
+export const V3_FS_CONC =
+  '#extension GL_OES_standard_derivatives : enable\n' +
+  V3_FS_HEAD +
+  V3_GLSL_NOISE +
+  `uniform float uMode;
 void main(){ if (dot(uClip.xyz, vW) > uClip.w) discard;
-  vec3 n = normalize(vN); float d = abs(dot(n, uL));
-  float gr = vn(vW / 26.0) * 0.5 + vn(vW / 9.0) * 0.32 + vn(vW / 3.2) * 0.18;
-  float bed = sin(vW.y * 0.16 + vn(vec3(vW.x / 55.0, vW.y / 40.0, vW.z / 55.0)) * 6.0) * 0.5 + 0.5;
-  vec3 col = uCol * (0.74 + 0.4 * gr + uBand * 0.2 * (bed - 0.5));
-  float top = smoothstep(0.65, 0.95, n.y) * uTopK;
-  col = mix(col, uTop * (0.8 + 0.4 * gr), top);
+  vec3 n = normalize(vN); vec3 an = abs(n); float fw = pxw();
+  float d = abs(dot(n, uL));
+  float mott = nz(vW, 46.0, fw) * 0.45 + nz(vW, 13.0, fw) * 0.35 + nz(vW, 3.6, fw) * 0.2;
+  float fine = nz(vW, 0.8, fw);
+  float pore = smoothstep(0.80, 0.92, nz(vW + 11.3, 1.5, fw)) * (uMode > 1.5 ? 0.35 : 1.0);
+  float rough = uMode > 0.5 && uMode < 1.5 ? 1.6 : 1.0;
+  vec3 col = uCol * (0.80 + 0.36 * mott + 0.12 * rough * (fine - 0.5)) * (1.0 - 0.40 * pore);
+  if (uMode < 0.5 && an.y < 0.6) {
+    float h = an.x > an.z ? vW.z : vW.x;
+    float sy = abs(fract(vW.y / 120.0 + 0.5) - 0.5) * 120.0;
+    float sh = abs(fract(h / 240.0 + 0.5) - 0.5) * 240.0;
+    float lw = 0.3 + fw * 0.7;
+    float seam = 1.0 - smoothstep(lw, lw * 2.4, min(sy, sh));
+    vec2 g = vec2(fract(h / 60.0) - 0.5, fract(vW.y / 60.0) - 0.5) * 60.0;
+    float hole = 1.0 - smoothstep(1.2, 2.2 + fw, length(g));
+    float fadeF = 1.0 - smoothstep(4.0, 14.0, fw);
+    col *= 1.0 - fadeF * (0.32 * seam + 0.45 * hole);
+  }
+  float sp = pow(d, 18.0) * 0.05;
+  gl_FragColor = vec4(col * (0.52 + 0.58 * d) + vec3(sp), uA); }`;
+
+/**
+ * Đất (mở rộng): vật liệu theo loại — uKind: 0 cát, 1 sét, 2 bùn, 3 đá, 4 đất đắp.
+ * Mặt trên (uTopK > 0) phủ cỏ. Tách khỏi `V3_FS_MESH`; dùng chung `V3_VS_MESH`.
+ */
+export const V3_FS_SOIL =
+  '#extension GL_OES_standard_derivatives : enable\n' +
+  V3_FS_HEAD +
+  V3_GLSL_NOISE +
+  `uniform vec3 uTop; uniform float uTopK; uniform float uKind;
+void main(){ if (dot(uClip.xyz, vW) > uClip.w) discard;
+  vec3 n = normalize(vN); float fw = pxw(); float d = abs(dot(n, uL));
+  float m = nz(vW, 60.0, fw) * 0.45 + nz(vW, 20.0, fw) * 0.35 + nz(vW, 6.0, fw) * 0.2;
+  float g1 = nz(vW, 1.1, fw); float g2 = nz(vW, 0.45, fw);
+  float bed = sin(vW.y * 0.20 + nz(vW, 90.0, fw) * 7.0) * 0.5 + 0.5;
+  vec3 col = uCol; float tone = 0.80 + 0.40 * m;
+  if (uKind < 0.5) {
+    tone *= 0.88 + 0.24 * g1 + 0.12 * (g2 - 0.5);
+    float lam = smoothstep(0.7, 0.95, sin(vW.y * 1.3 + nz(vW, 30.0, fw) * 9.0) * 0.5 + 0.5);
+    tone *= 1.0 - 0.10 * lam - 0.30 * smoothstep(0.78, 0.9, g2);
+  } else if (uKind < 1.5) {
+    float cr = 1.0 - smoothstep(0.02, 0.06 + fw * 0.02, ridge(vW, 9.0, fw));
+    tone *= (0.92 + 0.14 * g1) * (0.94 + 0.12 * bed) * (1.0 - 0.38 * cr);
+  } else if (uKind < 2.5) {
+    tone *= (0.85 + 0.30 * nz(vW, 14.0, fw)) * (0.95 + 0.10 * bed);
+    col = mix(col, vec3(0.75, 0.72, 0.62), 0.55 * smoothstep(0.88, 0.97, nz(vW + 5.0, 0.9, fw)));
+  } else if (uKind < 3.5) {
+    float cr = 1.0 - smoothstep(0.03, 0.09 + fw * 0.02, ridge(vW, 22.0, fw));
+    tone *= (0.80 + 0.30 * g1 + 0.10 * nz(vW, 3.0, fw)) * (1.0 - 0.45 * cr);
+  } else {
+    tone *= 0.80 + 0.30 * nz(vW, 8.0, fw) + 0.25 * (g1 - 0.5);
+    vec3 q = vW / 3.0; vec3 id = floor(q); vec3 f = fract(q) - 0.5;
+    float rr = 0.16 + 0.16 * hh(id + 1.7);
+    float blob = step(0.82, hh(id)) * (1.0 - smoothstep(rr * 0.75, rr, length(f))) * (1.0 - smoothstep(2.0, 6.0, fw));
+    col = mix(col, vec3(0.62, 0.58, 0.52) * (0.8 + 0.4 * hh(id + 9.0)), blob);
+  }
+  col *= tone;
+  float top = smoothstep(0.6, 0.92, n.y) * uTopK;
+  if (top > 0.0) {
+    float blade = nz(vec3(vW.x * 2.5, vW.y, vW.z * 2.5), 1.0, fw) * 0.5 + nz(vW, 0.5, fw) * 0.5;
+    vec3 gc = mix(uTop * 0.7, uTop * 1.25, nz(vW, 30.0, fw)) * (0.75 + 0.5 * blade);
+    gc = mix(gc, vec3(0.55, 0.50, 0.26), 0.35 * smoothstep(0.55, 0.8, nz(vW + 3.0, 18.0, fw)));
+    col = mix(col, gc, top);
+  }
   gl_FragColor = vec4(col * (0.5 + 0.5 * d), uA); }`;
 
 export const V3_VS_LINE =
@@ -467,6 +539,7 @@ export class V3 implements V3State {
     edges: true,
     blind: true,
     soil: true,
+    strata: true,
     grid: true,
     rebar: true,
   };
@@ -475,9 +548,9 @@ export class V3 implements V3State {
   hover: V3HoverHit | null = null;
   cam: V3CameraState = { tx: 0, ty: 0, tz: 0, dist: 1e3, yaw: 1, pitch: 0.42, ortho: false };
   fov = (35 * Math.PI) / 180;
-  /** Độ mờ đục bề mặt 0..1 (0 = trong suốt, 1 = đặc); `alpha` (bê tông) suy ra từ đây. */
+  /** Độ mờ bề mặt 0..1 (0 = đặc, 1 = trong suốt hoàn toàn); `alpha` (độ đặc bê tông) suy ra từ đây. */
   surf = 0.5;
-  alpha = 0.25;
+  alpha = 0.5;
   kd = 1;
   colorMode: V3ColorMode = 'mark';
   clip: V3ClipState = { axis: '', t: 1, flip: false };
@@ -503,6 +576,7 @@ export class V3 implements V3State {
   private pMesh: V3ShaderProgram | null = null;
   private pLine: V3ShaderProgram | null = null;
   private pSoil: V3ShaderProgram | null = null;
+  private pConc: V3ShaderProgram | null = null;
   private animRaf = 0;
   private resizeObs: ResizeObserver | null = null;
   private unbindEvents: (() => void) | null = null;
@@ -548,6 +622,7 @@ export class V3 implements V3State {
       this.pMesh = null;
       this.pLine = null;
       this.pSoil = null;
+      this.pConc = null;
       this.errMsg =
         'Trình duyệt / máy này không hỗ trợ WebGL nên không xem được 3D. Bản vẽ 2D vẫn dùng bình thường.';
       this.notify();
@@ -559,7 +634,9 @@ export class V3 implements V3State {
       this.pTube = v3Prog(gl, V3_VS_TUBE, V3_FS_TUBE, ['aC', 'aO', 'aN', 'aR']);
       this.pMesh = v3Prog(gl, V3_VS_MESH, V3_FS_MESH, ['aP', 'aN']);
       this.pLine = v3Prog(gl, V3_VS_LINE, V3_FS_LINE, ['aP']);
+      if (typeof gl.getExtension === 'function') gl.getExtension('OES_standard_derivatives');
       this.pSoil = v3Prog(gl, V3_VS_MESH, V3_FS_SOIL, ['aP', 'aN']);
+      this.pConc = v3Prog(gl, V3_VS_MESH, V3_FS_CONC, ['aP', 'aN']);
     } catch (e) {
       this.ok = false;
       this.gl = null;
@@ -567,6 +644,7 @@ export class V3 implements V3State {
       this.pMesh = null;
       this.pLine = null;
       this.pSoil = null;
+      this.pConc = null;
       this.errMsg = 'Lỗi khởi tạo WebGL: ' + (e instanceof Error ? e.message : String(e));
       this.notify();
       return false;
@@ -594,6 +672,7 @@ export class V3 implements V3State {
       this.pMesh = null;
       this.pLine = null;
       this.pSoil = null;
+      this.pConc = null;
       if (this.model) this.model.gpu = undefined;
       this.errMsg = 'Ngữ cảnh đồ họa 3D (WebGL) đã bị mất. Đang chờ khôi phục…';
       this.notify();
@@ -683,6 +762,7 @@ export class V3 implements V3State {
     this.pMesh = null;
     this.pLine = null;
     this.pSoil = null;
+    this.pConc = null;
     this.inited = false;
     this.ok = false;
   }
@@ -1098,75 +1178,83 @@ export class V3 implements V3State {
         if (this.vis.conc) lines(m.gpu.conc, [0.78, 0.88, 0.98], 0.95);
         if (this.vis.conc) lines(m.gpu.pile, [0.86, 0.78, 0.6], 0.9);
         if (this.vis.blind) lines(m.gpu.lean, [0.62, 0.64, 0.66], 0.8);
-        if (this.vis.soil) lines(m.gpu.soil, [0.72, 0.55, 0.36], 0.55);
-        if (m.ground) {
-          m.gpu.ground?.forEach((gm, gi) => {
-            const c = m.ground![gi].color;
-            lines(gm, [c[0] * 0.7, c[1] * 0.7, c[2] * 0.7], 0.6);
-          });
-        }
       }
 
-      const PM = this.pMesh;
-      gl.useProgram(PM.pr);
-      gl.uniformMatrix4fv(PM.u.uVP, false, M.vp);
-      gl.uniform3fv(PM.u.uL, M.L);
-      gl.uniform4fv(PM.u.uClip, clip);
-      this.attribs(gl, 2);
-      gl.enable(gl.BLEND);
-      gl.depthMask(false);
-      gl.enable(gl.CULL_FACE);
-      const drawMesh = (
-        o: { vb: WebGLBuffer | null; ib: WebGLBuffer | null; n: number } | undefined,
-        col: [number, number, number],
-        a: number,
-      ) => {
-        if (!o || !o.vb || !o.ib || !o.n) return;
-        gl.uniform3fv(PM.u.uCol, col);
-        gl.uniform1f(PM.u.uA, a);
+      type GMesh = { vb: WebGLBuffer | null; ib: WebGLBuffer | null; n: number } | undefined;
+      const bindMesh = (o: NonNullable<GMesh>) => {
         gl.bindBuffer(gl.ARRAY_BUFFER, o.vb);
         gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
         gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, o.ib);
         gl.drawElements(gl.TRIANGLES, o.n, gl.UNSIGNED_SHORT, 0);
       };
-      const layers: [
-        { vb: WebGLBuffer | null; ib: WebGLBuffer | null; n: number } | undefined,
-        [number, number, number],
-        number,
-      ][] = [];
-      if (this.vis.blind) layers.push([m.gpu.lean, [0.66, 0.68, 0.7], Math.min(1, this.alpha * 1.6)]);
-      if (this.vis.conc) layers.push([m.gpu.conc, [0.55, 0.72, 0.9], this.alpha]);
-      if (this.vis.conc && m.gpu.pile) layers.push([m.gpu.pile, [0.84, 0.74, 0.52], Math.min(1, this.alpha * 1.3)]);
-      gl.cullFace(gl.FRONT);
-      layers.forEach((l) => drawMesh(l[0], l[1], l[2]));
-      gl.cullFace(gl.BACK);
-      layers.forEach((l) => drawMesh(l[0], l[1], l[2]));
 
-      // Đất (đắp sau tường + địa tầng nền): vẽ SAU bê tông / cọc để nhìn xuyên qua đất thấy kết cấu.
+      // --- 1) bê tông (tường / bản, lót, cọc): trong mờ, màu xám xi măng, vẽ trước đất ---
+      const PC = this.pConc;
+      const PM = this.pMesh;
+      const a1 = this.alpha;
+      const concItems: Array<{ o: GMesh; col: [number, number, number]; a: number; mode: number }> = [];
+      if (this.vis.blind) concItems.push({ o: m.gpu.lean, col: [0.72, 0.7, 0.64], a: Math.min(1, a1 * 1.15), mode: 1 });
+      if (this.vis.conc) concItems.push({ o: m.gpu.conc, col: [0.68, 0.68, 0.66], a: a1, mode: 0 });
+      if (this.vis.conc && m.gpu.pile) concItems.push({ o: m.gpu.pile, col: [0.62, 0.62, 0.6], a: Math.min(1, a1 * 1.1), mode: 2 });
+      gl.enable(gl.BLEND);
+      gl.depthMask(false);
+      gl.enable(gl.CULL_FACE);
+      if (PC && concItems.length) {
+        gl.useProgram(PC.pr);
+        gl.uniformMatrix4fv(PC.u.uVP, false, M.vp);
+        gl.uniform3fv(PC.u.uL, M.L);
+        gl.uniform4fv(PC.u.uClip, clip);
+        this.attribs(gl, 2);
+        const drawConc = (it: (typeof concItems)[number]) => {
+          if (!it.o || !it.o.vb || !it.o.ib || !it.o.n || it.a <= 0.003) return;
+          gl.uniform3fv(PC.u.uCol, it.col);
+          gl.uniform1f(PC.u.uA, it.a);
+          gl.uniform1f(PC.u.uMode, it.mode);
+          bindMesh(it.o);
+        };
+        gl.cullFace(gl.FRONT);
+        concItems.forEach(drawConc);
+        gl.cullFace(gl.BACK);
+        concItems.forEach(drawConc);
+      }
+
+      // --- 2) ghi độ sâu của mặt trước bê tông (không ghi màu) để đất nằm SAU bê tông bị che đúng ---
+      const solidItems = concItems.filter((it) => it.a > 0.05);
+      if (solidItems.length) {
+        gl.useProgram(PM.pr);
+        gl.uniformMatrix4fv(PM.u.uVP, false, M.vp);
+        gl.uniform4fv(PM.u.uClip, clip);
+        this.attribs(gl, 2);
+        gl.colorMask(false, false, false, false);
+        gl.depthMask(true);
+        gl.cullFace(gl.BACK);
+        solidItems.forEach((it) => {
+          if (it.o && it.o.vb && it.o.ib && it.o.n) bindMesh(it.o);
+        });
+        gl.colorMask(true, true, true, true);
+        gl.depthMask(false);
+      }
+
+      // --- 3) đất (nền theo lớp + đất đắp): chỉ vẽ mặt trước và GHI độ sâu → không bị lỗi xuyên thấu ---
       const PS = this.pSoil;
       const grass: [number, number, number] = [0.34, 0.5, 0.2];
-      const soilItems: Array<{
-        o: { vb: WebGLBuffer | null; ib: WebGLBuffer | null; n: number } | undefined;
-        col: [number, number, number];
-        a: number;
-        topK: number;
-        band: number;
-      }> = [];
-      const aG = this.surf;
-      if (m.ground) {
+      const KIND: Record<string, number> = { sand: 0, clay: 1, mud: 2, rock: 3, fill: 4 };
+      const oS = 1 - this.surf;
+      const soilItems: Array<{ o: GMesh; col: [number, number, number]; a: number; topK: number; kind: number }> = [];
+      if (this.vis.strata && m.ground) {
         m.ground.forEach((gp, gi) => {
           soilItems.push({
             o: m.gpu?.ground?.[gi],
             col: gp.color,
-            a: gp.kind === 'cover' ? Math.min(1, aG + 0.1) : aG,
+            a: gp.kind === 'cover' ? Math.min(1, oS + 0.1) : oS,
             topK: gp.kind === 'cover' ? 1 : 0,
-            band: gp.mat,
+            kind: KIND[gp.look] ?? 1,
           });
         });
       }
       if (this.vis.soil) {
-        soilItems.push({ o: m.gpu.soil, col: [0.6, 0.44, 0.26], a: this.surf * 0.85, topK: 1, band: 0.5 });
+        soilItems.push({ o: m.gpu.soil, col: [0.6, 0.44, 0.26], a: oS, topK: 1, kind: 4 });
       }
       if (PS && soilItems.length) {
         gl.useProgram(PS.pr);
@@ -1175,25 +1263,36 @@ export class V3 implements V3State {
         gl.uniform4fv(PS.u.uClip, clip);
         gl.uniform3fv(PS.u.uTop, grass);
         this.attribs(gl, 2);
-        const drawSoil = (it: (typeof soilItems)[number]) => {
-          const o = it.o;
-          if (!o || !o.vb || !o.ib || !o.n) return;
+        gl.depthMask(true);
+        gl.enable(gl.POLYGON_OFFSET_FILL);
+        gl.polygonOffset(1, 1);
+        gl.cullFace(gl.BACK);
+        soilItems.forEach((it) => {
+          if (!it.o || !it.o.vb || !it.o.ib || !it.o.n || it.a <= 0.003) return;
           gl.uniform3fv(PS.u.uCol, it.col);
           gl.uniform1f(PS.u.uA, it.a);
           gl.uniform1f(PS.u.uTopK, it.topK);
-          gl.uniform1f(PS.u.uBand, it.band);
-          gl.bindBuffer(gl.ARRAY_BUFFER, o.vb);
-          gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
-          gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, o.ib);
-          gl.drawElements(gl.TRIANGLES, o.n, gl.UNSIGNED_SHORT, 0);
-        };
-        gl.cullFace(gl.FRONT);
-        soilItems.forEach(drawSoil);
-        gl.cullFace(gl.BACK);
-        soilItems.forEach(drawSoil);
+          gl.uniform1f(PS.u.uKind, it.kind);
+          bindMesh(it.o);
+        });
+        gl.disable(gl.POLYGON_OFFSET_FILL);
+        gl.depthMask(false);
       }
       gl.disable(gl.CULL_FACE);
+
+      // --- 4) nét viền đất (sau khi vẽ đất, có kiểm tra độ sâu) ---
+      if (this.vis.edges) {
+        gl.useProgram(P.pr);
+        gl.uniformMatrix4fv(P.u.uVP, false, M.vp);
+        this.attribs(gl, 1);
+        if (this.vis.soil) lines(m.gpu.soil, [0.72, 0.55, 0.36], 0.55);
+        if (this.vis.strata && m.ground) {
+          m.gpu.ground?.forEach((gm, gi) => {
+            const c = m.ground![gi].color;
+            lines(gm, [c[0] * 0.6, c[1] * 0.6, c[2] * 0.6], 0.55);
+          });
+        }
+      }
     }
 
     if (this.vis.rebar && focus) {
@@ -1262,7 +1361,7 @@ export class V3 implements V3State {
 
   setSurf(s: number): void {
     this.surf = Math.max(0, Math.min(1, s));
-    this.alpha = this.surf * this.surf;
+    this.alpha = 1 - this.surf;
     this.notify();
     this.redraw();
   }

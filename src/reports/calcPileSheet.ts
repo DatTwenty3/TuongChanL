@@ -14,6 +14,7 @@ const METHOD_TXT: Record<string, string> = {
 };
 const TYPE_TXT: Record<string, string> = {
   sq: 'Cọc vuông BTCT đúc sẵn',
+  rc: 'Cọc tròn đặc BTCT đúc sẵn',
   phc: 'Cọc ly tâm ứng lực trước (PHC/PC)',
   bored: 'Cọc khoan nhồi',
 };

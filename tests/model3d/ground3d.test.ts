@@ -57,16 +57,16 @@ describe('ground3d – địa tầng nền trong mô hình 3D', () => {
     expect(m.sig).not.toContain('ground');
   });
 
-  it('độ mờ bề mặt: mặc định 50%, kẹp 0..100%, độ mờ bê tông suy ra theo bình phương', () => {
+  it('độ mờ bề mặt: mặc định 50%, kẹp 0..100%, độ đặc bê tông = 1 − độ mờ', () => {
     const v = new V3();
     expect(v.surf).toBe(0.5);
-    expect(v.alpha).toBeCloseTo(0.25, 9);
+    expect(v.alpha).toBeCloseTo(0.5, 9);
     v.setSurf(1.4);
     expect(v.surf).toBe(1);
-    expect(v.alpha).toBe(1);
+    expect(v.alpha).toBe(0);
     v.setSurf(-1);
     expect(v.surf).toBe(0);
-    expect(v.alpha).toBe(0);
-    expect('strata' in v.vis).toBe(false);
+    expect(v.alpha).toBe(1);
+    expect(v.vis.strata).toBe(true);
   });
 });

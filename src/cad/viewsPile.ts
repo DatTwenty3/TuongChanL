@@ -13,6 +13,7 @@ import { finishView, slabel } from './viewsCommon';
 
 const TYPE_NAME: Record<PileConfig['type'], string> = {
   sq: 'cọc BTCT vuông đúc sẵn',
+  rc: 'cọc BTCT tròn đặc đúc sẵn',
   phc: 'cọc ly tâm ứng lực trước',
   bored: 'cọc khoan nhồi',
 };

@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  pileArea,
+  pileMainOffsets,
   allChecks,
   badgeStatusAll,
   calcBadgeStatus,
@@ -201,5 +203,25 @@ describe('pileChecks – nối với kết quả tính tường', () => {
       const x = items2.find((c) => c.id === id);
       if (x) expect(x.info).toBeFalsy();
     }
+  });
+});
+
+describe('cọc tròn đặc đúc sẵn (rc)', () => {
+  it('tiết diện tròn đặc, chu vi πd, thép dọc bố trí trên vòng tròn, hạ cọc theo bảng cọc đóng', () => {
+    const p = mk();
+    const q = p.pile!;
+    q.type = 'rc';
+    q.size = 0.4;
+    q.cage.nMain = 8;
+    expect(pileArea(q)).toBeCloseTo(Math.PI * 0.04, 9);
+    const offs = pileMainOffsets(q);
+    expect(offs.length).toBe(8);
+    const r0 = Math.hypot(offs[0][0], offs[0][1]);
+    offs.forEach((o) => expect(Math.hypot(o[0], o[1])).toBeCloseTo(r0, 9));
+    const r = pileRun(p, [{ k: 'x', nm: 'x', N: 100, s: 0, H: 0 }], 300)!;
+    expect(r.ok).toBe(true);
+    expect(r.comp!.u).toBeCloseTo(Math.PI * 0.4, 9);
+    expect(r.comp!.A).toBeCloseTo(Math.PI * 0.04, 9);
+    expect(r.comp!.gRR).toBe(1);
   });
 });

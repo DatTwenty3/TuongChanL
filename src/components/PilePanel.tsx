@@ -104,13 +104,14 @@ export const PilePanel: React.FC = () => {
           stack
           options={[
             ['sq', 'Vuông đúc sẵn'],
+            ['rc', 'Tròn đặc đúc sẵn'],
             ['phc', 'Ly tâm ứng lực trước (PHC/PC)'],
             ['bored', 'Khoan nhồi'],
           ]}
         />
         <NumField
           path="pile.size"
-          label={q.type === 'sq' ? 'Cạnh tiết diện' : 'Đường kính ngoài'}
+          label={q.type === 'sq' ? 'Cạnh tiết diện' : q.type === 'phc' ? 'Đường kính ngoài' : 'Đường kính'}
           unit="m"
           min={0.2}
           max={3}

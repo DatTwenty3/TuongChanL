@@ -154,6 +154,7 @@ export const Model3DViewport: React.FC = () => {
     edges: true,
     blind: true,
     soil: true,
+    strata: true,
     grid: true,
     rebar: true,
   };
@@ -171,6 +172,7 @@ export const Model3DViewport: React.FC = () => {
     ['Nét viền', 'edges'],
     ['Bê tông lót', 'blind'],
     ['Đất đắp', 'soil'],
+    ['Đất nền', 'strata'],
     ['Cốt thép', 'rebar'],
     ['Lưới nền', 'grid'],
   ];
@@ -397,7 +399,7 @@ export const Model3DViewport: React.FC = () => {
               : ''}
           </div>
 
-          {model?.ground && model.ground.length > 0 ? (
+          {model?.ground && model.ground.length > 0 && vis.strata ? (
             <div id="v3soil">
               <b>Địa tầng</b>
               {model.ground.map((gp) => (

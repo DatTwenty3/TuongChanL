@@ -221,7 +221,8 @@ export type LegacyCalcConfigInput = Partial<CalcConfig> & {
 // Đơn vị: m, kN, kPa (khác với hình học tường tính bằng cm).
 // ---------------------------------------------------------------------------
 
-export type PileType = 'sq' | 'phc' | 'bored';
+/** sq = vuông đúc sẵn; rc = tròn đặc đúc sẵn; phc = ly tâm ứng lực trước (rỗng); bored = khoan nhồi. */
+export type PileType = 'sq' | 'rc' | 'phc' | 'bored';
 export type PileMethod = 'tcvn' | 'spt' | 'test';
 export type PileSoilKind = 'sand' | 'clay' | 'rock';
 export type PileSandGrain = 'gravelly' | 'coarse' | 'medium' | 'fine' | 'silt';
@@ -930,8 +931,8 @@ export interface Model3DGroundPart {
   name: string;
   kind: 'strata' | 'cover';
   color: [number, number, number];
-  /** Cường độ hoa văn vật liệu (0 = trơn, 1 = đất). */
-  mat: number;
+  /** Kiểu bề mặt vật liệu (quyết định hoa văn shader). */
+  look: 'sand' | 'clay' | 'mud' | 'rock';
   mesh: M3MeshData;
   /** Cao độ trên / dưới của khối (cm, đáy bản đáy = 0). */
   y0: number;
@@ -968,6 +969,8 @@ export interface V3Visibility {
   edges: boolean;
   blind: boolean;
   soil: boolean;
+  /** Đất nền theo địa tầng. */
+  strata: boolean;
   grid: boolean;
   rebar: boolean;
 }

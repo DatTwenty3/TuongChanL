@@ -17,6 +17,12 @@ import { M3Mesh } from './mesh';
 type RGB = [number, number, number];
 
 /** Màu đất theo loại / độ sệt / loại hạt – tông gần với đất thực tế ở ĐBSCL và miền Nam. */
+export function groundLook(l: { kind: 'sand' | 'clay' | 'rock'; IL?: number }): 'sand' | 'clay' | 'mud' | 'rock' {
+  if (l.kind === 'rock') return 'rock';
+  if (l.kind === 'sand') return 'sand';
+  return (l.IL ?? 0.5) >= 0.75 ? 'mud' : 'clay';
+}
+
 export function groundColor(l: {
   kind: 'sand' | 'clay' | 'rock';
   IL?: number;
@@ -85,7 +91,7 @@ export function m3Ground(pIn: Project | EngineProject, resIn: BarsResult | Engin
         name: l.name || `Lớp ${i + 1}`,
         kind: 'strata',
         color: groundColor(l),
-        mat: l.kind === 'rock' ? 0.4 : 1,
+        look: groundLook(l),
         mesh: box(xa, xb, top, bot),
         y0: bot,
         y1: top,
@@ -99,7 +105,7 @@ export function m3Ground(pIn: Project | EngineProject, resIn: BarsResult | Engin
         name: 'Đất phủ mặt – trước mũi tường',
         kind: 'cover',
         color: groundColor(l),
-        mat: 1,
+        look: groundLook(l),
         mesh: box(xa, 0, z0, 0),
         y0: 0,
         y1: z0,
@@ -115,7 +121,7 @@ export function m3Ground(pIn: Project | EngineProject, resIn: BarsResult | Engin
       name: rock ? 'Nền đá' : clay ? 'Nền đất dính' : 'Nền đất rời',
       kind: 'strata',
       color: rock ? groundColor({ kind: 'rock' }) : clay ? groundColor({ kind: 'clay', IL: 0.3 }) : groundColor({ kind: 'sand' }),
-      mat: rock ? 0.4 : 1,
+      look: rock ? 'rock' : clay ? 'clay' : 'sand',
       mesh: box(xa, xb, 0, -depth),
       y0: -depth,
       y1: 0,

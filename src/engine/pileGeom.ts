@@ -128,7 +128,7 @@ export function pileMainOffsets(q: PileConfig): Point2D[] {
   const c = fin(q.cover, 50) / 10;
   const inset = c + q.cage.dHoop / 10 + q.cage.dMain / 20;
   const out: Point2D[] = [];
-  if (q.type === 'bored') {
+  if (q.type === 'bored' || q.type === 'rc') {
     const r = Math.max(0.1, (q.size * 100) / 2 - inset);
     for (let k = 0; k < n; k++) {
       const a = (2 * Math.PI * k) / n;
@@ -229,7 +229,7 @@ export function appendPileBars(p: EngineProject, res: { bars: EngineBarSpec[]; w
     bars.push({
       key: 'ph',
       mark: 'P2',
-      name: q.type === 'bored' ? 'Đai xoắn / đai tròn cọc' : 'Đai cọc',
+      name: q.type === 'bored' || q.type === 'rc' ? 'Đai xoắn / đai tròn cọc' : 'Đai cọc',
       d: q.cage.dHoop,
       a: q.cage.sMid * 100,
       pile: true,
