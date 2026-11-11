@@ -21,6 +21,8 @@ Cấu hình công cụ: ESM (`"type":"module"`), TS `strict` và `tsconfig` **g�
 Không cài `@types/node`: test dùng API Node qua khai báo tối thiểu trong `tests/engine/node-builtins.d.ts` và `tests/qa/qa-builtins.d.ts` — dùng hàm Node mới trong test thì phải khai báo thêm vào đó, nếu không `tsc` báo lỗi.
 Đường dẫn chứa dấu cách và dấu chấm (`E:\3. data\rea\…`): luôn đặt trong dấu nháy khi viết script/lệnh.
 
+Ô số (`input[type=number]`) luôn hiện mũi tên tăng/giảm (không đặt `appearance: textfield`, không ẩn `::-webkit-inner-spin-button`); đơn vị `.inp i` nằm bên trái mũi tên.
+
 Quy tắc: **không báo "đạt" khi chưa chạy lại SAU lần sửa cuối** và chưa thấy exit code / số test. Test nặng phải có timeout riêng (`it(..., 30000)`); mặc định Vitest chỉ 5 s (test CFE từng fail vì thiếu timeout).
 
 ## Kiến trúc
@@ -86,7 +88,7 @@ Số liệu mốc Mẫu 1 (H = 500 cm): Bê tông 21,50 m³ · Ván khuôn 64,64
 **Thương hiệu**: tên app **"Tường chắn BTCT"** (header, `<title>`, favicon, `BrandMark`, `docProps/app.xml` = `Tường chắn BTCT - LEDAT`, được 3 test kiểm tra). Tên dự án mặc định `'TƯỜNG CHẮN BTCT CHỮ L'` trong `engine/presets.ts` là dữ liệu bản vẽ/tên file xuất, giữ nguyên để khớp bản gốc.
 
 **CSS (`src/styles/app.css`)**
-- Token ở `:root`; màu nhấn đổi theo chế độ qua `.app-shell[data-view]`: 2D xanh `--c2d`, 3D ngọc `--c3d`, Tính toán đồng `--cca`; dùng `--acc/--accd/--accs/--accb/--ring`, trạng thái `--ok/--bad/--warn`. Đừng hard-code hex mới nếu đã có token.
+- Token ở `:root`; **toàn trang một tông xanh dương + trắng** (không còn màu nhấn riêng theo chế độ; `--c2d/--c3d/--cca` đều là xanh dương, header nền xanh chữ trắng, nút chính của header nền trắng chữ xanh, thanh công cụ 3D sáng). Dùng `--acc/--accd/--accs/--accb/--ring`; chỉ giữ màu ngữ nghĩa cho trạng thái `--ok` (xanh lá) / `--bad` (đỏ) / `--warn` (vàng). Đừng hard-code hex mới nếu đã có token. Khung bản vẽ 2D và canvas 3D vẫn tối theo quy ước CAD (`BG_DARK`).
 - Nền khung bản vẽ 2D phải là `#212830` (= `BG_DARK` trong `cad/layers.ts`); canvas 3D clear color cố định cùng tông.
 - Khối `.csheet …` (tờ báo cáo trắng/Times) giữ nguyên; **bản in/PDF nhúng toàn bộ CSS của trang** (`collectDocumentCss`) vào iframe → mọi rule thêm cho giao diện phải gắn selector riêng của app (`#calcv …`, `.app-shell …`) để không làm hỏng bản in. Test đọc `app.css` kiểm `#v3foc button { pointer-events: auto }`.
 - Điểm ngắt: ≤1450 (nút "Thông số" chỉ icon), ≤1250 (nút chế độ chỉ icon), ≤1100, **≤900 = điện thoại** (sidebar thành ngăn kéo `position:fixed` mặc định đóng, tab cuộn ngang với nút 3D/Tính toán ghim phải, thanh 3D một hàng cuộn, tờ bảng tính `zoom` vừa bề ngang), ≤640 (header một hàng chỉ icon), ngang-thấp (≤480px cao). `@media (pointer: coarse)`: input 16 px, ô 40 px. Trên điện thoại sidebar mặc định **đóng** (`App.tsx` đọc `matchMedia('(max-width: 900px)')`) và chú giải 3D mặc định thu nhỏ; `getLegOffsetPx` của `V3` trả 0 khi ≤900 px. Thông báo `#toast`: kind `wait` không tự tắt, `ok` 6 s, `err` 12 s.

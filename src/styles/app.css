@@ -1,47 +1,44 @@
 /* ==========================================================================
    Tường chắn chữ L — giao diện
-   Bảng màu slate hiện đại; màu nhấn đổi theo chế độ làm việc:
-     · Bản vẽ 2D  → xanh dương
-     · Mô hình 3D → xanh ngọc
-     · Tính toán  → hổ phách
-   Trạng thái đạt / không đạt / lưu ý cố định ở mọi chế độ.
+   Bảng màu xanh dương + trắng thống nhất cho mọi chế độ (2D / 3D / Tính toán).
+   Chỉ giữ màu ngữ nghĩa cho trạng thái: đạt (xanh lá), không đạt (đỏ), lưu ý (vàng).
    ========================================================================== */
 
 :root {
   /* bề mặt & chữ */
-  --bg: #eef1f6;
+  --bg: #e9f1fd;
   --panel: #ffffff;
-  --panel-2: #f6f8fb;
-  --panel-3: #eaeff5;
-  --ink: #0f172a;
-  --ink-2: #334155;
-  --mut: #64748b;
-  --line: #e2e8f0;
-  --line-2: #edf1f6;
+  --panel-2: #f3f8ff;
+  --panel-3: #e4eefc;
+  --ink: #0e2147;
+  --ink-2: #2b4470;
+  --mut: #5a7096;
+  --line: #d2e0f5;
+  --line-2: #e4edfa;
   --field: #ffffff;
-  --field-line: #cbd5e1;
+  --field-line: #b9cdee;
 
   /* thanh tiêu đề */
-  --hdr: #0b1220;
-  --hdr-2: #141e33;
-  --hdr-3: #1f2d47;
-  --hdr-line: rgba(255, 255, 255, 0.12);
-  --hdr-ink: #e6ecf5;
-  --hdr-mut: #8b9bb4;
+  --hdr: #1d4ed8;
+  --hdr-2: #2563eb;
+  --hdr-3: #3b74ee;
+  --hdr-line: rgba(255, 255, 255, 0.3);
+  --hdr-ink: #ffffff;
+  --hdr-mut: #cfe0ff;
 
   /* ba màu chế độ */
   --c2d: #2563eb;
   --c2d-d: #1d4ed8;
-  --c2d-s: #eaf1ff;
+  --c2d-s: #e8f0fe;
   --c2d-b: #5b93f5;
-  --c3d: #0d9488;
-  --c3d-d: #0f766e;
-  --c3d-s: #e0f5f2;
-  --c3d-b: #2dd4bf;
-  --cca: #d97706;
-  --cca-d: #b45309;
-  --cca-s: #fef3e2;
-  --cca-b: #fbbf24;
+  --c3d: #2563eb;
+  --c3d-d: #1d4ed8;
+  --c3d-s: #e8f0fe;
+  --c3d-b: #5b93f5;
+  --cca: #2563eb;
+  --cca-d: #1d4ed8;
+  --cca-s: #e8f0fe;
+  --cca-b: #5b93f5;
 
   /* màu nhấn đang dùng (đổi theo chế độ) */
   --acc: var(--c2d);
@@ -64,22 +61,6 @@
   --r: 10px;
   --r-sm: 7px;
   --shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 4px 14px rgba(15, 23, 42, 0.08);
-}
-
-.app-shell[data-view="3d"] {
-  --acc: var(--c3d);
-  --accd: var(--c3d-d);
-  --accs: var(--c3d-s);
-  --accb: var(--c3d-b);
-  --ring: rgba(13, 148, 136, 0.28);
-}
-
-.app-shell[data-view="calc"] {
-  --acc: var(--cca);
-  --accd: var(--cca-d);
-  --accs: var(--cca-s);
-  --accb: var(--cca-b);
-  --ring: rgba(217, 119, 6, 0.28);
 }
 
 * {
@@ -114,7 +95,7 @@ body {
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: #b4c0cc transparent;
+  scrollbar-color: #a9bfe3 transparent;
 }
 
 [hidden] {
@@ -178,7 +159,7 @@ header::after {
   right: 0;
   bottom: 0;
   height: 2px;
-  background: linear-gradient(90deg, var(--accb), var(--acc) 45%, transparent);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.12) 50%, transparent);
 }
 
 .brand {
@@ -193,12 +174,13 @@ header::after {
   height: 36px;
   flex: none;
   border-radius: 10px;
-  background: linear-gradient(145deg, var(--accb), var(--acc));
+  background: #ffffff;
+  color: var(--accd);
   display: grid;
   place-items: center;
   font-weight: 800;
   font-size: 20px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25), 0 3px 10px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 3px 10px rgba(10, 30, 90, 0.35);
 }
 
 .brand b {
@@ -243,7 +225,7 @@ header button {
   gap: 7px;
   height: 32px;
   padding: 0 12px;
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.12);
   border-color: var(--hdr-line);
   border-radius: 8px;
   color: var(--hdr-ink);
@@ -256,17 +238,17 @@ header button .ico {
 }
 
 header button:hover {
-  background: rgba(255, 255, 255, 0.13);
+  background: rgba(255, 255, 255, 0.2);
   color: #fff;
-  border-color: rgba(255, 255, 255, 0.28);
+  border-color: rgba(255, 255, 255, 0.5);
 }
 
 header button.pri {
-  background: var(--acc);
+  background: #ffffff;
   border-color: transparent;
-  color: #fff;
-  font-weight: 600;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.18) inset, 0 2px 8px rgba(0, 0, 0, 0.3);
+  color: var(--accd);
+  font-weight: 650;
+  box-shadow: 0 2px 8px rgba(10, 30, 90, 0.28);
 }
 
 header button.pri .ico {
@@ -274,20 +256,21 @@ header button.pri .ico {
 }
 
 header button.pri:hover {
-  background: var(--accb);
+  background: #eaf1ff;
+  color: var(--accd);
   border-color: transparent;
 }
 
 header button:disabled:hover {
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.12);
   border-color: var(--hdr-line);
   color: var(--hdr-ink);
 }
 
 header button.pri:disabled:hover {
-  background: var(--acc);
+  background: #ffffff;
   border-color: transparent;
-  color: #fff;
+  color: var(--accd);
 }
 
 #bSave[data-dirty] {
@@ -659,7 +642,7 @@ summary:focus-visible {
 
 .inp i {
   position: absolute;
-  right: 10px;
+  right: 28px;
   top: 50%;
   transform: translateY(-50%);
   pointer-events: none;
@@ -673,7 +656,7 @@ summary:focus-visible {
 }
 
 .inp:has(i:not(:empty)) input {
-  padding-right: 44px;
+  padding-right: 62px;
 }
 
 .row.wide .inp {
@@ -699,14 +682,14 @@ select {
 input[type="number"] {
   font-variant-numeric: tabular-nums;
   text-align: right;
-  appearance: textfield;
-  -moz-appearance: textfield;
+  padding-right: 3px;
 }
 
+/* Mũi tên tăng / giảm luôn hiện ở mọi ô số (mặc định trình duyệt chỉ hiện khi rê chuột) */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+  opacity: 1;
+  cursor: pointer;
 }
 
 .side-body select,
@@ -1083,11 +1066,11 @@ nav {
   margin-left: auto;
   color: var(--c3d-d);
   background: var(--c3d-s);
-  border-color: #b4e6df;
+  border-color: #bcd3f7;
 }
 
 #tabs button.tab3d:hover {
-  background: #cdeee9;
+  background: #dbe8fd;
   border-color: var(--c3d);
 }
 
@@ -1095,17 +1078,17 @@ nav {
   background: var(--c3d);
   border-color: var(--c3d);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.35);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
 }
 
 #tabs button.tabcalc {
   color: var(--cca-d);
   background: var(--cca-s);
-  border-color: #f6d9a8;
+  border-color: #bcd3f7;
 }
 
 #tabs button.tabcalc:hover {
-  background: #fde8c4;
+  background: #dbe8fd;
   border-color: var(--cca);
 }
 
@@ -1113,7 +1096,7 @@ nav {
   background: var(--cca);
   border-color: var(--cca);
   color: #fff;
-  box-shadow: 0 2px 8px rgba(217, 119, 6, 0.35);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.35);
 }
 
 #tabs button.tabcalc #calcBadge {
@@ -1228,9 +1211,9 @@ nav {
 
 #v3d .pn {
   position: absolute;
-  background: rgba(15, 24, 34, 0.88);
+  background: rgba(10, 25, 60, 0.88);
   color: #d9e3ee;
-  border: 1px solid #2f4357;
+  border: 1px solid #2f4f86;
   border-radius: var(--r);
   padding: 7px 9px;
   font-size: 12px;
@@ -1238,9 +1221,9 @@ nav {
 }
 
 #v3bar {
-  background: #151d27;
-  color: #d9e3ee;
-  border-bottom: 1px solid #2c3d4e;
+  background: #ffffff;
+  color: var(--ink-2);
+  border-bottom: 1px solid var(--line);
   padding: 7px 12px;
   display: flex;
   flex-wrap: wrap;
@@ -1258,7 +1241,7 @@ nav {
 
 .v3g + .v3g {
   padding-left: 14px;
-  border-left: 1px solid #2c3d4e;
+  border-left: 1px solid var(--line);
 }
 
 .v3t {
@@ -1298,14 +1281,14 @@ nav {
   font-size: 12px;
   padding: 3px 9px;
   border-radius: 5px;
-  background: #1f2d3b;
-  border: 1px solid #38506a;
+  background: #1c3159;
+  border: 1px solid #34578f;
   color: #e4ecf4;
   cursor: pointer;
 }
 
 .v3b:hover {
-  background: #2a3f54;
+  background: #28457d;
   border-color: var(--c3d-b);
   color: #fff;
 }
@@ -1364,16 +1347,16 @@ nav {
 #v3d select {
   width: auto;
   max-width: 100%;
-  background: #1f2d3b;
+  background: #1c3159;
   color: #e4ecf4;
-  border: 1px solid #38506a;
+  border: 1px solid #34578f;
   padding: 3px 5px;
   font-size: 12px;
 }
 
 #v3d select:focus {
   border-color: var(--c3d-b);
-  box-shadow: 0 0 0 3px rgba(37, 184, 164, 0.25);
+  box-shadow: 0 0 0 3px rgba(91, 147, 245, 0.3);
 }
 
 #v3leg {
@@ -1404,7 +1387,7 @@ nav {
 
 #v3sum {
   padding-top: 5px;
-  border-top: 1px solid #2f4357;
+  border-top: 1px solid #2f4f86;
   color: #9fb3c8;
   font-size: 11.5px;
 }
@@ -1420,11 +1403,11 @@ nav {
 }
 
 .lg:hover {
-  background: #1f2d3b;
+  background: #1c3159;
 }
 
 .lg.sel {
-  background: #15423e;
+  background: #1b3f7a;
   outline: 1px solid var(--c3d-b);
 }
 
@@ -1487,7 +1470,7 @@ nav {
   padding: 5px 10px;
   font-size: 11.5px;
   color: #9fb3c8;
-  background: linear-gradient(transparent, rgba(15, 24, 34, 0.92));
+  background: linear-gradient(transparent, rgba(10, 25, 60, 0.92));
   display: flex;
   gap: 14px;
   flex-wrap: nowrap;
@@ -1516,7 +1499,7 @@ nav {
   padding: 5px 10px;
   font-size: 12px;
   color: #ffd98a;
-  background: rgba(15, 24, 34, 0.92);
+  background: rgba(10, 25, 60, 0.92);
   border: 1px solid #a9822f;
   border-radius: var(--r-sm);
   pointer-events: none;
@@ -1548,7 +1531,7 @@ nav {
   min-height: 0;
   margin: 10px;
   overflow: auto;
-  background: #d5dce5;
+  background: #d6e3f7;
   border: 1px solid var(--line);
   border-radius: var(--r);
   box-shadow: var(--shadow);
@@ -2366,7 +2349,7 @@ button.ap.wide {
 }
 
 .logo svg {
-  color: #fff;
+  color: var(--accd);
 }
 
 /* ---------- thanh công cụ 3D: thu gọn được ---------- */
@@ -2401,7 +2384,7 @@ button.ap.wide {
 
 .v3more > .v3g {
   padding-left: 14px;
-  border-left: 1px solid #2c3d4e;
+  border-left: 1px solid var(--line);
 }
 
 /* ==========================================================================
@@ -2892,8 +2875,8 @@ body {
 .side-body .ptab table.rb input[type="number"],
 .side-body .ptab table.rb input[type="text"] {
   height: 28px;
-  min-width: 56px;
-  padding: 0 5px;
+  min-width: 68px;
+  padding: 0 3px 0 5px;
 }
 
 .side-body .prow2 {
@@ -2914,4 +2897,81 @@ body {
   background: var(--warn-s);
   border-left-color: #d49a1c;
   color: var(--warn);
+}
+
+/* ---------- thanh công cụ 3D: giao diện sáng (xanh dương + trắng) ---------- */
+
+#v3bar .v3t {
+  color: var(--mut);
+}
+
+#v3bar .v3c,
+#v3bar .v3s {
+  color: var(--ink-2);
+}
+
+#v3bar .v3s b {
+  color: var(--ink);
+}
+
+#v3bar .v3b {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+#v3bar .v3b:hover {
+  background: var(--accs);
+  border-color: var(--accb);
+  color: var(--accd);
+}
+
+#v3bar .v3b.pri {
+  background: var(--acc);
+  border-color: var(--acc);
+  color: #fff;
+}
+
+#v3bar .v3b.pri:hover {
+  background: var(--accd);
+  border-color: var(--accd);
+  color: #fff;
+}
+
+#v3bar select {
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--field-line);
+}
+
+#v3bar select:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 3px var(--ring);
+}
+
+#v3bar input[type="range"],
+#v3bar input[type="checkbox"] {
+  accent-color: var(--acc);
+}
+
+/* ---------- thông báo nền xanh navy ---------- */
+
+#toast {
+  background: #0f2a66;
+  border-color: #2a4fa0;
+}
+
+#toast button.tact {
+  border-color: #5b86d6;
+}
+
+#toast button.tact:hover {
+  background: #4a80ee;
+  border-color: #9ec0ff;
+}
+
+/* ô số nhỏ trong bảng cốt thép / lưới địa tầng: padding gọn để còn chỗ cho chữ số */
+table.rb input[type="number"],
+.side-body .pcell input[type="number"] {
+  padding: 0 2px 0 4px;
 }
