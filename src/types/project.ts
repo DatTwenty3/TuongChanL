@@ -292,6 +292,24 @@ export interface PileSptParams {
   qbMax: number | null;
 }
 
+/** Lồng thép cọc do người dùng nhập (cọc vuông đúc sẵn / khoan nhồi). Cọc ly tâm là sản phẩm chế tạo sẵn nên không có lồng thép rời. */
+export interface PileCage {
+  /** Số thanh thép dọc chủ. */
+  nMain: number;
+  /** Đường kính thép dọc (mm). */
+  dMain: number;
+  /** Đường kính thép đai / xoắn (mm). */
+  dHoop: number;
+  /** Bước đai ở hai đầu cọc (m). */
+  sEnd: number;
+  /** Bước đai ở đoạn giữa cọc (m). */
+  sMid: number;
+  /** Chiều dài vùng đai dày ở mỗi đầu cọc (m). */
+  Lend: number;
+  /** Chiều dài móc neo mỗi đai (mm), cộng thêm vào chiều dài đai. */
+  hook: number;
+}
+
 export interface PileConfig {
   on: boolean;
   type: PileType;
@@ -321,6 +339,7 @@ export interface PileConfig {
   /** Bố trí so le giữa các hàng. */
   stagger: boolean;
 
+  cage: PileCage;
   layers: PileSoilLayer[];
   method: PileMethod;
   /** Sức chịu tải giới hạn một cọc từ thí nghiệm (kN) khi `method === 'test'`. */
@@ -545,6 +564,8 @@ export interface BarSpec {
   path: Point2D[];
   items: number[];
   count: number;
+  /** Thanh thép của cọc (không thuộc 1 m dài tường). */
+  pile?: boolean;
 
   // Computed by quantities() & barList()
   totLen?: number;
@@ -623,6 +644,20 @@ export interface DiameterQuantity {
   kg: number;
 }
 
+/** Khối lượng móng cọc – chỉ có khi bật móng cọc. */
+export interface PileQuantities {
+  /** Số cọc trong một đơn nguyên. */
+  n: number;
+  /** Thể tích bê tông một cọc (m³), phần dưới đáy đài. */
+  volEach: number;
+  /** Tổng thể tích bê tông cọc (m³). */
+  vol: number;
+  /** Tổng chiều dài cọc (m). */
+  totLen: number;
+  /** Khối lượng thép cọc (kg), đã nằm trong `totKg`. */
+  steelKg: number;
+}
+
 export interface QuantitiesResult {
   vol: number;
   conc: ConcreteQuantities;
@@ -631,6 +666,8 @@ export interface QuantitiesResult {
   byD: Record<number, DiameterQuantity>;
   totKg: number;
   ratio: number;
+  /** Chỉ có khi bật móng cọc. */
+  pile?: PileQuantities;
 }
 
 // ---------------------------------------------------------------------------
@@ -896,6 +933,8 @@ export interface Model3DGpuBuffers {
   conc: Model3DGpuMesh;
   lean: Model3DGpuMesh;
   soil: Model3DGpuMesh;
+  /** Chỉ có khi bật móng cọc. */
+  pile?: Model3DGpuMesh;
   grid: { lb: WebGLBuffer | null; nl: number };
 }
 
@@ -903,6 +942,8 @@ export interface Model3DData {
   conc: M3MeshData;
   lean: M3MeshData;
   soil: M3MeshData;
+  /** Khối bê tông cọc – chỉ có khi bật móng cọc. */
+  pile?: M3MeshData;
   groups: M3BarGroup[];
   bbox: Model3DBBox;
   sig: string;

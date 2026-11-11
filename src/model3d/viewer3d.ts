@@ -677,6 +677,10 @@ export class V3 implements V3State {
       del(mesh);
       if (mesh.lb) gl.deleteBuffer(mesh.lb);
     });
+    if (m.gpu.pile) {
+      del(m.gpu.pile);
+      if (m.gpu.pile.lb) gl.deleteBuffer(m.gpu.pile.lb);
+    }
     if (m.gpu.grid && m.gpu.grid.lb) gl.deleteBuffer(m.gpu.grid.lb);
     m.groups.forEach((gr) => (gr.chunks || []).forEach(del));
   }
@@ -721,6 +725,7 @@ export class V3 implements V3State {
       conc: mesh(model.conc),
       lean: mesh(model.lean),
       soil: mesh(model.soil),
+      ...(model.pile ? { pile: mesh(model.pile) } : {}),
       grid: { lb: l.length ? buf(gl.ARRAY_BUFFER, new Float32Array(l)) : null, nl: l.length / 3 },
     };
 
@@ -1056,6 +1061,7 @@ export class V3 implements V3State {
       if (this.vis.grid) lines(m.gpu.grid, [0.3, 0.37, 0.44], 0.55, [0, 0, 0, 1]);
       if (this.vis.edges) {
         if (this.vis.conc) lines(m.gpu.conc, [0.78, 0.88, 0.98], 0.95);
+        if (this.vis.conc) lines(m.gpu.pile, [0.86, 0.78, 0.6], 0.9);
         if (this.vis.blind) lines(m.gpu.lean, [0.62, 0.64, 0.66], 0.8);
         if (this.vis.soil) lines(m.gpu.soil, [0.72, 0.55, 0.36], 0.55);
       }
@@ -1091,6 +1097,7 @@ export class V3 implements V3State {
       if (this.vis.soil) layers.push([m.gpu.soil, [0.62, 0.45, 0.26], this.alpha * 0.8]);
       if (this.vis.blind) layers.push([m.gpu.lean, [0.66, 0.68, 0.7], Math.min(0.7, this.alpha * 1.6)]);
       if (this.vis.conc) layers.push([m.gpu.conc, [0.55, 0.72, 0.9], this.alpha]);
+      if (this.vis.conc && m.gpu.pile) layers.push([m.gpu.pile, [0.84, 0.74, 0.52], Math.min(0.7, this.alpha * 1.3)]);
       gl.cullFace(gl.FRONT);
       layers.forEach((l) => drawMesh(l[0], l[1], l[2]));
       gl.cullFace(gl.BACK);

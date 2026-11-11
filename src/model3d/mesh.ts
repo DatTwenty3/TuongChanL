@@ -139,6 +139,73 @@ export class M3Mesh implements M3MeshData {
       this.line([p[0], p[1], z0], [p[0], p[1], z1]);
     }
   }
+
+  /**
+   * Lăng trụ THẲNG ĐỨNG (trục y) có đáy là đa giác lồi trong mặt phẳng (x, z) – dùng cho cọc.
+   * `smooth`: pháp tuyến hướng tâm tại đỉnh (mặt tròn); ngược lại phẳng theo cạnh (hộp).
+   */
+  vprism(poly: Point2D[], y0: number, y1: number, smooth = false): void {
+    const n = poly.length;
+    if (n < 3) return;
+    let cx = 0;
+    let cz = 0;
+    poly.forEach((q) => {
+      cx += q[0];
+      cz += q[1];
+    });
+    cx /= n;
+    cz /= n;
+    const tri = (a: number, b: number, c: number, nx: number, ny: number, nz: number): void => {
+      const P = this.p;
+      const ux = P[b * 3] - P[a * 3];
+      const uy = P[b * 3 + 1] - P[a * 3 + 1];
+      const uz = P[b * 3 + 2] - P[a * 3 + 2];
+      const wx = P[c * 3] - P[a * 3];
+      const wy = P[c * 3 + 1] - P[a * 3 + 1];
+      const wz = P[c * 3 + 2] - P[a * 3 + 2];
+      const dx = uy * wz - uz * wy;
+      const dy = uz * wx - ux * wz;
+      const dz = ux * wy - uy * wx;
+      if (dx * nx + dy * ny + dz * nz >= 0) this.i.push(a, b, c);
+      else this.i.push(a, c, b);
+    };
+    [y0, y1].forEach((y, k) => {
+      const ny = k ? 1 : -1;
+      const base = poly.map((q) => this.v(q[0], y, q[1], 0, ny, 0));
+      for (let i = 1; i < n - 1; i++) tri(base[0], base[i], base[i + 1], 0, ny, 0);
+    });
+    const radial = (q: Point2D): [number, number] => {
+      const rx = q[0] - cx;
+      const rz = q[1] - cz;
+      const l = Math.hypot(rx, rz) || 1;
+      return [rx / l, rz / l];
+    };
+    const vstep = smooth ? Math.max(1, Math.floor(n / 4)) : 1;
+    for (let i = 0; i < n; i++) {
+      const p = poly[i];
+      const q = poly[(i + 1) % n];
+      let ex = q[1] - p[1];
+      let ez = -(q[0] - p[0]);
+      const el = Math.hypot(ex, ez) || 1;
+      ex /= el;
+      ez /= el;
+      if (ex * ((p[0] + q[0]) / 2 - cx) + ez * ((p[1] + q[1]) / 2 - cz) < 0) {
+        ex = -ex;
+        ez = -ez;
+      }
+      const np: [number, number] = smooth ? radial(p) : [ex, ez];
+      const nq: [number, number] = smooth ? radial(q) : [ex, ez];
+      const A = this.v(p[0], y0, p[1], np[0], 0, np[1]);
+      const B = this.v(q[0], y0, q[1], nq[0], 0, nq[1]);
+      const C = this.v(q[0], y1, q[1], nq[0], 0, nq[1]);
+      const D = this.v(p[0], y1, p[1], np[0], 0, np[1]);
+      tri(A, B, C, ex, 0, ez);
+      tri(A, C, D, ex, 0, ez);
+      this.line([p[0], y0, p[1]], [q[0], y0, q[1]]);
+      this.line([p[0], y1, p[1]], [q[0], y1, q[1]]);
+      if (i % vstep === 0) this.line([p[0], y0, p[1]], [p[0], y1, p[1]]);
+    }
+  }
 }
 
 export const m3sub = (a: Point3D, b: Point3D): Point3D => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];

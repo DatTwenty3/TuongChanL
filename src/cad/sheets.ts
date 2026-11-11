@@ -1,4 +1,4 @@
-import { type EngineBarsResult, type EngineProject, isB, isC, isD } from '../engine';
+import { type EngineBarsResult, type EngineProject, isB, isC, isD, pileOn } from '../engine';
 import type {
   BarsResult,
   CadContext,
@@ -11,6 +11,7 @@ import { resetDimId } from './dimCallout';
 import { Ents } from './ents';
 import { DIMSTY, PAPER, SCALES } from './layers';
 import { notesFor, viewBarShapes, viewBarTable, viewSummary } from './viewsSchedule';
+import { pileCageOn, viewPileCage, viewPilePlan, viewPileSection } from './viewsPile';
 import {
   viewBaseRebar,
   viewElevation,
@@ -39,13 +40,48 @@ export function viewRibCut(p: Project, res: BarsResult, ctx: CadContext): Ents {
   return isB(p) ? viewSectionRebarB(p, res, ctx, 'rib') : viewSectionRebar(p, res, ctx, 'rib');
 }
 
+function sheet2Views(p: Project, r: BarsResult, c: CadContext): Ents[] {
+  return isD(p)
+        ? [
+            viewElevRebarD(p, r, c),
+            viewSlabPlanD(p, r, c),
+            ...(r.g.an ? [viewDrillD(p, r, c)] : []),
+          ]
+        : [
+            ...(isB(p)
+              ? [
+                  viewElevRebar(p, r, c, 'back'),
+                  viewElevRebar(p, r, c, 'front'),
+                  viewBaseRebar(p, r, c, 'top'),
+                  viewBaseRebar(p, r, c, 'bottom'),
+                ]
+              : isC(p)
+                ? [
+                    viewElevRebar(p, r, c, 'front'),
+                    viewRibPlanCut(p, r, c),
+                    viewBaseRebar(p, r, c, 'bottom'),
+                  ]
+                : p.type === 'rib'
+                  ? [
+                      viewBaseRebar(p, r, c, 'top'),
+                      viewBaseRebar(p, r, c, 'bottom'),
+                      viewElevRebar(p, r, c, 'front'),
+                    ]
+                  : [viewBaseRebar(p, r, c, 'top'), viewBaseRebar(p, r, c, 'bottom')]),
+            ...(r.g.an ? [viewDrillD(p, r, c)] : []),
+          ];
+}
+
 export const SHEET_DEFS: CadSheetDef[] = [
   {
     name: 'CHI TIẾT TƯỜNG CHẮN',
-    views: (p, r, _q, c) =>
-      isD(p)
+    views: (p, r, _q, c) => [
+      ...(isD(p)
         ? [viewSectionD(p, r, c), viewElevationD(p, r, c), viewPlanD(p, r, c)]
-        : [viewSection(p, r, c), viewElevation(p, r, c), viewPlan(p, r, c)],
+        : [viewSection(p, r, c), viewElevation(p, r, c), viewPlan(p, r, c)]),
+      // Móng cọc (tùy chọn): chỉ thêm khi bật, tắt thì sheet giữ nguyên.
+      ...(pileOn(p) ? [viewPileSection(p, r, c), viewPilePlan(p, r, c)] : []),
+    ],
   },
   {
     name: 'BỐ TRÍ THÉP TƯỜNG CHẮN (1)',
@@ -77,36 +113,10 @@ export const SHEET_DEFS: CadSheetDef[] = [
   },
   {
     name: 'BỐ TRÍ THÉP TƯỜNG CHẮN (2)',
-    views: (p, r, _q, c) =>
-      isD(p)
-        ? [
-            viewElevRebarD(p, r, c),
-            viewSlabPlanD(p, r, c),
-            ...(r.g.an ? [viewDrillD(p, r, c)] : []),
-          ]
-        : [
-            ...(isB(p)
-              ? [
-                  viewElevRebar(p, r, c, 'back'),
-                  viewElevRebar(p, r, c, 'front'),
-                  viewBaseRebar(p, r, c, 'top'),
-                  viewBaseRebar(p, r, c, 'bottom'),
-                ]
-              : isC(p)
-                ? [
-                    viewElevRebar(p, r, c, 'front'),
-                    viewRibPlanCut(p, r, c),
-                    viewBaseRebar(p, r, c, 'bottom'),
-                  ]
-                : p.type === 'rib'
-                  ? [
-                      viewBaseRebar(p, r, c, 'top'),
-                      viewBaseRebar(p, r, c, 'bottom'),
-                      viewElevRebar(p, r, c, 'front'),
-                    ]
-                  : [viewBaseRebar(p, r, c, 'top'), viewBaseRebar(p, r, c, 'bottom')]),
-            ...(r.g.an ? [viewDrillD(p, r, c)] : []),
-          ],
+    views: (p, r, _q, c) => [
+      ...sheet2Views(p, r, c),
+      ...(pileCageOn(p) ? [viewPileCage(p, r, c)] : []),
+    ],
   },
   {
     name: 'CHI TIẾT CÁC THANH THÉP',

@@ -50,6 +50,7 @@ import type {
   EngineProject,
   Point2D,
 } from './types.ts';
+import { appendPileBars } from './pileGeom.ts';
 
 export interface ListedBarSpec extends EngineBarSpec {
   count: number;
@@ -342,13 +343,16 @@ export function beamDots(
 
 export function buildBars(p: EngineProject): EngineBarsResult {
   ancEnsure(p);
-  return isB(p)
+  const r = isB(p)
     ? buildBarsB(p)
     : isC(p)
       ? buildBarsC(p)
       : isD(p)
         ? buildBarsD(p)
         : buildBarsG(p);
+  // Móng cọc (tùy chọn): thép cọc thêm SAU khi tường đã đánh mác; tắt = không đổi gì.
+  if (p.pile && p.pile.on) appendPileBars(p, r);
+  return r;
 }
 
 export function buildBarsG(p: EngineProject): EngineBarsResult {

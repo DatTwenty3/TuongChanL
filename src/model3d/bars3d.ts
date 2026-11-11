@@ -1,4 +1,13 @@
-import { dLayers, type EngineBarsResult, type EngineProject, isC, isD, keyLayoutC } from '../engine';
+import {
+  dLayers,
+  type EngineBarsResult,
+  type EngineProject,
+  isC,
+  isD,
+  keyLayoutC,
+  pileGrid,
+  pileOn,
+} from '../engine';
 import {
   beamDots,
   blindT,
@@ -21,6 +30,7 @@ import type {
   Project,
 } from '../types/project';
 import { m3Concrete } from './mesh';
+import { m3PileGroups, m3PileMesh } from './piles3d';
 
 type PtLike = Point2D | number[] | BarDotCoord;
 
@@ -1016,19 +1026,25 @@ export function model3D(
   groups.forEach((gr) => {
     gr.R = gr.d / 20;
   });
+  // Móng cọc (tùy chọn): thêm khối cọc + lồng thép; tắt thì mô hình giữ nguyên.
+  const on = pileOn(p);
+  const pileMesh = on ? m3PileMesh(p, res) : null;
+  if (on) groups.push(...m3PileGroups(p, res, groups.length));
+  const pileDepth = on ? pileGrid(p, g.B)?.L ?? 0 : 0;
   return {
     conc: ms.conc,
     lean: ms.lean,
     soil: ms.soil,
+    ...(pileMesh ? { pile: pileMesh } : {}),
     groups,
     bbox: {
       x0: 0,
       x1: g.B,
-      y0: -Math.max((g.dn || 0) + tl, g.an ? g.an.Lb : 0),
+      y0: -Math.max((g.dn || 0) + tl, g.an ? g.an.Lb : 0, pileDepth),
       y1: g.yTop,
       z0: 0,
       z1: p.Lu,
     },
-    sig: [p.tpl, p.type, p.H, p.Lu, g.B].join('|'),
+    sig: [p.tpl, p.type, p.H, p.Lu, g.B, ...(on ? ['pile', Math.round(pileDepth)] : [])].join('|'),
   };
 }

@@ -13,6 +13,7 @@ import type {
   EngineProject,
   QuantitiesResult,
 } from './types.ts';
+import { pileQuantities } from './pileGeom.ts';
 
 export function quantities(
   p: EngineProject,
@@ -94,6 +95,10 @@ export function quantities(
     totKg += kg;
   });
 
+  // Móng cọc (tùy chọn): bê tông cọc báo riêng, không cộng vào `vol` của tường.
+  const pileKg = res.bars.reduce((s, b) => s + (b.pile ? (b.kg ?? 0) : 0), 0);
+  const pile = p.pile && p.pile.on ? pileQuantities(p, g.B, pileKg) : undefined;
+
   return {
     vol,
     conc,
@@ -101,6 +106,7 @@ export function quantities(
     form,
     byD,
     totKg,
-    ratio: totKg / vol,
+    ratio: pile ? totKg / (vol + pile.vol) : totKg / vol,
+    ...(pile ? { pile } : {}),
   };
 }

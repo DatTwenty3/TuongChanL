@@ -18,6 +18,7 @@ export {
 export * from './calcCore.ts';
 export * from './rebar.ts';
 export * from './pile.ts';
+export * from './pileGeom.ts';
 export {
   calcGlobalChecks,
   calcRibChecks,

@@ -207,6 +207,7 @@ export interface EngineBarSpec {
   mark: number | string;
   name: string;
   d: number;
+  pile?: boolean;
   a?: number;
   ah?: number;
   n?: number;

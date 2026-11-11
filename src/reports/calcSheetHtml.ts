@@ -1231,7 +1231,7 @@ export function calcRbSchedule(P: EngineProject): CalcRbScheduleResult {
   const q = quantities(P, res);
   const Lum = Math.max(P.Lu, 1) / 100;
   const rows: Omit<CalcRbScheduleRow, 'keys'>[] = res.bars
-    .filter((b) => b.items && b.items.length && b.d > 0)
+    .filter((b) => !b.pile && b.items && b.items.length && b.d > 0)
     .map((b) => {
       const w = unitW(b.d);
       const A1 = (Math.PI * b.d * b.d) / 400;

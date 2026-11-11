@@ -151,6 +151,13 @@ export const SidebarMetrics: React.FC = () => {
     ['Cốt thép', `${fmt(quantitiesRes.totKg, 0)} kg`],
     ['Hàm lượng', `${fmt(quantitiesRes.ratio, 1)} kg/m³`],
   ];
+  // Móng cọc (tùy chọn): thêm 2 thẻ khi bật; tắt thì danh sách thẻ giữ nguyên.
+  if (quantitiesRes.pile) {
+    cards.push(
+      ['Số cọc', `${quantitiesRes.pile.n} cọc`],
+      ['Bê tông cọc', `${fmt2(quantitiesRes.pile.vol)} m³`],
+    );
+  }
 
   return (
     <>

@@ -10,6 +10,7 @@
  */
 
 import type {
+  PileCage,
   PileConfig,
   PileLookupRow,
   PileLookupTable,
@@ -49,6 +50,11 @@ export function pileNewLayer(over: Partial<PileSoilLayer> = {}): PileSoilLayer {
   };
 }
 
+/** Ví dụ lồng thép để bắt đầu nhập – KHÔNG phải kết quả thiết kế (kiểm tra kết cấu ở giai đoạn sau). */
+export function pileCageDefaults(): PileCage {
+  return { nMain: 4, dMain: 16, dHoop: 6, sEnd: 0.1, sMid: 0.2, Lend: 1.5, hook: 100 };
+}
+
 export function pileNewRow(nCols: number, z = 0): PileLookupRow {
   return { id: pileUid('r'), z, v: Array.from({ length: nCols }, () => null) };
 }
@@ -83,6 +89,7 @@ export function pileDefaults(): PileConfig {
     sy: 1.2,
     stagger: false,
 
+    cage: pileCageDefaults(),
     layers: [
       pileNewLayer({
         id: 'l1',
@@ -161,9 +168,10 @@ export function pileEnsure(P: EngineProject): PileConfig | undefined {
   const dst = q as unknown as Record<string, unknown>;
   const src = d as unknown as Record<string, unknown>;
   for (const k of Object.keys(src)) {
-    if (k === 'layers' || k === 'coef' || k === 'spt' || k === 'fi' || k === 'qb') continue;
+    if (k === 'layers' || k === 'cage' || k === 'coef' || k === 'spt' || k === 'fi' || k === 'qb') continue;
     if (dst[k] === undefined) dst[k] = src[k];
   }
+  q.cage = Object.assign({}, d.cage, q.cage);
   q.coef = Object.assign({}, d.coef, q.coef);
   q.spt = Object.assign({}, d.spt, q.spt);
   q.fi = ensureTable(q.fi);

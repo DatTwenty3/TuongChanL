@@ -243,6 +243,25 @@ export const PilePanel: React.FC = () => {
         <NumField path="pile.cover" label="Lớp bê tông bảo vệ" unit="mm" min={20} max={100} step={5} />
       </div>
 
+      {q.type !== 'phc' ? (
+        <div className="pgrp" data-grp="cage">
+          <div className="pgrp-h">Lồng thép cọc</div>
+          <NumField path="pile.cage.nMain" label="Số thanh thép dọc" unit="thanh" min={4} max={40} step={1} />
+          <NumField path="pile.cage.dMain" label="Đường kính thép dọc" unit="mm" min={10} max={40} step={2} />
+          <NumField path="pile.cage.dHoop" label="Đường kính đai / xoắn" unit="mm" min={6} max={20} step={1} />
+          <NumField path="pile.cage.Lend" label="Chiều dài vùng đai dày mỗi đầu" unit="m" min={0} max={10} step={0.1} />
+          <NumField path="pile.cage.sEnd" label="Bước đai vùng đầu cọc" unit="m" min={0.03} max={0.5} step={0.01} />
+          <NumField path="pile.cage.sMid" label="Bước đai đoạn giữa" unit="m" min={0.05} max={0.5} step={0.01} />
+          <NumField path="pile.cage.hook" label="Móc neo mỗi đai (cộng vào chiều dài)" unit="mm" min={0} max={400} step={10} />
+          <div className="hint">
+            Số liệu lồng thép là dữ liệu nhập để dựng bản vẽ, mô hình 3D và thống kê khối lượng; việc kiểm
+            tra khả năng chịu lực của cọc làm ở giai đoạn sau.
+          </div>
+        </div>
+      ) : (
+        <div className="hint">Cọc ly tâm là sản phẩm chế tạo sẵn: không vẽ lồng thép rời và không thống kê thép.</div>
+      )}
+
       <div className="pgrp">
         <div className="pgrp-h">Bố trí cọc dưới bản đáy</div>
         <NumField path="pile.nx" label="Số hàng theo phương ngang (mũi → gót)" unit="hàng" min={1} max={12} step={1} />
