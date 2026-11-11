@@ -4,6 +4,7 @@
 
 export * from './types.ts';
 export * from './presets.ts';
+export * from './presetsApp.ts';
 export * from './geom.ts';
 export * from './water.ts';
 export * from './slope.ts';

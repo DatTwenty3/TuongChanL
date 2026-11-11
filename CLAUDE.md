@@ -73,6 +73,7 @@ specs/  parity-spec.md (hợp đồng tương đương) · evidence-ledger.md ·
 7. PDF có 2 đường: `#bPrint` (iframe + `window.print()`), `#bPdf` (`pdf-lib`, trang đúng `pw × ph` mm cho bản vẽ, A4 nhiều trang cho bảng tính).
 8. `baseName('')` → `'tuong_chan'` (NFD, `đ→d`, cắt 40 ký tự). Định dạng file dự án: `{ app: "tuong-chan-L", v: 1, p }` — **giữ nguyên khóa `app`** để tương thích hai chiều với app gốc.
 9. DXF R12 `AC1009`, đơn vị mm (`×10`), unicode `\U+XXXX`, `*D*` block cho DIMENSION; `M3Tubes` chia chunk 60 000 đỉnh (`Uint16Array`).
+11. **Khác biệt cố ý so với bản gốc (Mẫu 3)** nằm ở `engine/presetsApp.ts` (`appPresetKe`), KHÔNG ở `presetKe` (giữ nguyên để đối chiếu): (a) mặc định **không có chân khay** ở mọi chiều cao (thư viện gốc vẽ sẵn khay cho một số bản vẽ như K1, K2, K102…; người dùng tự bật); (b) cờ `Project.dimStem` làm `dimsSectionC` ghi chuỗi kích thước đứng 500 + 300 + **H** thay vì "mút + (tổng − mút)" (ví dụ H=4,20: 4200 thay cho 4500). Giao diện (`SidebarCadPanel`, `QuickHRow`) phải dùng `appPresetKe`; không có cờ `dimStem` thì CAD cho kết quả y như bản gốc. Test: `tests/cad/keDims.test.ts`.
 10. **Đừng "sửa" công thức** trong `engine/`, `cad/`, `reports/`: test so khớp với module gốc chạy trong Node `vm` (`analysis/modules/01..23`). Cần đổi hành vi → cập nhật `specs/parity-spec.md` và test cùng lúc.
 
 ## Quy tắc clean-room (bắt buộc)

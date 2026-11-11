@@ -18,7 +18,7 @@ import {
   keyBlocked,
   keyOn,
   presetCanti,
-  presetKe,
+  appPresetKe,
   presetRib,
   presetWall4,
   rolesOf,
@@ -215,7 +215,7 @@ export const SidebarCadPanel: React.FC = () => {
 
   const previewB = useMemo(() => presetCanti(lastH1 * 100), [lastH1]);
   const previewA = useMemo(() => presetRib(), []);
-  const previewC = useMemo(() => presetKe({}, kSelVal), [kSelVal]);
+  const previewC = useMemo(() => appPresetKe({}, kSelVal), [kSelVal]);
   const previewD = useMemo(() => presetWall4({}, dSelVal), [dSelVal]);
 
   const kBlk = keyBlocked(project);
@@ -329,7 +329,7 @@ export const SidebarCadPanel: React.FC = () => {
               {/* Mẫu 3 (C) */}
               <div
                 className={'tpl' + (project.tpl === 'C' ? ' on' : '')}
-                onClick={() => setTemplatePreset((meta) => presetKe(meta, kSelVal), true)}
+                onClick={() => setTemplatePreset((meta) => appPresetKe(meta, kSelVal), true)}
               >
                 <TemplateThumb p={previewC} />
                 <b>Mẫu 3 · Khối kè có sườn</b>
@@ -344,7 +344,7 @@ export const SidebarCadPanel: React.FC = () => {
                   onClick={(e) => e.stopPropagation()}
                   onChange={(e) => {
                     const idx = parseInt(e.target.value, 10);
-                    setTemplatePreset((meta) => presetKe(meta, idx));
+                    setTemplatePreset((meta) => appPresetKe(meta, idx));
                   }}
                 >
                   {KE_HS.map(([, i]) => (

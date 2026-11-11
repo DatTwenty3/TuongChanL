@@ -6,7 +6,7 @@ import {
   dIdxOf,
   fmt,
   presetCanti,
-  presetKe,
+  appPresetKe,
   presetWall4,
 } from '../engine';
 import { getProjectPath, useAppStore } from '../state/appStore';
@@ -285,7 +285,7 @@ export const QuickHRow: React.FC = () => {
       items.push({
         label: fmt(H / 100, 2),
         active: keFirst(project.keIdx) === i,
-        apply: () => setTemplatePreset((meta) => presetKe(meta, i)),
+        apply: () => setTemplatePreset((meta) => appPresetKe(meta, i)),
       }),
     );
   } else if (project.tpl === 'D') {

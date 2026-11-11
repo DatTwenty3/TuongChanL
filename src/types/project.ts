@@ -370,6 +370,8 @@ export interface Project {
   tBlind: number;
   blindOn: boolean;
   formEnds?: boolean;
+  /** Mẫu 3: ghi chiều cao thân H (từ mặt bản đáy) trên kích thước thay vì "tổng − bề dày mút". Vắng mặt = như bản gốc. */
+  dimStem?: boolean;
   dimLeg: DimLegMode;
   labelUnit: string;
   labelFmt: string;

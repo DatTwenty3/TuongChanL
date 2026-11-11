@@ -465,10 +465,24 @@ export function dimsSectionC(
             [0, 0],
             [0, p.tTip],
           ],
-          [
-            [0, p.tTip],
-            [0, yT],
-          ],
+          // dimStem: tách "bản đáy" và "thân H" để kích thước ghi đúng chiều cao đã chọn
+          ...(p.dimStem && p.tBase > p.tTip + 1e-6
+            ? [
+                [
+                  [0, p.tTip],
+                  [0, p.tBase],
+                ] as [Point2D, Point2D],
+                [
+                  [0, p.tBase],
+                  [0, yT],
+                ] as [Point2D, Point2D],
+              ]
+            : [
+                [
+                  [0, p.tTip],
+                  [0, yT],
+                ] as [Point2D, Point2D],
+              ]),
         ],
       },
       {
