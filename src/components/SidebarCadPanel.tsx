@@ -25,6 +25,7 @@ import {
   type EngineProject,
 } from '../engine';
 import { useAppStore } from '../state/appStore';
+import { PilePanel } from './PilePanel';
 import { AccTitle, KE_HS, NumField, QuickHRow, SelField, TxtField, keFirst, keLabel } from './FieldControls';
 
 type FieldDef = [string, string, string, number, number, number];
@@ -439,6 +440,11 @@ export const SidebarCadPanel: React.FC = () => {
           <div className="calc" id="calcB">
             Tổng bề rộng bản đáy B = {fmt(g.B)} cm · cao tổng cộng = {fmt(g.yTop)} cm
           </div>
+      </CadAccordion>
+
+      {/* 2c. Móng cọc BTCT (mô đun mở rộng): cùng dữ liệu với mục 12 của tab Tính toán */}
+      <CadAccordion id="2c_pile" title="2c. Móng cọc BTCT" defaultOpen>
+        <PilePanel />
       </CadAccordion>
 
       {/* 2b. Chi tiết mẫu 2 */}

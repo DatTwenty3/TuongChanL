@@ -1001,4 +1001,41 @@ describe('TuongChanL Web App UI integration (Easy -> Medium -> Hard -> Special)'
     expect(errorSpy).not.toHaveBeenCalled();
   }, 30000);
 
+
+  it('Móng cọc: mục 2c ở tab bản vẽ mở sẵn và dùng chung dữ liệu với mục 12 của tab Tính toán', async () => {
+    await mountApp();
+    const find = (needle: string): HTMLDetailsElement | undefined =>
+      Array.from(container.querySelectorAll<HTMLDetailsElement>('#panel details')).find((d) =>
+        d.querySelector('summary')?.textContent?.includes(needle),
+      );
+    const sec = find('2c. Móng cọc')!;
+    expect(sec).toBeTruthy();
+    expect(sec.open).toBe(true);
+    // đứng ngay sau mục "2. Kích thước mặt cắt"
+    const all = Array.from(container.querySelectorAll<HTMLDetailsElement>('#panel details'));
+    const i2 = all.findIndex((d) => d.querySelector('summary')?.textContent?.includes('2. Kích thước mặt cắt'));
+    expect(all[i2 + 1]).toBe(sec);
+
+    await act(async () => {
+      setCheckbox(container.querySelector('#panel input[data-path="pile.on"]') as HTMLInputElement, true);
+    });
+    await flushUi(20);
+    expect(container.querySelectorAll('#panel [data-layer]').length).toBe(3);
+    // số cọc hiện ở thẻ khối lượng (bản vẽ đã có cọc)
+    expect(container.querySelector('#sum')?.textContent).toContain('Số cọc');
+
+    // sang tab Tính toán: mục 12 cùng dữ liệu
+    await act(async () => {
+      (container.querySelector('#tabCalc') as HTMLButtonElement).click();
+    });
+    const sec12 = find('12. Móng cọc')!;
+    await act(async () => {
+      (sec12.querySelector('summary') as HTMLElement).click();
+    });
+    await flushUi(20);
+    expect(container.querySelectorAll('#panel [data-layer]').length).toBe(3);
+    expect((container.querySelector('#panel input[data-path="pile.on"]') as HTMLInputElement).checked).toBe(true);
+    expect(errorSpy).not.toHaveBeenCalled();
+  }, 30000);
+
 });
