@@ -221,7 +221,7 @@ TuongChanL-Web/
    - Port lines `1..179` of `E:\3. data\rea\analysis\modules\styles.css` verbatim (CSS custom properties `--bg: #eef1f4`, `--acc: #0e6ba8`, `--ok: #1b7f4b`, `--warn: #b25a00`, `aside { width: 372px }`, `@media (max-width:900px)`, `#stage`, `#v3d`, `#calcv`, `.csheet`, `#toast`).
    - Omit lines `180..200` completely.
 2. **Header, Navigation & Contextual Action Visibility**:
-   - Header (`<header>`): `.brand` (`"L"`, `"Tường chắn chữ L"`, `"Bố trí chung & cốt thép · bản vẽ 2D + mô hình 3D · LEDAT"`), buttons `#bOpen`, `#bSave`, `#bDxf`, `#bPng`, `#bDxfAll`, `#bSvg`, `#bPrint`, `#bPdf`, `#bDocx`, `#bCsv`. (Custom web app branding `LEDAT` also used in OOXML `docProps/app.xml` `<Application>Tường chắn chữ L - LEDAT</Application>`.)
+   - Header (`<header>`): `.brand` (inline-SVG `BrandMark`, `"Tường chắn BTCT"`, `"Bản vẽ 2D · mô hình 3D · kiểm toán TCVN 11823 · LEDAT"`), buttons `#bOpen`, `#bSave`, `#bDxf`, `#bPng`, `#bDxfAll`, `#bSvg`, `#bPrint`, `#bPdf`, `#bDocx`, `#bCsv`. (Custom web app branding `LEDAT` also used in OOXML `docProps/app.xml` `<Application>Tường chắn BTCT - LEDAT</Application>`.)
    - Visibility matrix matching `applyMode()` (`26_app_ui_export.js#L808-832`):
      - **2D CAD (`mode2d`)**: `#bDxf`, `#bDxfAll`, `#bSvg`, `#bPrint`, `#bPdf`, `#bCsv`, `#sinfo`, `#bFit`, `.tip` shown; `#bPng`, `#bDocx` hidden.
      - **3D (`mode3`)**: `#bPng`, `#bDxfAll`, `#bCsv` shown; `#bDxf`, `#bSvg`, `#bPrint`, `#bPdf`, `#bDocx`, `#sinfo`, `#bFit`, `.tip` hidden.

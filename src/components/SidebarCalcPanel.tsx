@@ -29,7 +29,9 @@ import {
   type EngineSuggestItem,
 } from '../engine';
 import { getProjectPath, useAppStore } from '../state/appStore';
+import { Glyphs, Sym } from './Icon';
 import {
+  AccTitle,
   ChkField,
   DateField,
   NumField,
@@ -56,7 +58,9 @@ const CalcAccordion: React.FC<{
         if (next !== open) setCalcAccordion(id, next);
       }}
     >
-      <summary>{title}</summary>
+      <summary>
+        <AccTitle title={title} />
+      </summary>
       <div className="body">{children}</div>
     </details>
   );
@@ -755,12 +759,18 @@ export const SidebarCalcPanel: React.FC = () => {
           {gsBusy ? (
             <div className="hint">Đang tính…</div>
           ) : !gsOut ? (
-            <div className="hint">{formatGsStatusText(project, gsBusy)}</div>
+            <div className="hint">
+              <Glyphs text={formatGsStatusText(project, gsBusy)} />
+            </div>
           ) : 'err' in gsOut && gsOut.err ? (
             <div className="hint">Không chạy được: {gsOut.err}</div>
           ) : !gsRows ? null : (
             <>
-              {gsStale ? <div className="hint">⚠ Số liệu đã đổi sau lần tính – sắp tự tính lại.</div> : null}
+              {gsStale ? (
+                <div className="hint">
+                  <Glyphs text="⚠ Số liệu đã đổi sau lần tính – sắp tự tính lại." />
+                </div>
+              ) : null}
               <table>
                 <thead>
                   <tr>
@@ -847,7 +857,7 @@ export const SidebarCalcPanel: React.FC = () => {
             />
             <NumField path="calc.feN" label="Kích thước phần tử lưới" unit="m" min={0.25} max={1.5} step={0.05} />
             <div className="hint" id="feStat">
-              {feStatus}
+              <Glyphs text={feStatus} />
             </div>
             <button type="button" className="wide" onClick={() => setCalcSub('fe')}>
               Xem nội lực mô hình tấm (biểu đồ màu M, V, N)
@@ -901,7 +911,7 @@ export const SidebarCalcPanel: React.FC = () => {
           {femBusy ? 'Đang tính…' : 'Chạy lại phân tích'}
         </button>
         <div className="hint" id="femStat">
-          {femStatus}
+          <Glyphs text={femStatus} />
         </div>
         <div className="hint">
           Phân tích FEM 2D luôn tự chạy trong luồng nền khi số liệu đứng yên (không treo giao diện;
@@ -959,7 +969,7 @@ export const SidebarCalcPanel: React.FC = () => {
                       'cbs' + (sugItem ? (sugItem.ok ? ' ok' : ' bad') : '')
                     }
                   >
-                    {sugItem ? (sugItem.ok ? '✓' : '✗') : ''}
+                    {sugItem ? <Sym ch={sugItem.ok ? '✓' : '✗'} /> : ''}
                   </span>{' '}
                   {nm}
                 </div>
@@ -1051,7 +1061,7 @@ export const SidebarCalcPanel: React.FC = () => {
             Gợi ý kích thước ổn định
           </button>
           <div className="hint" id="calcHint">
-            {hintText}
+            <Glyphs text={hintText} />
           </div>
         </div>
       </CalcAccordion>

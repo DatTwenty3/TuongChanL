@@ -25,7 +25,7 @@ import {
   type EngineProject,
 } from '../engine';
 import { useAppStore } from '../state/appStore';
-import { KE_HS, NumField, QuickHRow, SelField, TxtField, keFirst, keLabel } from './FieldControls';
+import { AccTitle, KE_HS, NumField, QuickHRow, SelField, TxtField, keFirst, keLabel } from './FieldControls';
 
 type FieldDef = [string, string, string, number, number, number];
 
@@ -158,7 +158,9 @@ function CadAccordion({
         if (next !== open) setCadAccordion(id, next);
       }}
     >
-      <summary>{title}</summary>
+      <summary>
+        <AccTitle title={title} />
+      </summary>
       <div className="body">{children}</div>
     </details>
   );

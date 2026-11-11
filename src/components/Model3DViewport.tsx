@@ -17,6 +17,7 @@ import type {
 } from '../types/project';
 import { fmt, type EngineBarsResult, type EngineProject } from '../engine';
 import { useAppStore } from '../state/appStore';
+import { Icon } from './Icon';
 
 interface TipState {
   title: string;
@@ -48,6 +49,7 @@ export const Model3DViewport: React.FC = () => {
   const tipRef = useRef<HTMLDivElement | null>(null);
 
   const [legMin, setLegMin] = useState(false);
+  const [barMin, setBarMin] = useState(false);
   const [tip, setTip] = useState<TipState | null>(null);
   const [tipPos, setTipPos] = useState<{ left: number; top: number }>({ left: 8, top: 8 });
 
@@ -199,7 +201,20 @@ export const Model3DViewport: React.FC = () => {
           >
             Vừa khung
           </button>
+          <button
+            type="button"
+            id="v3barToggle"
+            className={'v3b sm v3tog' + (barMin ? ' min' : '')}
+            aria-expanded={!barMin}
+            title={barMin ? 'Hiện các tùy chọn hiển thị' : 'Thu gọn thanh công cụ'}
+            onClick={() => setBarMin((m) => !m)}
+          >
+            <Icon name="chevron" size={13} />
+            Tùy chọn
+          </button>
         </div>
+
+        <div className="v3more" hidden={barMin}>
 
         <div className="v3g">
           <span className="v3t">Hiển thị</span>
@@ -299,6 +314,7 @@ export const Model3DViewport: React.FC = () => {
         <button type="button" className="v3b pri" onClick={() => void export3dPng()}>
           Ảnh PNG
         </button>
+        </div>
       </div>
 
       <div id="v3wrap" ref={wrapRef}>
@@ -327,7 +343,7 @@ export const Model3DViewport: React.FC = () => {
                 className="v3b sm"
                 onClick={() => setLegMin((m) => !m)}
               >
-                ▾
+                <Icon name="chevron" size={13} />
               </button>
             </span>
           </div>

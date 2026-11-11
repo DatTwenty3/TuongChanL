@@ -192,9 +192,9 @@ describe('TuongChanL Web App UI integration (Easy -> Medium -> Hard -> Special)'
     );
 
     // Header buttons in 2D mode (zero licensing UI, LEDAT branding)
-    expect(container.textContent).toContain('Tường chắn chữ L');
+    expect(container.textContent).toContain('Tường chắn BTCT');
     expect(container.querySelector('header .brand small')?.textContent).toBe(
-      'Bố trí chung & cốt thép · bản vẽ 2D + mô hình 3D · LEDAT',
+      'Bản vẽ 2D · mô hình 3D · kiểm toán TCVN 11823 · LEDAT',
     );
     expect(container.textContent).not.toContain('Thợ Vẽ');
     expect(container.querySelector('.licchip')).toBeNull();

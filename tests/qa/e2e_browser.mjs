@@ -217,7 +217,7 @@ async function verifyDocxBytes(page, bytes, label) {
 
   const appXml = zipEntries.get('docProps/app.xml')?.toString('utf8') || '';
   assert.ok(
-    appXml.includes('<Application>Tường chắn chữ L - LEDAT</Application>'),
+    appXml.includes('<Application>Tường chắn BTCT - LEDAT</Application>'),
     `${label}: unexpected docProps/app.xml: ${appXml}`,
   );
   assert.equal(/Thợ Vẽ/i.test(appXml), false, `${label}: legacy branding found in docProps/app.xml`);
@@ -370,7 +370,7 @@ async function run() {
     const brandSub = (await page.locator('header .brand small').textContent())?.trim() ?? '';
     assert.equal(
       brandSub,
-      'Bố trí chung & cốt thép · bản vẽ 2D + mô hình 3D · LEDAT',
+      'Bản vẽ 2D · mô hình 3D · kiểm toán TCVN 11823 · LEDAT',
       `Unexpected brand subtitle: "${brandSub}"`,
     );
     record(

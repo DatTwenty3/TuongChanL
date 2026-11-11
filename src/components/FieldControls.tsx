@@ -324,3 +324,14 @@ export const QuickHRow: React.FC = () => {
     </div>
   );
 };
+
+/** Tiêu đề mục: tách số thứ tự ("2b.") thành huy hiệu, giữ nguyên textContent. */
+export const AccTitle: React.FC<{ title: string }> = ({ title }) => {
+  const m = /^(\d+[a-z]?)\.\s+(.*)$/s.exec(title);
+  if (!m) return <>{title}</>;
+  return (
+    <>
+      <span className="sn">{m[1] + '.'}</span> {m[2]}
+    </>
+  );
+};

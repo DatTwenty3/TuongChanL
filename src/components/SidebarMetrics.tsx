@@ -8,6 +8,17 @@ import {
   isCalcValid,
 } from '../engine';
 import { useAppStore } from '../state/appStore';
+import { Glyphs, Sym } from './Icon';
+
+function KpiValue({ v }: { v: string }): JSX.Element {
+  const i = v.indexOf(' ');
+  if (i < 0) return <b>{v}</b>;
+  return (
+    <b>
+      {v.slice(0, i)} <span className="u">{v.slice(i + 1)}</span>
+    </b>
+  );
+}
 
 export const SidebarMetrics: React.FC = () => {
   const { project, viewMode, barsRes, quantitiesRes, calcResult, feRev } = useAppStore();
@@ -20,7 +31,9 @@ export const SidebarMetrics: React.FC = () => {
         <>
           <div id="sum" className="sum" />
           <div id="warn" className="warn">
-            <div className="wt">⚠ Không tính được: </div>
+            <div className="wt">
+              <Glyphs text="⚠ Không tính được: " />
+            </div>
           </div>
         </>
       );
@@ -30,7 +43,9 @@ export const SidebarMetrics: React.FC = () => {
         <>
           <div id="sum" className="sum" />
           <div id="warn" className="warn">
-            <div className="wt">⚠ Không tính được: {R.error || ''}</div>
+            <div className="wt">
+              <Glyphs text={`⚠ Không tính được: ${R.error || ''}`} />
+            </div>
           </div>
         </>
       );
@@ -79,7 +94,8 @@ export const SidebarMetrics: React.FC = () => {
               >
                 <small>{x.t}</small>
                 <b>
-                  {(x.ok ? '✓ ' : x.info ? '! ' : '✗ ') + (xv > 99 ? '> 99' : fmt2(xv))}
+                  <Sym ch={x.ok ? '✓' : x.info ? '!' : '✗'} />{' '}
+                  {xv > 99 ? '> 99' : fmt2(xv)}
                 </b>
               </div>
             );
@@ -91,7 +107,9 @@ export const SidebarMetrics: React.FC = () => {
               … Mô hình FE đang tính, kết quả sẽ cập nhật sau giây lát
             </div>
           ) : feErr && project.calc?.feOn ? (
-            <div className="wt">⚠ Mô hình FE không chạy được: {feErr}</div>
+            <div className="wt">
+              <Glyphs text={`⚠ Mô hình FE không chạy được: ${feErr}`} />
+            </div>
           ) : null}
 
           {inf.length > 0 && (
@@ -104,7 +122,9 @@ export const SidebarMetrics: React.FC = () => {
 
           {bad.length > 0 ? (
             <>
-              <div className="wt">⚠ {bad.length} hạng mục chưa đạt</div>
+              <div className="wt">
+                <Glyphs text={`⚠ ${bad.length} hạng mục chưa đạt`} />
+              </div>
               {bad.map((x) => {
                 const xv = x.v ?? 0;
                 return (
@@ -115,7 +135,9 @@ export const SidebarMetrics: React.FC = () => {
               })}
             </>
           ) : (
-            <div className="ok">✓ Đạt tất cả các hạng mục kiểm toán</div>
+            <div className="ok">
+              <Glyphs text="✓ Đạt tất cả các hạng mục kiểm toán" />
+            </div>
           )}
         </div>
       </>
@@ -136,14 +158,16 @@ export const SidebarMetrics: React.FC = () => {
         {cards.map(([label, val]) => (
           <div key={label} className="card">
             <small>{label}</small>
-            <b>{val}</b>
+            <KpiValue v={val} />
           </div>
         ))}
       </div>
       <div id="warn" className="warn">
         {barsRes.warn.length > 0 ? (
           <>
-            <div className="wt">⚠ {barsRes.warn.length} cảnh báo</div>
+            <div className="wt">
+              <Glyphs text={`⚠ ${barsRes.warn.length} cảnh báo`} />
+            </div>
             {barsRes.warn.map((msg, idx) => (
               <div key={`${idx}-${msg}`} className="wi">
                 {msg}
@@ -152,7 +176,7 @@ export const SidebarMetrics: React.FC = () => {
           </>
         ) : (
           <div className="ok">
-            ✓ Không có cảnh báo về khoảng cách, lớp bảo vệ, chiều dài thanh
+            <Glyphs text="✓ Không có cảnh báo về khoảng cách, lớp bảo vệ, chiều dài thanh" />
           </div>
         )}
       </div>

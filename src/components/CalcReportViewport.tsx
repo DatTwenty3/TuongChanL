@@ -26,6 +26,7 @@ import {
   type FeReportResult,
 } from '../reports';
 import { useAppStore } from '../state/appStore';
+import { Glyphs } from './Icon';
 import { formatGsStatusText } from './SidebarCalcPanel';
 
 const FeViewPanel: React.FC<{ project: EngineProject; result: FeReportResult }> = ({
@@ -343,7 +344,9 @@ export const CalcReportViewport: React.FC = () => {
             >
               {gsBusy ? 'Đang tính…' : 'Tính lại'}
             </button>
-            <span className="gsStat">{formatGsStatusText(project, gsBusy)}</span>
+            <span className="gsStat">
+              <Glyphs text={formatGsStatusText(project, gsBusy)} />
+            </span>
           </>
         ) : (
           <span>{helperTexts[activeSub] ?? ''}</span>

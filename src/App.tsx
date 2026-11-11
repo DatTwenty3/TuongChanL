@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { SHEET_DEFS } from './cad';
 import { calcBadgeStatus, fmt } from './engine';
 import {
@@ -11,12 +11,22 @@ import {
   SidebarMetrics,
   ToastBanner,
 } from './components';
+import { Glyphs, Icon } from './components/Icon';
 import { AppProvider, useAppStore } from './state/appStore';
 import type { AppViewMode, Project, TemplateId } from './types/project';
 
 const APP_VERSION = '1.0.0';
 const DEFAULT_TPL: TemplateId = 'B';
 const INITIAL_MODE: AppViewMode = '2d';
+
+/** Nhãn ngắn cho thanh tab (tên đầy đủ nằm trong tooltip). */
+const SHEET_SHORT = [
+  'Chi tiết tường',
+  'Bố trí thép (1)',
+  'Bố trí thép (2)',
+  'Thanh thép',
+  'Khối lượng',
+];
 
 export interface AppShellInfo {
   version: string;
@@ -46,6 +56,8 @@ const AppWorkspace: React.FC = () => {
 
   void feRev;
 
+  const [sideOpen, setSideOpen] = useState(true);
+
   const badge = calcBadgeStatus(calcResult, project);
   const sh = getSheet(curSheet);
   const sinfoText = `Cụm chi tiết · tỷ lệ 1/${sh.S} · rộng ${fmt((sh.W * 10) / sh.S, 0)} × cao ${fmt((sh.H * 10) / sh.S, 0)} mm trên giấy${
@@ -53,59 +65,84 @@ const AppWorkspace: React.FC = () => {
   }`;
 
   return (
-    <div className="app-shell" data-app="tuong-chan-L" data-tpl={project.tpl}>
+    <div
+      className="app-shell"
+      data-app="tuong-chan-L"
+      data-tpl={project.tpl}
+      data-view={viewMode}
+      data-side={sideOpen ? 'open' : 'closed'}
+    >
       <HeaderToolbar />
       <main>
         <aside>
-          <SidebarMetrics />
-          {viewMode === 'calc' ? <SidebarCalcPanel /> : <SidebarCadPanel />}
+          <div className="side-head">
+            <Icon name={viewMode === 'calc' ? 'calc' : 'sliders'} size={16} />
+            <span className="side-ttl">
+              {viewMode === 'calc' ? 'Thông số tính toán' : 'Thông số bản vẽ'}
+            </span>
+            <span className="side-sub">
+              {viewMode === 'calc' ? 'Kiểm toán TCVN 11823' : 'Kích thước · cốt thép'}
+            </span>
+          </div>
+          <div className="side-sum">
+            <SidebarMetrics />
+          </div>
+          <div className="side-body">
+            {viewMode === 'calc' ? <SidebarCalcPanel /> : <SidebarCadPanel />}
+          </div>
         </aside>
 
         <section className="view">
           <nav>
+            <button
+              id="bSide"
+              type="button"
+              className="sidebtn"
+              aria-pressed={sideOpen}
+              title={sideOpen ? 'Ẩn bảng thông số để mở rộng vùng làm việc' : 'Hiện bảng thông số'}
+              onClick={() => setSideOpen((v) => !v)}
+            >
+              <Icon name="sidebar" />
+              Thông số
+            </button>
+
             <div id="tabs">
+              <span className="tabgrp">Bản vẽ 2D</span>
               {SHEET_DEFS.map((d, i) => (
                 <button
                   key={d.name}
                   type="button"
-                  className={viewMode === '2d' && curSheet === i ? 'on' : undefined}
+                  title={`${i + 1}. ${d.name[0] + d.name.slice(1).toLowerCase()}`}
+                  className={'tsheet' + (viewMode === '2d' && curSheet === i ? ' on' : '')}
                   onClick={() => selectSheetTab(i)}
                 >
-                  {`${i + 1}. ${d.name[0] + d.name.slice(1).toLowerCase()}`}
+                  {`${i + 1}. ${SHEET_SHORT[i] ?? d.name[0] + d.name.slice(1).toLowerCase()}`}
                 </button>
               ))}
+              <span className="tabsep" aria-hidden="true" />
               <button
                 id="tab3d"
                 type="button"
+                title="3D · Mô hình"
                 className={'tab3d' + (viewMode === '3d' ? ' on' : '')}
                 onClick={() => setViewMode('3d')}
               >
+                <Icon name="cube" />
                 3D · Mô hình
               </button>
+              <span className="tabsep" aria-hidden="true" />
               <button
                 id="tabCalc"
                 type="button"
+                title="Tính toán"
                 className={'tabcalc' + (viewMode === 'calc' ? ' on' : '')}
                 onClick={() => setViewMode('calc')}
               >
+                <Icon name="calc" />
                 {'Tính toán '}
                 <span id="calcBadge" className={badge.cls}>
-                  {badge.text}
+                  <Glyphs text={badge.text} />
                 </span>
-              </button>
-            </div>
-
-            <div className="tools">
-              <span id="sinfo" hidden={viewMode !== '2d'}>
-                {sinfoText}
-              </span>
-              <button
-                id="bFit"
-                type="button"
-                hidden={viewMode !== '2d'}
-                onClick={requestFit2d}
-              >
-                Vừa khung
               </button>
             </div>
           </nav>
@@ -114,9 +151,23 @@ const AppWorkspace: React.FC = () => {
           <Model3DViewport />
           <CalcReportViewport />
 
-          <div className="tip" hidden={viewMode !== '2d'}>
-            Lăn chuột để phóng to/thu nhỏ · kéo để di chuyển · nhấp đúp để vừa khung
-          </div>
+          <footer className="statusbar" hidden={viewMode !== '2d'}>
+            <span id="sinfo" hidden={viewMode !== '2d'}>
+              <Glyphs text={sinfoText} />
+            </span>
+            <span className="tip">
+              Lăn chuột để phóng to/thu nhỏ · kéo để di chuyển · nhấp đúp để vừa khung
+            </span>
+            <button
+              id="bFit"
+              type="button"
+              hidden={viewMode !== '2d'}
+              onClick={requestFit2d}
+            >
+              <Icon name="fit" size={13} />
+              Vừa khung
+            </button>
+          </footer>
         </section>
       </main>
       <ToastBanner />

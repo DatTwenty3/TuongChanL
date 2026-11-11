@@ -803,7 +803,7 @@ export async function calcDocxBlob(P: EngineProject, R: CalcRunResult): Promise<
       n: 'docProps/app.xml',
       d:
         DX_HDR +
-        '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Tường chắn chữ L - LEDAT</Application></Properties>',
+        '<Properties xmlns="http://schemas.openxmlformats.org/officeDocument/2006/extended-properties"><Application>Tường chắn BTCT - LEDAT</Application></Properties>',
     },
     {
       n: 'word/document.xml',
