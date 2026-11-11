@@ -13,7 +13,7 @@ Web app TypeScript + React 18 + Vite 6: **bản vẽ 2D (5 cụm CAD) + mô hìn
 | Dev server | `npm run dev` | Vite HMR. Nếu trang mất style sau khi sửa `app.css` hàng loạt → tắt và chạy lại Vite |
 | Typecheck | `npm run typecheck` | `tsc --noEmit`, phải exit 0 |
 | Build | `npm run build` | `tsc --noEmit && vite build` → `dist/` (đã `.gitignore`) |
-| Test | `npx vitest run` | 10 file, **141 test**, ~100 s (jsdom). Một test duy nhất: `npx vitest run tests/engine/parity.test.ts` (21 test) |
+| Test | `npx vitest run` | 11 file, **144 test**, ~100 s (jsdom). Một test duy nhất: `npx vitest run tests/engine/parity.test.ts` (21 test) |
 | E2E | `node tests/qa/e2e_browser.mjs` | **Phải `npm run build` trước** (phục vụ `dist/` qua `vite preview --port 4179`). Cần Chrome tại `C:\Program Files\Google\Chrome\Application\chrome.exe`, 11 check `E2E-0…6b`, kỳ vọng 0 lỗi console/HTTP |
 | Chạy 1 chạm (Windows) | `start-webapp.bat` | Tự cài Node/`node_modules`, build nếu thiếu, mở trình duyệt; có `--dev --rebuild --install --lan --port N --no-open --check` |
 
@@ -112,6 +112,7 @@ Kế hoạch đầy đủ: `~/.claude/plans/foamy-sauteeing-tide.md` (GĐ0 nền
   - Tải lấy từ `calcRun(P).C[]` (tổ hợp TCVN 11823 đã nhân hệ số; `s` = độ lệch tâm hợp lực, dương về gót) nhân bước hiệu dụng `Lu/nz`; sức kháng theo 10304 (lai có chủ ý). `γn·Nd ≤ Rk/γk`.
   - UI/hiển thị: `SidebarMetrics` dùng `allChecks(project, R)` (tắt cọc = đúng `calcChecks`); `App.tsx` dùng `badgeStatusAll`; khi bật cọc + `ignoreShallow`, `br`/`sl` thành `info` (`EngineCheckItem.tip`). Báo cáo: `reports/calcPileSheet.ts`, tab con `'pile'` ("Móng cọc", chỉ hiện khi bật) và mục nối cuối `calcSheetHTML` chỉ khi `pileOn`.
   - Test: `tests/engine/pileCore.test.ts` (golden tính tay: cọc đóng sét, SPT, khoan nhồi sét, thí nghiệm, lệch tâm, nhổ, bất biến tắt = y nguyên).
+- **3D nền đất (hiển thị):** `model3d/ground3d.ts` (`m3Ground`, `groundColor`) → `Model3DData.ground?` (khối đất theo từng lớp `pile.layers` tới 3 m dưới mũi cọc + lớp đất phủ trước mũi đến `design.z0`; không có cọc thì một khối nền đất rời/dính/đá theo `calc.soil`). Chỉ để xem: KHÔNG đổi `conc/lean/soil/bbox/sig` (test so oracle). Shader riêng `V3_FS_SOIL` (hạt + vân lớp + mặt trên phủ cỏ, dùng `V3_VS_MESH`) — KHÔNG sửa `V3_VS_MESH/V3_FS_MESH` (test so chuỗi với bản gốc). Công tắc `V3Visibility.strata` ("Địa tầng nền") và `soil` ("Đất đắp") đều mặc định bật; chú giải `#v3soil` nằm ngoài `#v3list` (E2E đếm `#v3list .lg`). Test: `tests/model3d/ground3d.test.ts`.
 - Đơn vị của `pile`: m, kN, kPa (khác hình học tường bằng cm). Test: `tests/engine/pile.test.ts` + khối "Móng cọc" trong `tests/appUi.test.tsx`; không có oracle nên dùng golden tính tay.
 
 ## Quy trình làm việc

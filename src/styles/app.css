@@ -1365,7 +1365,8 @@ nav {
 }
 
 #v3leg.min #v3list,
-#v3leg.min #v3sum {
+#v3leg.min #v3sum,
+#v3leg.min #v3soil {
   display: none;
 }
 
@@ -1378,6 +1379,40 @@ nav {
   min-height: 0;
   overflow: auto;
   margin: 0 -4px;
+}
+
+#v3soil {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px solid #2f4f86;
+  font-size: 11.5px;
+  max-height: 28%;
+  overflow: auto;
+}
+
+#v3soil > b {
+  display: block;
+  margin-bottom: 3px;
+}
+
+#v3soil .sl {
+  display: grid;
+  grid-template-columns: 14px 1fr auto;
+  align-items: center;
+  gap: 6px;
+  padding: 1px 0;
+}
+
+#v3soil .sw {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+#v3soil .sl em {
+  color: #9fb3c8;
+  font-style: normal;
 }
 
 #v3sum {

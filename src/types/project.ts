@@ -924,12 +924,28 @@ export interface Model3DGpuMesh {
   nl: number;
 }
 
+/** Một khối đất của nền (theo lớp địa tầng hoặc lớp đất phủ mặt) – chỉ để hiển thị 3D. */
+export interface Model3DGroundPart {
+  id: string;
+  name: string;
+  kind: 'strata' | 'cover';
+  color: [number, number, number];
+  /** Cường độ hoa văn vật liệu (0 = trơn, 1 = đất). */
+  mat: number;
+  mesh: M3MeshData;
+  /** Cao độ trên / dưới của khối (cm, đáy bản đáy = 0). */
+  y0: number;
+  y1: number;
+}
+
 export interface Model3DGpuBuffers {
   conc: Model3DGpuMesh;
   lean: Model3DGpuMesh;
   soil: Model3DGpuMesh;
   /** Chỉ có khi bật móng cọc. */
   pile?: Model3DGpuMesh;
+  /** Song song với `Model3DData.ground`. */
+  ground?: Model3DGpuMesh[];
   grid: { lb: WebGLBuffer | null; nl: number };
 }
 
@@ -939,6 +955,8 @@ export interface Model3DData {
   soil: M3MeshData;
   /** Khối bê tông cọc – chỉ có khi bật móng cọc. */
   pile?: M3MeshData;
+  /** Các khối đất nền theo lớp (hiển thị 3D). */
+  ground?: Model3DGroundPart[];
   groups: M3BarGroup[];
   bbox: Model3DBBox;
   sig: string;
@@ -950,6 +968,8 @@ export interface V3Visibility {
   edges: boolean;
   blind: boolean;
   soil: boolean;
+  /** Địa tầng nền đất. */
+  strata: boolean;
   grid: boolean;
   rebar: boolean;
 }

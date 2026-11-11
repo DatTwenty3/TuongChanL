@@ -1,3 +1,4 @@
+import { m3Ground } from './ground3d';
 import {
   dLayers,
   type EngineBarsResult,
@@ -1036,6 +1037,7 @@ export function model3D(
     lean: ms.lean,
     soil: ms.soil,
     ...(pileMesh ? { pile: pileMesh } : {}),
+    ground: m3Ground(p, res),
     groups,
     bbox: {
       x0: 0,
