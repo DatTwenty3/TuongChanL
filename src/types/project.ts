@@ -215,6 +215,125 @@ export type LegacyCalcConfigInput = Partial<CalcConfig> & {
   kf?: number;
 };
 
+// ---------------------------------------------------------------------------
+// Móng cọc BTCT (mô đun tùy chọn, mở rộng – không có trong ứng dụng gốc)
+// `Project.pile` chỉ tồn tại khi người dùng bật; vắng mặt = tắt hoàn toàn.
+// Đơn vị: m, kN, kPa (khác với hình học tường tính bằng cm).
+// ---------------------------------------------------------------------------
+
+export type PileType = 'sq' | 'phc' | 'bored';
+export type PileMethod = 'tcvn' | 'spt' | 'test';
+export type PileSoilKind = 'sand' | 'clay' | 'rock';
+
+/** Một lớp đất, độ sâu tính từ đáy bản đáy (đáy đài) xuống. */
+export interface PileSoilLayer {
+  id: string;
+  name: string;
+  kind: PileSoilKind;
+  /** Bề dày lớp (m). */
+  thk: number;
+  /** Trọng lượng riêng hữu hiệu (kN/m³) – người dùng nhập đã kể đẩy nổi nếu dưới mực nước. */
+  gamma: number;
+  /** Lực dính c (kPa). */
+  c: number;
+  /** Góc ma sát trong φ (độ). */
+  phi: number;
+  /** Cường độ kháng cắt không thoát nước Su (kPa). */
+  Su: number;
+  /** Độ sệt IL (đất dính). */
+  IL: number;
+  /** Chỉ số SPT N. */
+  N: number;
+  /** Mô đun biến dạng E (MPa). */
+  E: number;
+  /** Chỉ số cột trong bảng fi (ma sát hông) cho lớp này; -1 = chưa chọn. */
+  fiCol: number;
+  /** Chỉ số cột trong bảng qb (sức kháng mũi) khi mũi cọc nằm trong lớp; -1 = chưa chọn. */
+  qbCol: number;
+  /** Hệ số nền ngang K (kN/m⁴) – dùng cho cọc chịu tải ngang; null = chưa nhập. */
+  K: number | null;
+}
+
+export interface PileLookupRow {
+  id: string;
+  /** Độ sâu z (m) mà hàng này áp dụng; nội suy tuyến tính giữa các hàng. */
+  z: number;
+  /** Giá trị theo từng cột; null = ô trống. */
+  v: Array<number | null>;
+}
+
+/** Bảng tra do người dùng tự nhập (ví dụ bảng fi, qb theo tiêu chuẩn). */
+export interface PileLookupTable {
+  cols: string[];
+  rows: PileLookupRow[];
+}
+
+/** Hệ số do người dùng nhập; null = chưa nhập (không tính). */
+export interface PileCoef {
+  /** Hệ số điều kiện làm việc của cọc trong đất. */
+  gc: number | null;
+  /** Hệ số điều kiện làm việc của đất dưới mũi cọc. */
+  gcq: number | null;
+  /** Hệ số điều kiện làm việc của đất trên thân cọc. */
+  gcf: number | null;
+  /** Hệ số an toàn theo đất. */
+  gk: number | null;
+}
+
+/** Hệ số tương quan SPT do người dùng nhập (kPa trên mỗi búa); null = chưa nhập. */
+export interface PileSptParams {
+  ksSand: number | null;
+  ksClay: number | null;
+  kbSand: number | null;
+  kbClay: number | null;
+  /** Giới hạn trên của ma sát hông (kPa). */
+  fsMax: number | null;
+  /** Giới hạn trên của sức kháng mũi (kPa). */
+  qbMax: number | null;
+}
+
+export interface PileConfig {
+  on: boolean;
+  type: PileType;
+  /** Cạnh (cọc vuông) hoặc đường kính ngoài (ly tâm / khoan nhồi), m. */
+  size: number;
+  /** Bề dày thành ống (ly tâm), m; 0 = đặc. */
+  wall: number;
+  /** Chiều dài cọc dưới đáy đài (m). */
+  L: number;
+  /** Đoạn cọc ngàm vào đài (m). */
+  embed: number;
+  concrete: string;
+  steel: string;
+  /** Lớp bê tông bảo vệ (mm). */
+  cover: number;
+
+  /** Số hàng cọc theo phương ngang bản đáy (mũi → gót). */
+  nx: number;
+  /** Khoảng cách giữa các hàng (m). */
+  sx: number;
+  /** Căn hàng cọc vào giữa bề rộng bản đáy; false = bắt đầu từ `x0`. */
+  centered: boolean;
+  /** Khoảng cách từ mép mũi bản đáy đến hàng đầu tiên (m) khi không căn giữa. */
+  x0: number;
+  /** Bước cọc dọc theo chiều dài tường (m). */
+  sy: number;
+  /** Bố trí so le giữa các hàng. */
+  stagger: boolean;
+
+  layers: PileSoilLayer[];
+  method: PileMethod;
+  /** Sức chịu tải giới hạn một cọc từ thí nghiệm (kN) khi `method === 'test'`. */
+  Qtest: number | null;
+  coef: PileCoef;
+  spt: PileSptParams;
+  fi: PileLookupTable;
+  qb: PileLookupTable;
+
+  /** Khi bật cọc: kiểm tra sức kháng nền nông / trượt đáy móng chỉ mang tính tham khảo. */
+  ignoreShallow: boolean;
+}
+
 /** Root retaining wall project model (cross-section units in `cm`, diameters in `mm`). */
 export interface Project {
   name: string;
@@ -279,6 +398,8 @@ export interface Project {
   rib: RibConfig;
   rb: RebarMap;
   calc?: CalcConfig;
+  /** Móng cọc BTCT (tùy chọn). Vắng mặt = không dùng cọc. */
+  pile?: PileConfig;
 }
 
 export interface ProjectFileEnvelope {

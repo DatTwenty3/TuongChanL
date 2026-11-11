@@ -927,4 +927,78 @@ describe('TuongChanL Web App UI integration (Easy -> Medium -> Hard -> Special)'
     // No uncaught runtime errors anywhere
     expect(errorSpy).not.toHaveBeenCalled();
   }, 45000);
+
+  it('Móng cọc: bật/tắt mục 12, sửa địa tầng và bảng tra mà không ảnh hưởng kết quả tường', async () => {
+    await mountApp();
+    const kpi = () => Array.from(container.querySelectorAll('#sum .card')).map((c) => c.textContent);
+    const kpi0 = kpi();
+
+    await act(async () => {
+      (container.querySelector('#tabCalc') as HTMLButtonElement).click();
+    });
+    const sec12 = Array.from(container.querySelectorAll<HTMLDetailsElement>('#panel details')).find(
+      (d) => d.querySelector('summary')?.textContent?.includes('12. Móng cọc'),
+    )!;
+    expect(sec12).toBeTruthy();
+    await act(async () => {
+      (sec12.querySelector('summary') as HTMLElement).click();
+    });
+    await flushUi(20);
+    expect(sec12.open).toBe(true);
+    // chưa bật: chỉ có công tắc
+    expect(container.querySelector('#panel [data-layer]')).toBeNull();
+
+    const sw = container.querySelector('#panel input[data-path="pile.on"]') as HTMLInputElement;
+    await act(async () => {
+      setCheckbox(sw, true);
+    });
+    await flushUi(20);
+    expect(container.querySelectorAll('#panel [data-layer]').length).toBe(3);
+    expect(container.querySelector('#panel select[data-path="pile.type"]')).not.toBeNull();
+
+    // thêm rồi xóa lớp đất
+    const addBtn = Array.from(container.querySelectorAll<HTMLButtonElement>('#panel button.wide')).find(
+      (b) => b.textContent?.includes('Thêm lớp đất'),
+    )!;
+    await act(async () => {
+      addBtn.click();
+    });
+    expect(container.querySelectorAll('#panel [data-layer]').length).toBe(4);
+    await act(async () => {
+      (container.querySelector('#panel [data-layer] button[aria-label="Xóa lớp đất"]') as HTMLButtonElement).click();
+    });
+    expect(container.querySelectorAll('#panel [data-layer]').length).toBe(3);
+
+    // ô hệ số trống = null (chưa nhập), nhập được 0 và số thực
+    const gk = container.querySelector('#panel input[data-path="pile.coef.gk"]') as HTMLInputElement;
+    expect(gk.value).toBe('');
+    await act(async () => {
+      setInputValue(gk, '1.4');
+    });
+    expect((container.querySelector('#panel input[data-path="pile.coef.gk"]') as HTMLInputElement).value).toBe('1.4');
+
+    // bảng tra fi: thêm hàng và cột
+    const fiBox = container.querySelector('#panel [data-table="fi"]') as HTMLElement;
+    const rows0 = fiBox.querySelectorAll('tbody tr').length;
+    await act(async () => {
+      Array.from(fiBox.querySelectorAll<HTMLButtonElement>('.prow2 button'))
+        .find((b) => b.textContent?.includes('Hàng'))!
+        .click();
+    });
+    expect((container.querySelector('#panel [data-table="fi"]') as HTMLElement).querySelectorAll('tbody tr').length).toBe(rows0 + 1);
+
+    // tắt cọc: các lớp biến mất khỏi UI nhưng KPI tường không đổi
+    await act(async () => {
+      setCheckbox(container.querySelector('#panel input[data-path="pile.on"]') as HTMLInputElement, false);
+    });
+    await flushUi(20);
+    expect(container.querySelector('#panel [data-layer]')).toBeNull();
+
+    await act(async () => {
+      container.querySelectorAll<HTMLButtonElement>('#tabs > button')[0].click();
+    });
+    expect(kpi()).toEqual(kpi0);
+    expect(errorSpy).not.toHaveBeenCalled();
+  }, 30000);
+
 });

@@ -335,3 +335,116 @@ export const AccTitle: React.FC<{ title: string }> = ({ title }) => {
     </>
   );
 };
+
+export interface CellNumProps {
+  value: number | null | undefined;
+  onCommit: (v: number | null) => void;
+  /** Cho phép ô trống (= null). Mặc định: ô trống bị bỏ qua. */
+  nullable?: boolean;
+  step?: number;
+  min?: number;
+  max?: number;
+  ariaLabel?: string;
+  dataPath?: string;
+  placeholder?: string;
+}
+
+/**
+ * Ô nhập số gọn dùng trong bảng / lưới: chấp nhận 0 và số âm (khác `DraftRebarNum`),
+ * giữ bản nháp khi đang gõ và đồng bộ lại khi giá trị gốc đổi.
+ */
+export const CellNum: React.FC<CellNumProps> = ({
+  value,
+  onCommit,
+  nullable,
+  step,
+  min,
+  max,
+  ariaLabel,
+  dataPath,
+  placeholder,
+}) => {
+  const show = value == null ? '' : String(value);
+  const [draft, setDraft] = useState<string>(show);
+  const focusedRef = useRef(false);
+  const lastRef = useRef<number | null>(value == null ? null : value);
+
+  useEffect(() => {
+    const cur = value == null ? null : value;
+    if (!focusedRef.current || cur !== lastRef.current) {
+      setDraft(show);
+      lastRef.current = cur;
+    }
+  }, [value, show]);
+
+  return (
+    <input
+      type="number"
+      step={step}
+      min={min}
+      max={max}
+      value={draft}
+      aria-label={ariaLabel}
+      data-path={dataPath}
+      placeholder={placeholder}
+      onFocus={() => {
+        focusedRef.current = true;
+      }}
+      onChange={(e) => {
+        const next = e.target.value;
+        setDraft(next);
+        if (next.trim() === '') {
+          if (nullable) {
+            lastRef.current = null;
+            onCommit(null);
+          }
+          return;
+        }
+        const v = parseFloat(next);
+        if (Number.isFinite(v)) {
+          lastRef.current = v;
+          onCommit(v);
+        }
+      }}
+      onBlur={() => {
+        focusedRef.current = false;
+        setDraft(show);
+        lastRef.current = value == null ? null : value;
+      }}
+    />
+  );
+};
+
+export interface OptNumFieldProps {
+  path: string;
+  label: string;
+  unit?: string;
+  step?: number;
+  min?: number;
+  max?: number;
+}
+
+/** Như `NumField` nhưng ô trống = `null` (chưa nhập) thay vì 0. */
+export const OptNumField: React.FC<OptNumFieldProps> = ({ path, label, unit, step, min, max }) => {
+  const { project, setPath } = useAppStore();
+  const raw = getProjectPath(project, path);
+  const val = typeof raw === 'number' && Number.isFinite(raw) ? raw : null;
+  return (
+    <label className="row">
+      <span className="lab">{label}</span>
+      <span className="inp">
+        <CellNum
+          value={val}
+          nullable
+          step={step}
+          min={min}
+          max={max}
+          dataPath={path}
+          placeholder="chưa nhập"
+          onCommit={(v) => setPath(path, v)}
+        />
+        <i>{unit ?? ''}</i>
+      </span>
+    </label>
+  );
+};

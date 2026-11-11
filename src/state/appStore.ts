@@ -17,6 +17,7 @@ import {
 import {
   ancEnsure,
   buildBars,
+  pileEnsure,
   calcApplyFixes,
   calcEnsure,
   calcFamilyFix,
@@ -91,12 +92,14 @@ const META_KEYS: Array<keyof EngineProject> = [
   'fillMode',
   'fillH',
   'calc',
+  'pile',
 ];
 
 export function cloneProject(p: EngineProject): EngineProject {
   const next = JSON.parse(JSON.stringify(p)) as EngineProject;
   calcEnsure(next);
   ancEnsure(next);
+  pileEnsure(next);
   return next;
 }
 
@@ -440,6 +443,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       mutator(draft);
       calcEnsure(draft);
       ancEnsure(draft);
+      pileEnsure(draft);
       return draft;
     });
   }, []);

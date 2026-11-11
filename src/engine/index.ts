@@ -17,6 +17,7 @@ export {
 } from './fe3d.ts';
 export * from './calcCore.ts';
 export * from './rebar.ts';
+export * from './pile.ts';
 export {
   calcGlobalChecks,
   calcRibChecks,

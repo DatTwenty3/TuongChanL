@@ -30,6 +30,7 @@ import {
 } from '../engine';
 import { getProjectPath, useAppStore } from '../state/appStore';
 import { Glyphs, Sym } from './Icon';
+import { PilePanel } from './PilePanel';
 import {
   AccTitle,
   ChkField,
@@ -1077,6 +1078,11 @@ export const SidebarCalcPanel: React.FC = () => {
             [',', 'Dấu phẩy (1.234,56)'],
           ]}
         />
+      </CalcAccordion>
+
+      {/* 12. Móng cọc BTCT (mô đun mở rộng, tùy chọn) */}
+      <CalcAccordion id="12" title="12. Móng cọc BTCT" initialOpen={false}>
+        <PilePanel />
       </CalcAccordion>
     </div>
   );

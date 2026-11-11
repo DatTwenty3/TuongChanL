@@ -2751,3 +2751,120 @@ body {
     height: 88dvh;
   }
 }
+
+/* ==========================================================================
+   Mô đun móng cọc (mục 12 của tab Tính toán) – gắn trong .side-body
+   ========================================================================== */
+
+.side-body .pgrp {
+  margin: 10px 0 12px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+
+.side-body .pgrp:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.side-body .pgrp-h {
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--accd);
+}
+
+.side-body .player {
+  margin: 8px 0;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--panel-2);
+}
+
+.side-body .player-h {
+  display: grid;
+  grid-template-columns: auto 1fr 104px auto;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.side-body .player-h .sn {
+  background: var(--acc);
+  color: #fff;
+}
+
+.side-body .pgrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.side-body .pgrid2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin-top: 6px;
+}
+
+.side-body .pcell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.side-body .pcell > span {
+  font-size: 10.5px;
+  color: var(--mut);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.side-body .pcell input[type="number"],
+.side-body .pcell select {
+  height: 30px;
+  padding: 0 6px;
+}
+
+.side-body .pbtn {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+}
+
+.side-body .ptab {
+  overflow-x: auto;
+  margin: 4px 0;
+}
+
+.side-body .ptab table.rb input[type="number"],
+.side-body .ptab table.rb input[type="text"] {
+  height: 28px;
+  min-width: 56px;
+  padding: 0 5px;
+}
+
+.side-body .prow2 {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.side-body .prow2 button,
+.side-body button.wide {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+}
+
+.side-body .calc.pwarn {
+  background: var(--warn-s);
+  border-left-color: #d49a1c;
+  color: var(--warn);
+}

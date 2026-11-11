@@ -16,6 +16,7 @@ import type {
   Point2D,
   RebarMap,
 } from './types.ts';
+import { pileEnsure } from './pile.ts';
 
 // ---------------------------------------------------------------------------
 // 1. Pure Math & Formatting Helpers
@@ -2591,5 +2592,6 @@ export function mergeProject(s: Partial<EngineProject> & Record<string, unknown>
     if (sc.ad > 0) o.rb.an.d = +sc.ad;
     if (sc.as > 0) o.rb.an.a = Math.round(sc.as * 100);
   }
+  pileEnsure(o);
   return o;
 }
