@@ -87,6 +87,17 @@ const AppWorkspace: React.FC = () => {
               {viewMode === 'calc' ? 'Kiểm toán TCVN 11823' : 'Kích thước · cốt thép'}
             </span>
             <button
+              id="bSide"
+              type="button"
+              className="side-toggle"
+              aria-pressed={sideOpen}
+              aria-label={sideOpen ? 'Thu gọn bảng thông số' : 'Mở bảng thông số'}
+              title={sideOpen ? 'Thu gọn bảng thông số để mở rộng vùng làm việc' : 'Mở bảng thông số'}
+              onClick={() => setSideOpen((v) => !v)}
+            >
+              <Icon name="sidebar" size={16} />
+            </button>
+            <button
               type="button"
               className="side-close"
               aria-label="Đóng bảng thông số"
@@ -111,16 +122,16 @@ const AppWorkspace: React.FC = () => {
 
         <section className="view">
           <nav>
+            {/* Điện thoại: nút mở ngăn kéo thông số (máy tính dùng nút trong cột thông số) */}
             <button
-              id="bSide"
+              id="bSideOpen"
               type="button"
-              className="sidebtn"
-              aria-pressed={sideOpen}
-              title={sideOpen ? 'Ẩn bảng thông số để mở rộng vùng làm việc' : 'Hiện bảng thông số'}
-              onClick={() => setSideOpen((v) => !v)}
+              className="sidebtn side-open"
+              aria-label="Mở bảng thông số"
+              title="Mở bảng thông số"
+              onClick={() => setSideOpen(true)}
             >
               <Icon name="sidebar" />
-              Thông số
             </button>
 
             <div id="tabs">
