@@ -523,84 +523,44 @@ describe('3D Structural & Rebar Engine + WebGL Pure Helpers', () => {
       return origRemove(type, listener, options);
     });
 
-    const mockGl = {
-      VERTEX_SHADER: 0x8b31,
-      FRAGMENT_SHADER: 0x8b30,
-      COMPILE_STATUS: 0x8b81,
-      LINK_STATUS: 0x8b82,
-      ACTIVE_UNIFORMS: 0x8b86,
-      ARRAY_BUFFER: 0x8892,
-      ELEMENT_ARRAY_BUFFER: 0x8893,
-      STATIC_DRAW: 0x88e4,
-      COLOR_BUFFER_BIT: 0x4000,
-      DEPTH_BUFFER_BIT: 0x0100,
-      DEPTH_TEST: 0x0b71,
-      LEQUAL: 0x0203,
-      CULL_FACE: 0x0b44,
-      BLEND: 0x0be2,
-      SRC_ALPHA: 0x0302,
-      ONE_MINUS_SRC_ALPHA: 0x0303,
-      FLOAT: 0x1406,
-      UNSIGNED_SHORT: 0x1403,
-      TRIANGLES: 0x0004,
-      LINES: 0x0001,
-      FRONT: 0x0404,
-      BACK: 0x0405,
-      createShader: () => ({}),
-      shaderSource: () => undefined,
-      compileShader: () => undefined,
-      getShaderParameter: () => true,
-      getShaderInfoLog: () => '',
-      createProgram: () => ({}),
-      attachShader: () => undefined,
-      bindAttribLocation: () => undefined,
-      linkProgram: () => undefined,
-      getProgramParameter: (_p: unknown, pname: number) => (pname === 0x8b86 ? 0 : true),
-      getProgramInfoLog: () => '',
-      getActiveUniform: () => null,
-      getUniformLocation: () => null,
-      createBuffer: vi.fn(() => ({})),
-      bindBuffer: () => undefined,
-      bufferData: () => undefined,
-      deleteBuffer: () => undefined,
-      viewport: () => undefined,
-      clearColor: () => undefined,
-      clear: vi.fn(),
-      enable: () => undefined,
-      disable: () => undefined,
-      depthFunc: () => undefined,
-      depthMask: () => undefined,
-      blendFunc: () => undefined,
-      cullFace: () => undefined,
-      colorMask: () => undefined,
-      polygonOffset: () => undefined,
-      useProgram: () => undefined,
-      enableVertexAttribArray: () => undefined,
-      disableVertexAttribArray: () => undefined,
-      vertexAttribPointer: () => undefined,
-      uniform1f: () => undefined,
-      uniform3fv: () => undefined,
-      uniform4fv: () => undefined,
-      uniformMatrix4fv: () => undefined,
-      drawElements: () => undefined,
-      drawArrays: () => undefined,
-    } as unknown as WebGLRenderingContext;
-
-    const getCtxSpy = vi
-      .spyOn(cv, 'getContext')
-      .mockImplementation((kind) => (kind === 'webgl' ? mockGl : null) as never);
+    // Lõi vẽ three.js được thay bằng bản giả: kiểm tra phần quản trạng thái của V3 (không cần WebGL thật)
+    const fakeGl = {} as WebGL2RenderingContext;
+    const fakeScene = { gl: fakeGl, setModel: vi.fn(), render: vi.fn(), dispose: vi.fn() };
+    const origFactory = V3.sceneFactory;
+    V3.sceneFactory = () => fakeScene;
 
     const onChange = vi.fn();
     const v3 = new V3({ onChange });
     expect(v3.attach(cv)).toBe(true);
     expect(v3.ok).toBe(true);
+    expect(v3.gl).toBe(fakeGl);
+    expect(v3.look).toBe('real');
 
     const p = presetCanti(500);
     const res = buildBars(p);
     const q = quantities(p, res);
-    v3.setModel(p, res, q);
-    const uploadsBeforeLoss = (mockGl.createBuffer as ReturnType<typeof vi.fn>).mock.calls.length;
-    expect(uploadsBeforeLoss).toBeGreaterThan(0);
+    const model = v3.setModel(p, res, q);
+    expect(fakeScene.setModel).toHaveBeenCalledTimes(1);
+    // mỗi nhóm thép có dữ liệu ống (đỉnh 10 số thực / chỉ số) chuyển cho lõi vẽ
+    const tubes = fakeScene.setModel.mock.calls[0][1] as Map<unknown, Array<{ v: Float32Array; i: Uint16Array }>>;
+    expect(tubes.size).toBe(model!.groups.length);
+    const firstChunks = tubes.get(model!.groups[0])!;
+    expect(firstChunks[0].v.length % 10).toBe(0);
+    expect(firstChunks[0].i.length).toBeGreaterThan(0);
+
+    v3.draw();
+    expect(fakeScene.render).toHaveBeenCalledTimes(1);
+    const frame = fakeScene.render.mock.calls[0][0] as { look: string; surf: number; near: number; far: number };
+    expect(frame.look).toBe('real');
+    expect(frame.surf).toBe(0);
+    expect(frame.far).toBeGreaterThan(frame.near);
+    // bê tông đặc che cốt thép: không rê / chọn thanh; cô lập một mác thì tự nhìn xuyên
+    expect(v3.pick(200, 150)).toBeNull();
+    v3.setFocus(model!.groups[0].id || null);
+    expect(v3.surfEff()).toBeCloseTo(0.7, 9);
+    v3.setFocus(null);
+    v3.setLook('xray');
+    expect(v3.surf).toBe(0.5);
 
     const lostEv = new Event('webglcontextlost', { cancelable: true });
     cv.dispatchEvent(lostEv);
@@ -610,23 +570,19 @@ describe('3D Structural & Rebar Engine + WebGL Pure Helpers', () => {
     expect(v3.errMsg).toContain('WebGL');
     expect(onChange).toHaveBeenCalled();
 
-    const clearsBeforeRestore = (mockGl.clear as ReturnType<typeof vi.fn>).mock.calls.length;
+    const rendersBeforeRestore = fakeScene.render.mock.calls.length;
     cv.dispatchEvent(new Event('webglcontextrestored'));
     expect(v3.ok).toBe(true);
     expect(v3.errMsg).toBe('');
-    expect(v3.gl).toBe(mockGl);
-    expect((mockGl.createBuffer as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(
-      uploadsBeforeLoss,
-    );
-    expect((mockGl.clear as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(
-      clearsBeforeRestore,
-    );
+    expect(v3.gl).toBe(fakeGl);
+    expect(fakeScene.render.mock.calls.length).toBeGreaterThan(rendersBeforeRestore);
 
     v3.destroy();
     expect(removed).toContain('webglcontextlost');
     expect(removed).toContain('webglcontextrestored');
     expect(v3.inited).toBe(false);
-    getCtxSpy.mockRestore();
+    expect(fakeScene.dispose).toHaveBeenCalledTimes(1);
+    V3.sceneFactory = origFactory;
   });
 });
 

@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "type": "module",
-  "description": "Tường chắn BTCT – bản vẽ 2D, mô hình 3D WebGL và bảng tính TCVN 11823:2017 (Web App)",
+  "description": "LEDAT-BIM – tường chắn BTCT: bản vẽ 2D, mô hình 3D WebGL và bảng tính TCVN 11823:2017 (Web App)",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build",
@@ -15,11 +15,13 @@
   "dependencies": {
     "pdf-lib": "^1.17.1",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "three": "^0.170.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/three": "^0.170.0",
     "@vitejs/plugin-react": "^4.3.4",
     "jsdom": "^26.0.0",
     "playwright-core": "^1.65.0",

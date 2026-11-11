@@ -7,3 +7,4 @@ export * from './Cad2DViewport';
 export * from './Model3DViewport';
 export * from './CalcReportViewport';
 export * from './ToastBanner';
+export * from './CommandPalette';

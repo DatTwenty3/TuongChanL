@@ -3207,3 +3207,1031 @@ table.rb input[type="number"]::-webkit-inner-spin-button,
     font-size: 10.5px;
   }
 }
+
+/* ==========================================================================
+   Nâng cấp giao diện: bảng lệnh (Ctrl+K), hoàn tác / làm lại, bản nháp,
+   thanh mức sử dụng trên thẻ kiểm toán, chuyển cảnh mượt, giao diện tối.
+   Mọi rule đều gắn selector riêng của app (.app-shell …) để không lọt vào bản in.
+   ========================================================================== */
+
+/* ---- nút tìm lệnh ở giữa header ---- */
+.app-shell header .cmdbtn {
+  flex: 0 1 300px;
+  min-width: 0;
+  margin: 0 auto;
+  justify-content: flex-start;
+  color: var(--mut);
+  font-weight: 500;
+  background: var(--panel-2);
+  box-shadow: none;
+}
+
+.app-shell header .cmdbtn span {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-align: left;
+}
+
+.app-shell kbd {
+  flex: none;
+  font: 600 10.5px/1 "Inter", "Segoe UI", system-ui, sans-serif;
+  padding: 3px 5px;
+  border: 1px solid var(--line);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--panel);
+  color: var(--mut);
+  white-space: nowrap;
+}
+
+.app-shell header button.icononly {
+  width: 32px;
+  padding: 0;
+  justify-content: center;
+}
+
+.app-shell header button:disabled .ico {
+  color: var(--mut);
+}
+
+.app-shell header .draftgrp button {
+  background: var(--warn-s);
+  border-color: var(--warn-l);
+  color: var(--warn);
+}
+
+.app-shell header .draftgrp button .ico {
+  color: var(--warn);
+}
+
+.app-shell header #bRestore {
+  animation: tcDraftPulse 2.2s ease-in-out 3;
+}
+
+@keyframes tcDraftPulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(212, 154, 28, 0);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(212, 154, 28, 0.28);
+  }
+}
+
+@media (max-width: 1700px) {
+  .app-shell header .cmdbtn {
+    flex: none;
+    width: 32px;
+    padding: 0;
+    justify-content: center;
+    margin: 0 0 0 auto;
+    background: var(--panel);
+  }
+
+  .app-shell header .cmdbtn span,
+  .app-shell header .cmdbtn kbd,
+  .app-shell header #bRestore span {
+    display: none;
+  }
+}
+
+/* màn hình laptop: nén khoảng đệm để cả hàng nút vừa một dòng */
+@media (max-width: 1600px) and (min-width: 641px) {
+  .app-shell header {
+    column-gap: 12px;
+  }
+
+  .app-shell header button:not(.icononly):not(.cmdbtn) {
+    padding: 0 9px;
+    gap: 5px;
+  }
+
+  .app-shell header .actions {
+    column-gap: 8px;
+  }
+
+  .app-shell header .agrp + .agrp {
+    padding-left: 8px;
+  }
+}
+
+/* laptop: nhường chỗ cho hàng nút (dòng mô tả vẫn có trong tiêu đề trang) */
+@media (max-width: 1560px) {
+  .app-shell header .brand small {
+    display: none;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-shell header .cmdbtn {
+    margin: 0;
+    width: 34px;
+  }
+}
+
+/* ---- bảng lệnh ---- */
+.app-shell .cmdk {
+  position: fixed;
+  inset: 0;
+  z-index: 100000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: min(14vh, 120px) 14px 14px;
+  background: rgba(9, 20, 45, 0.42);
+  backdrop-filter: blur(3px);
+  animation: tcFade 0.12s ease-out;
+}
+
+.app-shell .cmdk-box {
+  width: min(640px, 100%);
+  max-height: min(70vh, 560px);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgba(9, 20, 45, 0.38), 0 2px 8px rgba(9, 20, 45, 0.18);
+  animation: tcPop 0.14s ease-out;
+}
+
+.app-shell .cmdk-in {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  color: var(--acc);
+}
+
+.app-shell .cmdk-in input {
+  flex: 1;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  outline: none;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.app-shell .cmdk-list {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 6px;
+}
+
+.app-shell .cmdk-grp {
+  padding: 9px 10px 4px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--mut);
+}
+
+.app-shell .cmdk-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--ink-2);
+}
+
+.app-shell .cmdk-item .ico {
+  flex: none;
+  color: var(--mut);
+}
+
+.app-shell .cmdk-item.on {
+  background: var(--accs);
+  color: var(--accd);
+}
+
+.app-shell .cmdk-item.on .ico {
+  color: var(--acc);
+}
+
+.app-shell .cmdk-l {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 550;
+}
+
+.app-shell .cmdk-h {
+  flex: 1 1 0;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-align: right;
+  font-size: 11.5px;
+  color: var(--mut);
+}
+
+.app-shell .cmdk-item kbd {
+  margin-left: auto;
+}
+
+.app-shell .cmdk-h + kbd {
+  margin-left: 0;
+}
+
+.app-shell .cmdk-empty {
+  padding: 26px 14px;
+  text-align: center;
+  color: var(--mut);
+}
+
+.app-shell .cmdk-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 14px;
+  padding: 8px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--panel-2);
+  font-size: 11.5px;
+  color: var(--mut);
+}
+
+.app-shell .cmdk-foot span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.app-shell .cmdk-foot .cmdk-tip {
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .app-shell .cmdk {
+    padding-top: 10px;
+  }
+
+  .app-shell .cmdk-foot {
+    display: none;
+  }
+}
+
+@keyframes tcFade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes tcPop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.985);
+  }
+}
+
+/* ô nhập vừa được nhảy tới từ bảng lệnh */
+.app-shell #panel label.flash {
+  border-radius: 8px;
+  animation: tcFlash 1.6s ease-out;
+}
+
+@keyframes tcFlash {
+  0%,
+  35% {
+    background: var(--accs);
+    box-shadow: 0 0 0 5px var(--accs), 0 0 0 7px var(--accb);
+  }
+  100% {
+    background: transparent;
+    box-shadow: 0 0 0 5px transparent, 0 0 0 7px transparent;
+  }
+}
+
+/* ---- kiểm toán: thanh mức sử dụng (nhu cầu / khả năng) trên từng thẻ ---- */
+.app-shell .card.ck .ub {
+  display: block;
+  height: 3px;
+  margin-top: 5px;
+  border-radius: 2px;
+  background: rgba(100, 130, 180, 0.2);
+  overflow: hidden;
+}
+
+.app-shell .card.ck .ub i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--ok);
+  transition: width 0.35s ease;
+}
+
+.app-shell .card.ck.bad .ub i {
+  background: var(--bad);
+}
+
+.app-shell .card.ck.inf .ub i {
+  background: #d49a1c;
+}
+
+/* ---- chuyển cảnh nhẹ ---- */
+.app-shell #stage,
+.app-shell #v3d,
+.app-shell #calcv {
+  animation: tcFade 0.18s ease-out;
+}
+
+.app-shell details[open] > .body {
+  animation: tcReveal 0.16s ease-out;
+}
+
+@keyframes tcReveal {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+.app-shell .card {
+  transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+
+.app-shell .card:hover {
+  border-color: var(--accb);
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.12);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-shell *,
+  .app-shell *::before,
+  .app-shell *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ==========================================================================
+   Giao diện tối (bật bằng nút mặt trăng trên header; lưu trong trình duyệt).
+   Tờ bảng tính .csheet và hình FE vẫn là "giấy trắng"; khung CAD/3D vốn đã tối.
+   ========================================================================== */
+
+.app-shell[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg: #0a111e;
+  --panel: #101a2d;
+  --panel-2: #14203a;
+  --panel-3: #1a2a49;
+  --ink: #e7eefb;
+  --ink-2: #c2d0e8;
+  --mut: #8ea3c6;
+  --line: #233455;
+  --line-2: #1a2742;
+  --field: #0c1526;
+  --field-line: #2d4168;
+
+  --c2d: #3b82f6;
+  --c2d-d: #9cc0ff;
+  --c2d-s: #172b50;
+  --c2d-b: #3f6fc9;
+  --c3d: #3b82f6;
+  --c3d-d: #9cc0ff;
+  --c3d-s: #172b50;
+  --c3d-b: #3f6fc9;
+  --cca: #3b82f6;
+  --cca-d: #9cc0ff;
+  --cca-s: #172b50;
+  --cca-b: #3f6fc9;
+  --acc: #3b82f6;
+  --accd: #9cc0ff;
+  --accs: #172b50;
+  --accb: #3f6fc9;
+  --ring: rgba(59, 130, 246, 0.4);
+
+  --ok: #4ade80;
+  --ok-s: #0f2a1e;
+  --ok-l: #1e5a3b;
+  --bad: #f87171;
+  --bad-s: #33161a;
+  --bad-l: #6e2a2e;
+  --warn: #fbbf24;
+  --warn-s: #2f2511;
+  --warn-l: #6d551c;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px rgba(0, 0, 0, 0.45);
+
+  color: var(--ink);
+  background: var(--bg);
+}
+
+.app-shell[data-theme="dark"],
+.app-shell[data-theme="dark"] * {
+  scrollbar-color: #33496f transparent;
+}
+
+.app-shell[data-theme="dark"] .csheet,
+.app-shell[data-theme="dark"] .feview {
+  color-scheme: light;
+}
+
+.app-shell[data-theme="dark"] header {
+  background: linear-gradient(180deg, #111c31, #0d1626);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
+}
+
+.app-shell[data-theme="dark"] header button,
+.app-shell[data-theme="dark"] header button:disabled:hover {
+  background: var(--panel-2);
+  box-shadow: none;
+}
+
+.app-shell[data-theme="dark"] header button:hover {
+  background: var(--accs);
+}
+
+.app-shell[data-theme="dark"] header button.pri,
+.app-shell[data-theme="dark"] header button.pri:disabled:hover {
+  background: var(--acc);
+  color: #fff;
+}
+
+.app-shell[data-theme="dark"] header button.pri:hover {
+  background: #2f6fe0;
+  border-color: #2f6fe0;
+  color: #fff;
+}
+
+.app-shell[data-theme="dark"] #bSave[data-dirty],
+.app-shell[data-theme="dark"] header .draftgrp button {
+  background: var(--warn-s);
+  border-color: var(--warn-l) !important;
+  color: var(--warn);
+}
+
+.app-shell[data-theme="dark"] .card,
+.app-shell[data-theme="dark"] details,
+.app-shell[data-theme="dark"] summary,
+.app-shell[data-theme="dark"] nav,
+.app-shell[data-theme="dark"] .statusbar,
+.app-shell[data-theme="dark"] .csub,
+.app-shell[data-theme="dark"] .tpl,
+.app-shell[data-theme="dark"] #v3bar {
+  background: var(--panel);
+}
+
+.app-shell[data-theme="dark"] .card.ck.bad {
+  background: var(--bad-s);
+}
+
+.app-shell[data-theme="dark"] .card.ck.inf {
+  background: var(--warn-s);
+}
+
+.app-shell[data-theme="dark"] .tpl.on {
+  background: var(--accs);
+}
+
+.app-shell[data-theme="dark"] .tpl svg {
+  background: #0c1526;
+}
+
+.app-shell[data-theme="dark"] .tpl svg polygon {
+  fill: #3a557f;
+  stroke: #a9c0e4;
+}
+
+.app-shell[data-theme="dark"] .tpl svg polygon + polygon {
+  fill: #2b4166;
+}
+
+.app-shell[data-theme="dark"] .side-body select,
+.app-shell[data-theme="dark"] #v3bar select {
+  background-color: var(--field);
+  color: var(--ink);
+}
+
+.app-shell[data-theme="dark"] input:hover,
+.app-shell[data-theme="dark"] select:hover {
+  border-color: #4a6496;
+}
+
+.app-shell[data-theme="dark"] #tabs button.tab3d,
+.app-shell[data-theme="dark"] #tabs button.tabcalc {
+  border-color: var(--accb);
+}
+
+.app-shell[data-theme="dark"] #tabs button.tab3d:hover,
+.app-shell[data-theme="dark"] #tabs button.tabcalc:hover {
+  background: #1f3866;
+}
+
+.app-shell[data-theme="dark"] #tabs button.tab3d.on,
+.app-shell[data-theme="dark"] #tabs button.tabcalc.on {
+  background: var(--acc);
+  color: #fff;
+}
+
+.app-shell[data-theme="dark"] #tabs button.tabcalc #calcBadge {
+  background: #0c1526;
+}
+
+.app-shell[data-theme="dark"] #calcv {
+  background: #070c16;
+}
+
+.app-shell[data-theme="dark"] .zoomctl button {
+  background: rgba(16, 26, 45, 0.94);
+  color: var(--ink);
+  border-color: var(--line);
+}
+
+.app-shell[data-theme="dark"] .scrim {
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.app-shell[data-theme="dark"] .cmdk {
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.app-shell[data-theme="dark"] .cmdk-box {
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(120, 160, 230, 0.08);
+}
+
+.app-shell[data-theme="dark"] input[type="number"]::-webkit-inner-spin-button {
+  filter: brightness(1.7);
+}
+
+@media (max-width: 900px) {
+  .app-shell[data-theme="dark"] #tabs button.tab3d,
+  .app-shell[data-theme="dark"] #tabs button.tabcalc {
+    box-shadow: -10px 0 8px -4px #101a2d;
+  }
+
+  .app-shell[data-theme="dark"] #tabs button.tab3d:not(.on),
+  .app-shell[data-theme="dark"] #tabs button.tabcalc:not(.on) {
+    background: #172b50;
+  }
+}
+
+/* điện thoại: mở / lưu / xuất đứng trước, nhóm hoàn tác – giao diện ở cuối hàng cuộn */
+@media (max-width: 640px) {
+  .app-shell header .agrp[data-grp="edit"] {
+    order: 9;
+    margin-left: 0;
+    padding-left: 4px;
+    border-left: 1px solid var(--line);
+  }
+
+  .app-shell header .agrp[data-grp="edit"]:first-child + .agrp {
+    margin-left: auto;
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
+/* ==========================================================================
+   BỐ CỤC "3D LÀM TRUNG TÂM" (máy tính, > 900 px)
+   Vùng xem (3D / bản vẽ / bảng tính) phủ toàn cửa sổ; thanh trên, bảng thông số,
+   thanh tab và thanh công cụ 3D là các bảng kính nổi phía trên.
+   Selector luôn bắt đầu bằng .app-shell[data-view] để thắng các khối cũ và không lọt vào bản in.
+   ========================================================================== */
+
+.app-shell[data-view] {
+  --glass: rgba(255, 255, 255, 0.8);
+  --glass-2: rgba(255, 255, 255, 0.62);
+  --glass-line: rgba(255, 255, 255, 0.75);
+  --glass-shadow: 0 12px 40px rgba(15, 35, 80, 0.2), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
+  --hud: rgba(12, 20, 36, 0.74);
+  --hud-line: rgba(150, 180, 235, 0.2);
+  --backdrop: linear-gradient(180deg, #cfe0f6 0%, #e9f1fb 55%, #f4f7fb 100%);
+}
+
+.app-shell[data-view][data-theme="dark"] {
+  --glass: rgba(13, 21, 38, 0.74);
+  --glass-2: rgba(20, 32, 58, 0.55);
+  --glass-line: rgba(150, 180, 235, 0.16);
+  --glass-shadow: 0 14px 44px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(170, 200, 255, 0.07) inset;
+  --backdrop: radial-gradient(1200px 720px at 72% -12%, #1c3c70 0%, #0d1830 46%, #080d18 100%);
+}
+
+/* bảng chú giải / nhãn / gợi ý nổi trên cảnh 3D: kính tối (HUD) ở cả hai giao diện */
+.app-shell[data-view] #v3d .pn {
+  background: var(--hud);
+  border: 1px solid var(--hud-line);
+  border-radius: 14px;
+  padding: 9px 11px;
+  backdrop-filter: blur(16px) saturate(1.3);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+.app-shell[data-view] .v3seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--glass-2);
+  border: 1px solid var(--line);
+}
+
+.app-shell[data-view] .v3seg .v3b {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+}
+
+.app-shell[data-view] .v3seg .v3b.pri {
+  background: var(--acc);
+  color: #fff;
+}
+
+@media (min-width: 901px) {
+  .app-shell[data-view] {
+    position: relative;
+    overflow: hidden;
+    --gap: 12px;
+    --hdr-h: 54px;
+    --sw: clamp(340px, 27vw, 420px);
+    --top: calc(var(--gap) + var(--hdr-h) + 10px);
+    --left: calc(var(--sw) + var(--gap) * 2);
+    background: var(--backdrop);
+  }
+
+  .app-shell[data-view][data-side="closed"] {
+    --sw: 52px;
+  }
+
+  /* ---- thanh trên ---- */
+  .app-shell[data-view] > header {
+    position: absolute;
+    z-index: 40;
+    top: var(--gap);
+    left: var(--gap);
+    right: var(--gap);
+    height: var(--hdr-h);
+    padding: 0 12px;
+    flex-wrap: nowrap;
+    border: 1px solid var(--glass-line);
+    border-radius: 16px;
+    background: var(--glass);
+    backdrop-filter: blur(20px) saturate(1.5);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .app-shell[data-view] > header::after {
+    display: none;
+  }
+
+  .app-shell[data-view] > header .brand {
+    flex: none;
+  }
+
+  .app-shell[data-view] > header .actions {
+    flex: 1;
+    min-width: 0;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .app-shell[data-view] > header .actions > .agrp:first-child {
+    margin-left: auto;
+  }
+
+  .app-shell[data-view] > header .agrp {
+    flex-wrap: nowrap;
+    flex: none;
+  }
+
+  .app-shell[data-view] > header button:not(.pri):not(.cmdbtn) {
+    background: var(--glass-2);
+    box-shadow: none;
+  }
+
+  .app-shell[data-view] > header .cmdbtn {
+    background: var(--glass-2);
+  }
+
+  /* ---- khung chính: vùng xem phủ toàn cửa sổ ---- */
+  .app-shell[data-view] main {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+
+  .app-shell[data-view] .view {
+    position: absolute;
+    inset: 0;
+    display: block;
+  }
+
+  /* ---- bảng thông số nổi bên trái ---- */
+  .app-shell[data-view] aside {
+    position: absolute;
+    z-index: 30;
+    left: var(--gap);
+    top: var(--top);
+    bottom: var(--gap);
+    width: var(--sw);
+    border: 1px solid var(--glass-line);
+    border-radius: 16px;
+    background: var(--glass);
+    backdrop-filter: blur(20px) saturate(1.5);
+    box-shadow: var(--glass-shadow);
+    transition: width 0.2s ease;
+  }
+
+  .app-shell[data-view][data-side="closed"] aside {
+    bottom: auto;
+    height: 52px;
+  }
+
+  .app-shell[data-view] .side-head {
+    border-bottom-color: var(--line);
+  }
+
+  .app-shell[data-view] .side-sum,
+  .app-shell[data-view] .side-body {
+    background: transparent;
+  }
+
+  .app-shell[data-view] .side-sum {
+    border-bottom-color: var(--line);
+  }
+
+  .app-shell[data-view] aside details,
+  .app-shell[data-view] aside .card:not(.bad):not(.inf),
+  .app-shell[data-view] aside .tpl:not(.on) {
+    background: var(--glass-2);
+  }
+
+  .app-shell[data-view] aside summary {
+    background: transparent;
+  }
+
+  /* ---- thanh tab nổi: 3D và Tính toán đứng đầu, 5 cụm bản vẽ theo sau ---- */
+  .app-shell[data-view] nav {
+    position: absolute;
+    z-index: 25;
+    top: var(--top);
+    left: var(--left);
+    max-width: calc(100% - var(--left) - var(--gap));
+    min-height: 44px;
+    padding: 0 8px;
+    gap: 6px;
+    border: 1px solid var(--glass-line);
+    border-radius: 14px;
+    background: var(--glass);
+    backdrop-filter: blur(20px) saturate(1.5);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .app-shell[data-view] #tabs {
+    flex: 0 1 auto;
+    gap: 4px;
+    align-items: center;
+  }
+
+  .app-shell[data-view] #tabs button.tab3d {
+    order: -3;
+    margin-left: 0;
+  }
+
+  .app-shell[data-view] #tabs button.tabcalc {
+    order: -2;
+  }
+
+  .app-shell[data-view] #tabs .tabgrp {
+    order: -1;
+    display: block;
+    margin: 0 4px 0 10px;
+    padding-left: 12px;
+    border-left: 1px solid var(--line);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+    color: var(--mut);
+    white-space: nowrap;
+  }
+
+  .app-shell[data-view] #tabs button.tsheet {
+    height: 30px;
+    line-height: 28px;
+    margin: 0;
+    border: 1px solid transparent;
+    border-radius: 999px;
+  }
+
+  .app-shell[data-view] #tabs button.tsheet:hover {
+    border-color: var(--line);
+    background: var(--glass-2);
+  }
+
+  .app-shell[data-view] #tabs button.tsheet.on {
+    border-color: var(--accb);
+    background: var(--accs);
+    color: var(--accd);
+  }
+
+  /* ---- 3D: cảnh phủ toàn cửa sổ ---- */
+  .app-shell[data-view] #v3d {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    display: block;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: #0b1220;
+  }
+
+  .app-shell[data-view] #v3wrap {
+    position: absolute;
+    inset: 0;
+  }
+
+  /* thanh công cụ nổi phía dưới (dock) + bảng tùy chọn bật lên */
+  .app-shell[data-view] #v3bar {
+    position: absolute;
+    z-index: 20;
+    left: calc(var(--left) + 96px);
+    right: var(--gap);
+    bottom: 14px;
+    display: flex;
+    flex-direction: column-reverse;
+    align-items: center;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    background: none;
+    pointer-events: none;
+  }
+
+  .app-shell[data-view] #v3d:has(#v3leg:not(.min)) #v3bar {
+    right: calc(300px + var(--gap) * 2);
+  }
+
+  .app-shell[data-view] .v3dock,
+  .app-shell[data-view] .v3more {
+    pointer-events: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 6px 12px;
+    max-width: 100%;
+    padding: 7px 10px;
+    border: 1px solid var(--glass-line);
+    border-radius: 14px;
+    background: var(--glass);
+    backdrop-filter: blur(20px) saturate(1.5);
+    box-shadow: var(--glass-shadow);
+    color: var(--ink-2);
+  }
+
+  .app-shell[data-view] .v3more {
+    justify-content: flex-start;
+    max-width: min(100%, 720px);
+    padding: 10px 12px;
+    gap: 8px 14px;
+    animation: tcPop 0.14s ease-out;
+  }
+
+  .app-shell[data-view] .v3dock .v3t {
+    display: none;
+  }
+
+  .app-shell[data-view] .v3dock .v3g + .v3g {
+    padding-left: 12px;
+  }
+
+  .app-shell[data-view] .v3dock .v3b {
+    height: 28px;
+    padding: 0 9px;
+    font-size: 12px;
+  }
+
+  .app-shell[data-view] .v3tog .ico {
+    transform: rotate(180deg);
+  }
+
+  .app-shell[data-view] .v3tog.min .ico {
+    transform: none;
+  }
+
+  .app-shell[data-view] #v3leg {
+    z-index: 15;
+    top: calc(var(--top) + 56px);
+    right: var(--gap);
+    bottom: 14px;
+    width: 300px;
+  }
+
+  .app-shell[data-view] #v3leg.min {
+    bottom: auto;
+  }
+
+  .app-shell[data-view] #v3ax {
+    left: var(--left);
+    bottom: 14px;
+  }
+
+  .app-shell[data-view] #v3foc {
+    left: var(--left);
+    top: calc(var(--top) + 96px);
+    border-radius: 10px;
+    background: var(--hud);
+    backdrop-filter: blur(12px);
+  }
+
+  .app-shell[data-view] #v3st {
+    left: var(--left);
+    right: auto;
+    top: calc(var(--top) + 56px);
+    bottom: auto;
+    padding: 5px 11px;
+    border: 1px solid var(--hud-line);
+    border-radius: 999px;
+    background: var(--hud);
+    backdrop-filter: blur(12px);
+  }
+
+  .app-shell[data-view] #v3st .v3hint {
+    display: none;
+  }
+
+  /* ---- bản vẽ 2D & bảng tính: khung bo góc nằm bên phải bảng thông số ---- */
+  .app-shell[data-view] #stage {
+    position: absolute;
+    left: var(--left);
+    right: var(--gap);
+    top: calc(var(--top) + 56px);
+    bottom: 56px;
+    margin: 0;
+    border-radius: 16px;
+    border-color: var(--hud-line);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .app-shell[data-view] .statusbar {
+    position: absolute;
+    left: var(--left);
+    right: var(--gap);
+    bottom: var(--gap);
+    margin: 0;
+    padding: 6px 12px;
+    border: 1px solid var(--glass-line);
+    border-radius: 12px;
+    background: var(--glass);
+    backdrop-filter: blur(20px) saturate(1.5);
+  }
+
+  .app-shell[data-view] .zoomctl {
+    right: 26px;
+    bottom: 72px;
+  }
+
+  .app-shell[data-view] #calcv {
+    position: absolute;
+    left: var(--left);
+    right: var(--gap);
+    top: calc(var(--top) + 56px);
+    bottom: var(--gap);
+    margin: 0;
+    border: 1px solid var(--glass-line);
+    border-radius: 16px;
+    background: var(--glass-2);
+    backdrop-filter: blur(14px);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .app-shell[data-view] #calcv .csub {
+    background: var(--glass);
+    backdrop-filter: blur(14px);
+  }
+
+  .app-shell[data-view] #toast {
+    bottom: 84px;
+  }
+}
+
+/* điện thoại: thanh công cụ 3D vẫn là một hàng cuộn ngang như trước (bỏ lớp bọc của dock) */
+@media (max-width: 900px) {
+  .app-shell[data-view] .v3dock {
+    display: contents;
+  }
+
+  .app-shell[data-view] #v3bar .v3b {
+    white-space: nowrap;
+  }
+}

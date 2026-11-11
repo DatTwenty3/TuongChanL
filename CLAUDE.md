@@ -13,7 +13,7 @@ Web app TypeScript + React 18 + Vite 6: **bản vẽ 2D (5 cụm CAD) + mô hìn
 | Dev server | `npm run dev` | Vite HMR. Nếu trang mất style sau khi sửa `app.css` hàng loạt → tắt và chạy lại Vite |
 | Typecheck | `npm run typecheck` | `tsc --noEmit`, phải exit 0 |
 | Build | `npm run build` | `tsc --noEmit && vite build` → `dist/` (đã `.gitignore`) |
-| Test | `npx vitest run` | 12 file, **152 test**, ~100 s (jsdom). Một test duy nhất: `npx vitest run tests/engine/parity.test.ts` (21 test) |
+| Test | `npx vitest run` | 13 file, **157 test**, ~100 s (jsdom). Một test duy nhất: `npx vitest run tests/engine/parity.test.ts` (21 test) |
 | E2E | `node tests/qa/e2e_browser.mjs` | **Phải `npm run build` trước** (phục vụ `dist/` qua `vite preview --port 4179`). Cần Chrome tại `C:\Program Files\Google\Chrome\Application\chrome.exe`, 11 check `E2E-0…6b`, kỳ vọng 0 lỗi console/HTTP |
 | Chạy 1 chạm (Windows) | `start-webapp.bat` | Tự cài Node/`node_modules`, build nếu thiếu, mở trình duyệt; có `--dev --rebuild --install --lan --port N --no-open --check` |
 
@@ -35,7 +35,7 @@ src/
   engine/   (16 file)      thuần TS, không DOM: hình học, cốt thép, khối lượng, CALC (TCVN), calcRibbed,
                            water (thấm), slope (Bishop), fe3d/cfe (vỏ 3D), fem2d (+ worker), presets
   cad/      (13 file)      5 sheet CAD (SHEET_DEFS), 17 LAYERS, dim, template view B/C/D, toSVG, toDXF (R12), viewport 2D
-  model3d/  (4 file)       mesh, ống thép (M3Tubes), viewer WebGL thô `V3` (cắt lát, pick, PNG)
+  model3d/  (9 file)       mesh, ống thép (M3Tubes), `V3` (camera, pick, PNG) + `scene3.ts` (lõi vẽ three.js)
   reports/  (10 file)      bảng tính HTML (TeX→HTML), hình/biểu đồ SVG, sheet theo template
   export/   (5 file)       csv, docx (OOXML/OMML thuần trình duyệt), pdf (iframe in + pdf-lib), projectIo (.tcl.json)
   components/ (11 file)    HeaderToolbar, SidebarMetrics, SidebarCadPanel, SidebarCalcPanel, Cad2DViewport,
@@ -82,6 +82,12 @@ Chỉ dựng lại từ các module kỹ thuật an toàn đã trích. **Tuyệt
 ## Giao diện: hợp đồng & quy ước
 **Selector ổn định** (test unit + E2E dựa vào, đừng đổi id/class/thứ tự): `.app-shell[data-tpl][data-view][data-side]`, `#bOpen #fOpen #bSave[data-dirty] #bDxf #bPng #bDxfAll #bSvg #bPrint #bPdf #bDocx #bCsv #toast(.show/.ok/.err/.wait)`, `#sum .card`, `#warn`, `#panel`, `#preH #preK #preD`, `#calcR #calcHint #feStat #femStat #femRun`, `.cb[data-id] button.ap`, `#tabs > button` (đúng 7 nút theo thứ tự: 5 cụm, `#tab3d`, `#tabCalc`; thêm `span` thì được, thêm `button`/div bọc thì **không**), `#calcBadge`, `#stage svg`, `#sinfo`, `#bFit`, `#v3d #gl #v3msg #v3bar #v3leg #v3list #v3sum #v3ax #v3tip #v3foc #v3clipAxis #v3clipT #v3clipRow`, `#calcv .csub .csheet p.kl`, `.tpl`, `#rbtab`, `input[data-path]`.
 Mới thêm: `#bSide` (nút icon thu gọn/mở NẰM TRONG `.side-head` của cột thông số; thu gọn = cột co thành thanh 52 px chỉ còn nút này; trên điện thoại ẩn đi), `#bSideOpen` (chỉ điện thoại, trong thanh tab, mở ngăn kéo), `#bZoomIn/#bZoomOut/#bZoomFit`, `#v3barToggle`, `.side-close`, `.scrim`.
+Nâng cấp giao diện (store `appStore.ts` + `components/CommandPalette.tsx`): `#bCmd` (mở bảng lệnh; `.cmdk`, `#cmdQ`, `.cmdk-item`), `#bUndo/#bRedo`, `#bTheme`, `#bRestore/#bDraftX` (chỉ hiện khi có bản nháp), `.app-shell[data-theme="light"|"dark"]`, thanh mức sử dụng `.card.ck .ub > i` (phần tử rỗng, không đổi `textContent`).
+- **Hoàn tác / làm lại**: một `useEffect([project])` trong store ghi lịch sử (tối đa 100 bước, các thay đổi cách nhau < 700 ms gộp làm một; mở file thì xóa lịch sử). Mọi đường đổi `project` đều tự được ghi — không cần gọi gì thêm; muốn một thay đổi KHÔNG vào lịch sử thì đặt `histRef.current.skip = true` trước `setProject`.
+- **Phím tắt** (gắn một lần ở `CommandPalette`): Ctrl+K bảng lệnh, Ctrl+S lưu, Ctrl+O mở, Ctrl+B thu/mở bảng thông số, Ctrl+Z / Ctrl+Y (bỏ qua khi con trỏ đang trong ô nhập), `1`–`5` cụm bản vẽ, `6` 3D, `7` Tính toán, `F` vừa khung, `/` bảng lệnh. Bảng lệnh tìm không dấu (`foldVi`, `matchQuery`) và quét `#panel label.row/.chk` để nhảy tới ô nhập.
+- **Bản nháp tự lưu**: `localStorage['tuong-chan-btct:draft']` = `{ t, name, data }` (`data` là chuỗi `serializeProject`), ghi sau 800 ms khi có thay đổi chưa lưu, xóa khi dự án sạch; phiên sau chỉ hiện nút khôi phục, KHÔNG tự nạp (trạng thái mặc định khi tải trang phải giữ nguyên cho E2E). Giao diện: `localStorage['tuong-chan-btct:theme']`, mặc định sáng.
+- **Giao diện tối** chỉ là khối ghi đè token ở cuối `app.css` dưới `.app-shell[data-theme="dark"]` (không lọt vào iframe in); `.csheet`/`.feview` vẫn là giấy trắng. Thêm màu nền ghi cứng ở nơi khác thì phải thêm dòng ghi đè tương ứng trong khối này.
+- Header: ≤1700 px nút tìm lệnh chỉ còn icon, ≤1600 px nén khoảng đệm nút, ≤1560 px ẩn `.brand small` (chữ vẫn trong DOM cho test).
 
 **Chuỗi chữ test so sánh chính xác** — thay đổi hiển thị phải giữ `textContent`: thẻ KPI (`'Bê tông21,50 m³'`…), `#calcBadge` (`'✗ 3'`, `'✓'`), `summary` đầu tiên `'0. Chọn mẫu bản vẽ'`, `header .brand small` (`'Bản vẽ 2D · mô hình 3D · kiểm toán TCVN 11823 · LEDAT'`), `#sinfo`, `.cbs` (`'✓'`). Ký hiệu `✓ ✗ ⚠` được vẽ thành icon bằng `<Sym>/<Glyphs>` (`Icon.tsx`) — ký tự gốc vẫn nằm trong DOM (ẩn bằng CSS `.g`) nên test không đổi; render trạng thái mới hãy dùng `<Glyphs text=…/>`.
 Số liệu mốc Mẫu 1 (H = 500 cm): Bê tông 21,50 m³ · Ván khuôn 64,64 m² · BT lót 1,50 m³ · Cốt thép 2370 kg · 110,2 kg/m³ · badge `✗ 3` · `#sinfo` = `Cụm chi tiết · tỷ lệ 1/20 · rộng 766 × cao 419 mm trên giấy`.
@@ -94,6 +100,19 @@ Số liệu mốc Mẫu 1 (H = 500 cm): Bê tông 21,50 m³ · Ván khuôn 64,64
 - Khối `.csheet …` (tờ báo cáo trắng/Times) giữ nguyên; **bản in/PDF nhúng toàn bộ CSS của trang** (`collectDocumentCss`) vào iframe → mọi rule thêm cho giao diện phải gắn selector riêng của app (`#calcv …`, `.app-shell …`) để không làm hỏng bản in. Test đọc `app.css` kiểm `#v3foc button { pointer-events: auto }`.
 - Điểm ngắt: ≤1450 (nút "Thông số" chỉ icon), ≤1250 (nút chế độ chỉ icon), ≤1100, **≤900 = điện thoại** (sidebar thành ngăn kéo `position:fixed` mặc định đóng, tab cuộn ngang với nút 3D/Tính toán ghim phải, thanh 3D một hàng cuộn, tờ bảng tính `zoom` vừa bề ngang), ≤640 (header một hàng chỉ icon), ngang-thấp (≤480px cao). `@media (pointer: coarse)`: input 16 px, ô 40 px. Trên điện thoại sidebar mặc định **đóng** (`App.tsx` đọc `matchMedia('(max-width: 900px)')`) và chú giải 3D mặc định thu nhỏ; `getLegOffsetPx` của `V3` trả 0 khi ≤900 px. Thông báo `#toast`: kind `wait` không tự tắt, `ok` 6 s, `err` 12 s.
 - Kiểm tra mobile bằng cách giả lập 375×812: bản vẽ 2D kéo 1 ngón / nhéo 2 ngón / chạm đúp = vừa khung (`attachCadViewport` trong `cad/svg.ts`); 3D: 1 ngón xoay, 2 ngón thu phóng + di chuyển (`V3`, đã có sẵn).
+
+## Bố cục "3D làm trung tâm" + lõi vẽ three.js (LEDAT-BIM)
+- **Tên trang: LEDAT-BIM** (`header .brand b`, `<title>` = `LEDAT-BIM · Tường chắn BTCT`, `docProps/app.xml` `<Application>LEDAT-BIM</Application>` – 3 test kiểm tra). Dòng `header .brand small` giữ nguyên chuỗi cũ. Mọi chỗ ở trên còn ghi tên app "Tường chắn BTCT" là đã cũ.
+- **Mặc định khi mở trang**: chế độ **3D** (`viewMode '3d'`), giao diện **tối**, kiểu xem **chân thực**. Test `appUi` gọi `mountApp()` sẽ tự bấm cụm bản vẽ 1 để bắt đầu từ 2D.
+- **Bố cục máy tính (> 900 px)** là khối CSS cuối `app.css` với selector `.app-shell[data-view] …`: vùng xem phủ toàn cửa sổ; `header`, `aside`, `nav`, thanh công cụ 3D (`#v3bar > .v3dock` + bảng bật lên `.v3more`, mặc định đóng – mở bằng `#v3barToggle`) là bảng kính nổi (`--glass*`), chú giải/nhãn 3D là kính tối (`--hud`). DOM và id cũ giữ nguyên (vẫn đúng 7 `#tabs > button`; thứ tự hiển thị đổi bằng CSS `order`: 3D, Tính toán, rồi 5 cụm). Điện thoại (≤ 900 px) giữ bố cục ngăn kéo cũ với màu mới.
+- **3D**: `model3d/scene3.ts` (`Scene3`, three.js r170) dựng cảnh và vẽ; `V3` (`viewer3d.ts`) vẫn giữ camera, chọn thanh (`v3Pick`), `toScreen`, sự kiện, PNG – ma trận `v3m` và camera three.js dùng cùng tham số nên hình vẽ trùng với phép chọn / nhãn. Các chuỗi shader `V3_VS_*`/`V3_FS_*` chỉ còn để test đối chiếu bản gốc, KHÔNG dùng để vẽ nữa.
+  - `V3.look`: `real` (bê tông đặc `surf = 0`, vòm trời, bãi cỏ, sương, bóng mềm VSM, đổ bóng tiếp xúc GTAO qua `EffectComposer`, không nét viền/lưới) · `xray` (`surf = 0,5`, nền tối, nét viền + lưới, đèn theo camera). `setLook()` đổi; thanh "Độ mờ bề mặt" vẫn chỉnh tiếp được. Bê tông đặc thì `pick()` trả null; cô lập một mác thép thì `surfEff()` tự thành 0,7.
+  - Vật liệu thủ tục (bê tông có ván khuôn/lỗ ty, đất theo loại, cỏ) cấy vào `MeshStandardMaterial` bằng `onBeforeCompile` (`proceduralMaterial`); ống thép dùng lại bộ đệm `M3Tubes` (10 số/đỉnh) với `tubeInject`. Thứ tự vẽ khi trong mờ dựa trên `renderOrder` (thép 0 → lưới 1 → viền 2 → bê tông mặt sau 3 / trước 4 → ghi độ sâu 5 → đất 6 → viền đất 7 → thanh đang rê 10) – đừng đổi tuỳ tiện.
+  - GTAO tự tắt khi cắt lát, trong mờ, trực giao hoặc đang cô lập; máy không dựng được hậu kỳ thì `aoOk = false` và vẽ thẳng.
+  - `V3.sceneFactory` cho phép test thay lõi vẽ bằng bản giả (xem `tests/cad/cad_export.test.ts`). `Scene3` tự xin ngữ cảnh `webgl2`; không có thì ném lỗi → `V3.errMsg` (jsdom: `getContext` trả null).
+  - `getInsets()` (trong `Model3DViewport`) đo phần canvas bị bảng nổi che để căn mô hình và nhãn đất vào vùng trống; khung căn theo `fitBox` (kết cấu + đất đắp + đất nền), còn `model.bbox` giữ nguyên để đối chiếu.
+- Gói JS sau khi thêm three.js: ~1,88 MB (gzip ~648 kB).
+- Chụp ảnh kiểm tra giao diện khi ngăn Browser bị ẩn: dùng Chrome headless qua `playwright-core` (cờ như E2E) trỏ vào dev server.
 
 ## Mô đun móng cọc BTCT (mở rộng, đang làm theo giai đoạn)
 Kế hoạch đầy đủ: `~/.claude/plans/foamy-sauteeing-tide.md` (GĐ0 nền tảng → GĐ1 sức chịu tải dọc trục + nhóm cọc → GĐ2 bản vẽ/3D/khối lượng → GĐ3 cọc chịu ngang → GĐ4 kết cấu cọc → GĐ5 lún). **Đã xong: GĐ0 (dữ liệu + UI nhập), GĐ1 (sức chịu tải dọc trục + phản lực nhóm cọc theo TCVN 10304:2025) và GĐ2 (mô phỏng: bản vẽ, 3D, khối lượng).** Chưa làm: GĐ3 (cọc chịu ngang), GĐ4 (kết cấu cọc), GĐ5 (lún).

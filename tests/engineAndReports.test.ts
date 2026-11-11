@@ -1155,11 +1155,11 @@ describe('5. Special Cases: Comma/Dot Decimal Mode, Rock Anchors (fr/dw), Raster
           if (key === 'docProps/core.xml') {
             expectStringParity(normCore(txtTs), normCore(txtRef), `${label}:${key}`);
           } else if (key === 'docProps/app.xml') {
-            expect(txtTs).toContain('<Application>Tường chắn BTCT - LEDAT</Application>');
+            expect(txtTs).toContain('<Application>LEDAT-BIM</Application>');
             expect(txtTs).not.toContain('Thợ Vẽ');
             expectStringParity(
               txtTs,
-              txtRef.replace('Tường chắn chữ L - Thợ Vẽ 4.0', 'Tường chắn BTCT - LEDAT'),
+              txtRef.replace('Tường chắn chữ L - Thợ Vẽ 4.0', 'LEDAT-BIM'),
               `${label}:${key}`,
             );
           } else {

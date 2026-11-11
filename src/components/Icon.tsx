@@ -20,6 +20,13 @@ const PATHS: Record<string, string> = {
   close: 'M6 6l12 12 M18 6L6 18',
   plus: 'M12 5v14 M5 12h14',
   minus: 'M5 12h14',
+  undo: 'M9 14L4 9l5-5 M4 9h10a6 6 0 0 1 0 12h-3',
+  redo: 'M15 14l5-5-5-5 M20 9H10a6 6 0 0 0 0 12h3',
+  history: 'M3 12a9 9 0 1 0 3-6.7 M3 4v5h5 M12 7v5l3 2',
+  search: 'M11 4a7 7 0 1 0 0 14 7 7 0 0 0 0-14z M20 20l-4-4',
+  sun: 'M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8z M12 2v2 M12 20v2 M4.9 4.9l1.4 1.4 M17.7 17.7l1.4 1.4 M2 12h2 M20 12h2 M4.9 19.1l1.4-1.4 M17.7 6.3l1.4-1.4',
+  moon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z',
+  wall: 'M9 3h5v12h7v5H3v-5h6z',
   sliders: 'M4 6h10 M18 6h2 M4 12h4 M12 12h8 M4 18h12 M20 18h0 M14 4v4 M8 10v4 M16 16v4',
 };
 

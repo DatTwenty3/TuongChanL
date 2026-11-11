@@ -19,7 +19,10 @@ import type {
   V3Visibility,
 } from '../types/project';
 import { model3D } from './bars3d';
-import { M3Mesh, M3Tubes, m3cross, m3dot, m3norm, m3sub } from './mesh';
+import { M3Tubes, m3cross, m3dot, m3norm, m3sub } from './mesh';
+import { Scene3, type Scene3Like, type Scene3TubeChunk, type V3Look } from './scene3';
+
+export type { V3Look } from './scene3';
 
 export const V3_PAL: [number, number, number][] = [
   [255, 99, 99],
@@ -526,6 +529,8 @@ export async function v3Png(opts: V3PngOptions): Promise<Blob | null> {
 export interface V3AttachOptions {
   axisCanvas?: HTMLCanvasElement | null;
   getLegOffsetPx?: () => number;
+  /** Phần canvas bị các bảng nổi che (px CSS): mô hình được căn giữa vùng còn trống. */
+  getInsets?: () => { l: number; r: number; t: number; b: number };
   isHidden?: () => boolean;
   onChange?: () => void;
   /** Gọi sau mỗi lần vẽ xong (dùng cập nhật lớp nhãn phủ lên canvas). */
@@ -553,9 +558,13 @@ export class V3 implements V3State {
   hover: V3HoverHit | null = null;
   cam: V3CameraState = { tx: 0, ty: 0, tz: 0, dist: 1e3, yaw: 1, pitch: 0.42, ortho: false };
   fov = (35 * Math.PI) / 180;
+  /** Tạo lõi vẽ; test thay bằng bản giả để không cần WebGL thật. */
+  static sceneFactory: (cv: HTMLCanvasElement) => Scene3Like = (cv) => new Scene3(cv);
+  /** Kiểu hiển thị: `real` chân thực (bê tông đặc, trời, bóng đổ) · `xray` nhìn xuyên xem cốt thép. */
+  look: V3Look = 'real';
   /** Độ mờ bề mặt 0..1 (0 = đặc, 1 = trong suốt hoàn toàn); `alpha` (độ đặc bê tông) suy ra từ đây. */
-  surf = 0.5;
-  alpha = 0.5;
+  surf = 0;
+  alpha = 1;
   kd = 1;
   colorMode: V3ColorMode = 'mark';
   clip: V3ClipState = { axis: '', t: 1, flip: false };
@@ -565,7 +574,7 @@ export class V3 implements V3State {
   mouse: { x: number; y: number } | null = null;
   stale = true;
 
-  gl: WebGLRenderingContext | null = null;
+  gl: WebGLRenderingContext | WebGL2RenderingContext | null = null;
   cv: HTMLCanvasElement | null = null;
   ax: HTMLCanvasElement | null = null;
   R = 1e3;
@@ -577,11 +586,10 @@ export class V3 implements V3State {
   errMsg = '';
   infoText = '';
 
-  private pTube: V3ShaderProgram | null = null;
-  private pMesh: V3ShaderProgram | null = null;
-  private pLine: V3ShaderProgram | null = null;
-  private pSoil: V3ShaderProgram | null = null;
-  private pConc: V3ShaderProgram | null = null;
+  private scene: Scene3Like | null = null;
+  /** Hộp bao dùng để căn khung: gồm cả đất đắp và đất nền (`model.bbox` chỉ ôm kết cấu, giữ nguyên để đối chiếu). */
+  private fitBox: Model3DData['bbox'] | null = null;
+  private tubes: Map<M3BarGroup, Scene3TubeChunk[]> = new Map();
   private animRaf = 0;
   private resizeObs: ResizeObserver | null = null;
   private unbindEvents: (() => void) | null = null;
@@ -603,64 +611,27 @@ export class V3 implements V3State {
   }
 
   private initGl(cv: HTMLCanvasElement): boolean {
-    let gl: WebGLRenderingContext | null = null;
     try {
-      gl =
-        (cv.getContext('webgl', {
-          antialias: true,
-          alpha: false,
-          preserveDrawingBuffer: true,
-        }) as WebGLRenderingContext | null) ||
-        (cv.getContext('experimental-webgl', {
-          antialias: true,
-          alpha: false,
-          preserveDrawingBuffer: true,
-        }) as WebGLRenderingContext | null);
-    } catch {
-      gl = null;
-    }
-
-    if (!gl) {
-      this.ok = false;
-      this.gl = null;
-      this.pTube = null;
-      this.pMesh = null;
-      this.pLine = null;
-      this.pSoil = null;
-      this.pConc = null;
-      this.errMsg =
-        'Trình duyệt / máy này không hỗ trợ WebGL nên không xem được 3D. Bản vẽ 2D vẫn dùng bình thường.';
-      this.notify();
-      return false;
-    }
-
-    try {
-      this.gl = gl;
-      this.pTube = v3Prog(gl, V3_VS_TUBE, V3_FS_TUBE, ['aC', 'aO', 'aN', 'aR']);
-      this.pMesh = v3Prog(gl, V3_VS_MESH, V3_FS_MESH, ['aP', 'aN']);
-      this.pLine = v3Prog(gl, V3_VS_LINE, V3_FS_LINE, ['aP']);
-      if (typeof gl.getExtension === 'function') gl.getExtension('OES_standard_derivatives');
-      this.pSoil = v3Prog(gl, V3_VS_MESH, V3_FS_SOIL, ['aP', 'aN']);
-      this.pConc = v3Prog(gl, V3_VS_MESH, V3_FS_CONC, ['aP', 'aN']);
+      this.scene = V3.sceneFactory(cv);
+      this.gl = this.scene.gl;
     } catch (e) {
       this.ok = false;
       this.gl = null;
-      this.pTube = null;
-      this.pMesh = null;
-      this.pLine = null;
-      this.pSoil = null;
-      this.pConc = null;
-      this.errMsg = 'Lỗi khởi tạo WebGL: ' + (e instanceof Error ? e.message : String(e));
+      this.scene = null;
+      const msg = e instanceof Error ? e.message : String(e);
+      this.errMsg = /context/i.test(msg)
+        ? 'Trình duyệt / máy này không hỗ trợ WebGL nên không xem được 3D. Bản vẽ 2D vẫn dùng bình thường.'
+        : 'Lỗi khởi tạo WebGL: ' + msg;
       this.notify();
       return false;
     }
-
     this.ok = true;
     this.errMsg = '';
     return true;
   }
 
   private bindContextEvents(cv: HTMLCanvasElement): void {
+    // three.js tự khôi phục tài nguyên GPU khi ngữ cảnh trở lại; ở đây chỉ quản trạng thái + vẽ lại.
     const onContextLost = (e: Event) => {
       e.preventDefault();
       if (this.raf) {
@@ -673,31 +644,23 @@ export class V3 implements V3State {
       }
       this.ok = false;
       this.gl = null;
-      this.pTube = null;
-      this.pMesh = null;
-      this.pLine = null;
-      this.pSoil = null;
-      this.pConc = null;
-      if (this.model) this.model.gpu = undefined;
       this.errMsg = 'Ngữ cảnh đồ họa 3D (WebGL) đã bị mất. Đang chờ khôi phục…';
       this.notify();
     };
 
     const onContextRestored = () => {
-      if (!this.cv || !this.initGl(this.cv)) return;
+      if (!this.cv || !this.scene) return;
+      this.ok = true;
+      this.errMsg = '';
+      this.gl = this.scene.gl;
       if (this.pendingModelInput) {
         const { p, res, q } = this.pendingModelInput;
         this.pendingModelInput = null;
         this.setModel(p, res, q);
         return;
       }
-      if (this.model) {
-        this.upload(this.model);
-        this.notify();
-        this.draw();
-      } else {
-        this.notify();
-      }
+      this.notify();
+      if (this.model) this.draw();
     };
 
     cv.addEventListener('webglcontextlost', onContextLost);
@@ -724,7 +687,10 @@ export class V3 implements V3State {
     if (typeof ResizeObserver !== 'undefined') {
       const target = cv.parentElement || cv;
       this.resizeObs = new ResizeObserver(() => {
-        if (this.model) this.redraw();
+        if (!this.model) return;
+        // khung đổi cỡ (xoay máy, bố cục vừa ổn định): căn lại mô hình, giữ nguyên góc nhìn
+        if (!this.animRaf) this.fit(true);
+        this.redraw();
       });
       this.resizeObs.observe(target);
     }
@@ -759,15 +725,17 @@ export class V3 implements V3State {
       this.unbindContextEvents = null;
     }
     this.free();
+    try {
+      this.scene?.dispose();
+    } catch {
+      /* ngữ cảnh đã mất */
+    }
+    this.scene = null;
+    this.tubes.clear();
     this.pendingModelInput = null;
     this.model = null;
     this.gl = null;
     this.cv = null;
-    this.pTube = null;
-    this.pMesh = null;
-    this.pLine = null;
-    this.pSoil = null;
-    this.pConc = null;
     this.inited = false;
     this.ok = false;
   }
@@ -776,84 +744,33 @@ export class V3 implements V3State {
     this.dispose();
   }
 
+  /** Giữ lại cho tương thích: bộ nhớ GPU do lõi vẽ three.js tự giải phóng khi nạp mô hình mới. */
   free(): void {
-    const gl = this.gl;
-    const m = this.model;
-    if (!m || !gl || !m.gpu) return;
-    const del = (o?: { vb?: WebGLBuffer | null; ib?: WebGLBuffer | null } | null) => {
-      if (o) {
-        if (o.vb) gl.deleteBuffer(o.vb);
-        if (o.ib) gl.deleteBuffer(o.ib);
-      }
-    };
-    (['conc', 'lean', 'soil'] as const).forEach((k) => {
-      const mesh = m.gpu![k];
-      del(mesh);
-      if (mesh.lb) gl.deleteBuffer(mesh.lb);
-    });
-    if (m.gpu.pile) {
-      del(m.gpu.pile);
-      if (m.gpu.pile.lb) gl.deleteBuffer(m.gpu.pile.lb);
-    }
-    (m.gpu.ground || []).forEach((gm) => {
-      del(gm);
-      if (gm.lb) gl.deleteBuffer(gm.lb);
-    });
-    if (m.gpu.grid && m.gpu.grid.lb) gl.deleteBuffer(m.gpu.grid.lb);
-    m.groups.forEach((gr) => (gr.chunks || []).forEach(del));
+    this.tubes.clear();
   }
 
   private upload(model: Model3DData): void {
-    const gl = this.gl;
-    if (!gl) return;
-    const buf = (type: number, data: ArrayBufferView) => {
-      const b = gl.createBuffer();
-      gl.bindBuffer(type, b);
-      gl.bufferData(type, data, gl.STATIC_DRAW);
-      return b;
-    };
-    const mesh = (M: M3Mesh | { p: number[]; n: number[]; i: number[]; l: number[] }) => {
-      const n = M.p.length / 3;
-      const d = new Float32Array(n * 6);
-      for (let i = 0; i < n; i++) {
-        d.set(M.p.slice(i * 3, i * 3 + 3), i * 6);
-        d.set(M.n.slice(i * 3, i * 3 + 3), i * 6 + 3);
+    model.gpu = undefined;
+    const fb = { ...model.bbox };
+    const grow = (p: number[]) => {
+      for (let i = 0; i + 2 < p.length; i += 3) {
+        if (p[i] < fb.x0) fb.x0 = p[i];
+        if (p[i] > fb.x1) fb.x1 = p[i];
+        if (p[i + 1] < fb.y0) fb.y0 = p[i + 1];
+        if (p[i + 1] > fb.y1) fb.y1 = p[i + 1];
+        if (p[i + 2] < fb.z0) fb.z0 = p[i + 2];
+        if (p[i + 2] > fb.z1) fb.z1 = p[i + 2];
       }
-      return {
-        vb: n ? buf(gl.ARRAY_BUFFER, d) : null,
-        ib: M.i.length ? buf(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(M.i)) : null,
-        n: M.i.length,
-        lb: M.l.length ? buf(gl.ARRAY_BUFFER, new Float32Array(M.l)) : null,
-        nl: M.l.length / 3,
-      };
     };
-
-    const bb = model.bbox;
-    const gY = model.ground && model.ground.length ? Math.min(...model.ground.map((gp) => gp.y0)) : bb.y0;
-    const y = Math.min(bb.y0, gY) - 0.5;
-    const st = 100;
-    const l: number[] = [];
-    const xa = Math.floor((bb.x0 - 250) / st) * st;
-    const xb = Math.ceil((bb.x1 + 250) / st) * st;
-    const za = Math.floor((bb.z0 - 250) / st) * st;
-    const zb = Math.ceil((bb.z1 + 250) / st) * st;
-    for (let x = xa; x <= xb; x += st) l.push(x, y, za, x, y, zb);
-    for (let z = za; z <= zb; z += st) l.push(xa, y, z, xb, y, z);
-
-    model.gpu = {
-      conc: mesh(model.conc),
-      lean: mesh(model.lean),
-      soil: mesh(model.soil),
-      ...(model.pile ? { pile: mesh(model.pile) } : {}),
-      ...(model.ground && model.ground.length ? { ground: model.ground.map((gp) => mesh(gp.mesh)) } : {}),
-      grid: { lb: l.length ? buf(gl.ARRAY_BUFFER, new Float32Array(l)) : null, nl: l.length / 3 },
-    };
-
+    grow(model.soil.p);
+    (model.ground || []).forEach((gp) => grow(gp.mesh.p));
+    this.fitBox = fb;
     const nSeg = model.groups.reduce(
       (s, gr) => s + gr.bars.reduce((t, pl) => t + Math.max(0, pl.length - 1), 0),
       0,
     );
-    const sides = nSeg < 2500 ? 8 : 6;
+    const sides = nSeg < 2500 ? 10 : 6;
+    this.tubes.clear();
 
     model.groups.forEach((gr, gi) => {
       const T = new M3Tubes(sides);
@@ -868,15 +785,13 @@ export class V3 implements V3State {
           segBar.push(bi);
         }
       });
-      gr.chunks = T.finish().map(
-        (c): M3TubeChunk => ({
-          v: [],
-          i: [],
-          nv: c.nv,
-          vb: buf(gl.ARRAY_BUFFER, c.v),
-          ib: buf(gl.ELEMENT_ARRAY_BUFFER, c.i),
-          n: c.i.length,
-        }),
+      const raw = T.finish();
+      this.tubes.set(
+        gr,
+        raw.map((c) => ({ v: c.v, i: c.i })),
+      );
+      gr.chunks = raw.map(
+        (c): M3TubeChunk => ({ v: [], i: [], nv: c.nv, vb: null, ib: null, n: c.i.length }),
       );
       gr.ranges = ranges;
       const col = V3_PAL[gi % V3_PAL.length];
@@ -892,6 +807,8 @@ export class V3 implements V3State {
         segBar: new Int32Array(segBar),
       });
     });
+
+    this.scene?.setModel(model, this.tubes);
   }
 
   private eye(): Point3D {
@@ -904,13 +821,14 @@ export class V3 implements V3State {
     ];
   }
 
-  private legW(): number {
-    return this.opts.getLegOffsetPx ? this.opts.getLegOffsetPx() : 0;
+  private insets(): { l: number; r: number; t: number; b: number } {
+    if (this.opts.getInsets) return this.opts.getInsets();
+    return { l: 0, r: this.opts.getLegOffsetPx ? this.opts.getLegOffsetPx() : 0, t: 0, b: 0 };
   }
 
   fitDist(yaw: number, pitch: number): number {
     if (!this.model || !this.cv) return 1e3;
-    const b = this.model.bbox;
+    const b = this.fitBox || this.model.bbox;
     const cp = Math.cos(pitch);
     const z: Point3D = [cp * Math.sin(yaw), Math.sin(pitch), cp * Math.cos(yaw)];
     const x = m3norm(m3cross([0, 1, 0], z));
@@ -920,9 +838,10 @@ export class V3 implements V3State {
     const cz = (b.z0 + b.z1) / 2;
     const W = this.cv.clientWidth || this.cv.width;
     const H = Math.max(1, this.cv.clientHeight || this.cv.height);
-    const asp = Math.max(0.3, (W - this.legW()) / H);
-    const tv = Math.tan(this.fov / 2);
-    const th = tv * asp;
+    const ins = this.insets();
+    const tv0 = Math.tan(this.fov / 2);
+    const th = tv0 * Math.max(0.3, (W - ins.l - ins.r) / H);
+    const tv = tv0 * Math.max(0.3, (H - ins.t - ins.b) / H);
     let need = 0;
     for (let i = 0; i < 8; i++) {
       const d: Point3D = [
@@ -939,15 +858,16 @@ export class V3 implements V3State {
   fit(keepAngle = false): void {
     const m = this.model;
     if (!m) return;
-    const b = m.bbox;
+    const b = this.fitBox || m.bbox;
     const c = this.cam;
     c.tx = (b.x0 + b.x1) / 2;
     c.ty = (b.y0 + b.y1) / 2;
     c.tz = (b.z0 + b.z1) / 2;
     this.R = 0.5 * Math.hypot(b.x1 - b.x0, b.y1 - b.y0, b.z1 - b.z0);
     if (!keepAngle) {
-      c.yaw = V3_VIEWS.back[1];
-      c.pitch = V3_VIEWS.back[2];
+      const w = this.look === 'real' ? V3_VIEWS.front : V3_VIEWS.back;
+      c.yaw = w[1];
+      c.pitch = w[2];
       c.ortho = false;
     }
     c.dist = this.fitDist(c.yaw, c.pitch);
@@ -974,7 +894,7 @@ export class V3 implements V3State {
     }
     const c = this.cam;
     const f = { yaw: c.yaw, pitch: c.pitch, dist: c.dist, tx: c.tx, ty: c.ty, tz: c.tz };
-    const b = this.model.bbox;
+    const b = this.fitBox || this.model.bbox;
     const t = {
       yaw,
       pitch,
@@ -1014,310 +934,108 @@ export class V3 implements V3State {
     });
   }
 
-  private attribs(gl: WebGLRenderingContext, n: number): void {
-    for (let i = 0; i < 4; i++) {
-      if (i < n) gl.enableVertexAttribArray(i);
-      else gl.disableVertexAttribArray(i);
-    }
+  private planes(): { near: number; far: number } {
+    const c = this.cam;
+    const R = this.R || 1e3;
+    return c.ortho
+      ? { near: -R * 16, far: c.dist + R * 16 }
+      : { near: Math.max(0.5, c.dist * 0.01), far: c.dist + R * 30 };
   }
 
-  private matrices(): { vp: number[]; pxK: number; L: Point3D; view: number[]; e: Point3D } {
+  private matrices(
+    W: number,
+    H: number,
+  ): { vp: number[]; pxK: number; view: number[]; e: Point3D; offX: number; offY: number } {
     const cv = this.cv!;
     const c = this.cam;
-    const W = cv.width;
-    const H = cv.height;
     const asp = W / Math.max(1, H);
     const e = this.eye();
     const view = v3m.look(e, [c.tx, c.ty, c.tz], [0, 1, 0]);
-    const R = this.R || 1e3;
+    const pl = this.planes();
     let proj: number[];
     let pxK: number;
     if (c.ortho) {
       const hh = c.dist * Math.tan(this.fov / 2);
       const hw = hh * asp;
-      proj = v3m.ortho(hw, hh, -R * 4, c.dist + R * 4);
+      proj = v3m.ortho(hw, hh, pl.near, pl.far);
       pxK = (2 * hh) / Math.max(1, H);
     } else {
-      proj = v3m.persp(this.fov, asp, Math.max(0.5, c.dist * 0.01), c.dist + R * 6);
+      proj = v3m.persp(this.fov, asp, pl.near, pl.far);
       pxK = (2 * Math.tan(this.fov / 2)) / Math.max(1, H);
     }
-    const sx = -this.legW() / Math.max(1, cv.clientWidth || cv.width);
-    const vp = v3m.mul([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, sx, 0, 0, 1], v3m.mul(proj, view));
-    const z = m3norm(m3sub(e, [c.tx, c.ty, c.tz]));
-    const x = m3norm(m3cross([0, 1, 0], z));
-    const y = m3cross(z, x);
-    const L = m3norm([
-      z[0] * 0.8 + y[0] * 0.55 - x[0] * 0.4,
-      z[1] * 0.8 + y[1] * 0.55 - x[1] * 0.4,
-      z[2] * 0.8 + y[2] * 0.55 - x[2] * 0.4,
-    ]);
-    return { vp, pxK, L, view, e };
+    const ins = this.insets();
+    const offX = (ins.r - ins.l) / 2;
+    const offY = (ins.b - ins.t) / 2;
+    const sx = (-2 * offX) / Math.max(1, cv.clientWidth || cv.width);
+    const sy = (2 * offY) / Math.max(1, cv.clientHeight || cv.height);
+    const vp = v3m.mul([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, sx, sy, 0, 1], v3m.mul(proj, view));
+    return { vp, pxK, view, e, offX, offY };
+  }
+
+  /** Độ trong suốt đang dùng để vẽ: khi cô lập một mác thép ở chế độ đặc thì tự chuyển nhìn xuyên. */
+  surfEff(): number {
+    return this.focus && this.surf < 0.35 ? 0.7 : this.surf;
   }
 
   draw(): void {
-    if (!this.ok || !this.model || !this.gl || !this.cv || !this.pTube || !this.pMesh || !this.pLine) {
-      return;
-    }
+    if (!this.ok || !this.model || !this.scene || !this.cv) return;
     if (this.opts.isHidden?.()) return;
 
-    const gl = this.gl;
     const cv = this.cv;
     const dpr = Math.min((typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1, 2);
-    const cw = cv.clientWidth || cv.width;
-    const ch = cv.clientHeight || cv.height;
-    const W = Math.max(2, Math.round(cw * dpr));
-    const H = Math.max(2, Math.round(ch * dpr));
-    if (cv.width !== W || cv.height !== H) {
-      cv.width = W;
-      cv.height = H;
-    }
+    const cw = Math.max(2, cv.clientWidth || cv.width);
+    const ch = Math.max(2, cv.clientHeight || cv.height);
+    const W = Math.max(2, Math.floor(cw * dpr));
+    const H = Math.max(2, Math.floor(ch * dpr));
 
     const m = this.model;
-    const M = this.matrices();
-    const clip = v3ClipVec(m, this.clip);
+    const M = this.matrices(W, H);
+    const c = this.cam;
+    const pl = this.planes();
     this.vp = M.vp;
     this.W = cw;
     this.H = ch;
     this.pxK = M.pxK;
     this.dpr = W / Math.max(1, cw);
 
-    gl.viewport(0, 0, W, H);
-    gl.clearColor(0.129, 0.157, 0.188, 1);
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-    gl.enable(gl.DEPTH_TEST);
-    gl.depthFunc(gl.LEQUAL);
-    gl.disable(gl.CULL_FACE);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    this.scene.render({
+      cssW: cw,
+      cssH: ch,
+      dpr,
+      eye: M.e,
+      target: [c.tx, c.ty, c.tz],
+      fov: this.fov,
+      ortho: c.ortho,
+      dist: c.dist,
+      near: pl.near,
+      far: pl.far,
+      offX: M.offX,
+      offY: M.offY,
+      pxK: M.pxK,
+      clip: v3ClipVec(m, this.clip),
+      vis: this.vis,
+      hidden: this.hidden,
+      hiddenGround: this.hiddenGround,
+      focus: this.focus,
+      hover: this.hover,
+      surf: this.surfEff(),
+      kd: this.kd,
+      look: this.look,
+      colorMode: this.colorMode,
+      colorOf: (gr, gi) => v3GroupColor(gr, this.colorMode, gi),
+    });
 
-    const focus = this.focus;
-    const dimmed = (gr: M3BarGroup) => !!(focus && gr.id !== focus);
-
-    const tubeUse = () => {
-      const P = this.pTube!;
-      gl.useProgram(P.pr);
-      gl.uniformMatrix4fv(P.u.uVP, false, M.vp);
-      gl.uniform1f(P.u.uPxK, M.pxK);
-      gl.uniform1f(P.u.uPersp, this.cam.ortho ? 0 : 1);
-      gl.uniform1f(P.u.uMinPx, 0.9);
-      gl.uniform3fv(P.u.uL, M.L);
-      gl.uniform4fv(P.u.uClip, clip);
-      this.attribs(gl, 4);
-      return P;
-    };
-
-    const tubeDraw = (
-      P: V3ShaderProgram,
-      gr: M3BarGroup,
-      scale: number,
-      col: [number, number, number],
-      a: number,
-    ) => {
-      gl.uniform1f(P.u.uScale, scale);
-      gl.uniform3fv(P.u.uCol, col);
-      gl.uniform1f(P.u.uA, a);
-      (gr.chunks || []).forEach((ch) => {
-        if (!ch.vb || !ch.ib || !ch.n) return;
-        gl.bindBuffer(gl.ARRAY_BUFFER, ch.vb);
-        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
-        gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 40, 12);
-        gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 40, 24);
-        gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 40, 36);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ch.ib);
-        gl.drawElements(gl.TRIANGLES, ch.n, gl.UNSIGNED_SHORT, 0);
-      });
-    };
-
-    if (this.vis.rebar) {
-      gl.disable(gl.BLEND);
-      gl.depthMask(true);
-      const P = tubeUse();
-      m.groups.forEach((gr, gi) => {
-        if (this.hidden.has(gr.id || '') || dimmed(gr)) return;
-        tubeDraw(P, gr, this.kd * (focus ? 1.5 : 1), v3GroupColor(gr, this.colorMode, gi), 1);
-      });
-      const h = this.hover;
-      if (h && !this.hidden.has(h.gr.id || '')) {
-        const gr = h.gr;
-        const r = gr.ranges?.[h.bi];
-        const ch = r ? gr.chunks?.[r.ci] : undefined;
-        if (r && ch && ch.vb && ch.ib) {
-          gl.depthFunc(gl.ALWAYS);
-          gl.uniform1f(P.u.uScale, Math.max(2, this.kd * 2.2));
-          gl.uniform3fv(P.u.uCol, [1, 1, 0.85]);
-          gl.uniform1f(P.u.uA, 1);
-          gl.bindBuffer(gl.ARRAY_BUFFER, ch.vb);
-          gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 40, 0);
-          gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 40, 12);
-          gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 40, 24);
-          gl.vertexAttribPointer(3, 1, gl.FLOAT, false, 40, 36);
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ch.ib);
-          gl.drawElements(gl.TRIANGLES, r.n, gl.UNSIGNED_SHORT, r.i0 * 2);
-          gl.depthFunc(gl.LEQUAL);
-        }
-      }
-    }
-
-    if (m.gpu) {
-      const P = this.pLine;
-      gl.useProgram(P.pr);
-      gl.uniformMatrix4fv(P.u.uVP, false, M.vp);
-      this.attribs(gl, 1);
-      gl.enable(gl.BLEND);
-      gl.depthMask(false);
-      const lines = (
-        o: { lb: WebGLBuffer | null; nl: number } | undefined,
-        col: [number, number, number],
-        a: number,
-        cl?: [number, number, number, number],
-      ) => {
-        if (!o || !o.lb || !o.nl) return;
-        gl.uniform3fv(P.u.uCol, col);
-        gl.uniform1f(P.u.uA, a);
-        gl.uniform4fv(P.u.uClip, cl || clip);
-        gl.bindBuffer(gl.ARRAY_BUFFER, o.lb);
-        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 12, 0);
-        gl.drawArrays(gl.LINES, 0, o.nl);
-      };
-      if (this.vis.grid) lines(m.gpu.grid, [0.3, 0.37, 0.44], 0.55, [0, 0, 0, 1]);
-      if (this.vis.edges) {
-        if (this.vis.conc) lines(m.gpu.conc, [0.78, 0.88, 0.98], 0.95);
-        if (this.vis.conc) lines(m.gpu.pile, [0.86, 0.78, 0.6], 0.9);
-        if (this.vis.blind) lines(m.gpu.lean, [0.62, 0.64, 0.66], 0.8);
-      }
-
-      type GMesh = { vb: WebGLBuffer | null; ib: WebGLBuffer | null; n: number } | undefined;
-      const bindMesh = (o: NonNullable<GMesh>) => {
-        gl.bindBuffer(gl.ARRAY_BUFFER, o.vb);
-        gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 24, 0);
-        gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 24, 12);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, o.ib);
-        gl.drawElements(gl.TRIANGLES, o.n, gl.UNSIGNED_SHORT, 0);
-      };
-
-      // --- 1) bê tông (tường / bản, lót, cọc): trong mờ, màu xám xi măng, vẽ trước đất ---
-      const PC = this.pConc;
-      const PM = this.pMesh;
-      const a1 = this.alpha;
-      const concItems: Array<{ o: GMesh; col: [number, number, number]; a: number; mode: number }> = [];
-      if (this.vis.blind) concItems.push({ o: m.gpu.lean, col: [0.72, 0.7, 0.64], a: Math.min(1, a1 * 1.15), mode: 1 });
-      if (this.vis.conc) concItems.push({ o: m.gpu.conc, col: [0.68, 0.68, 0.66], a: a1, mode: 0 });
-      if (this.vis.conc && m.gpu.pile) concItems.push({ o: m.gpu.pile, col: [0.62, 0.62, 0.6], a: Math.min(1, a1 * 1.1), mode: 2 });
-      gl.enable(gl.BLEND);
-      gl.depthMask(false);
-      gl.enable(gl.CULL_FACE);
-      if (PC && concItems.length) {
-        gl.useProgram(PC.pr);
-        gl.uniformMatrix4fv(PC.u.uVP, false, M.vp);
-        gl.uniform3fv(PC.u.uL, M.L);
-        gl.uniform4fv(PC.u.uClip, clip);
-        this.attribs(gl, 2);
-        const drawConc = (it: (typeof concItems)[number]) => {
-          if (!it.o || !it.o.vb || !it.o.ib || !it.o.n || it.a <= 0.003) return;
-          gl.uniform3fv(PC.u.uCol, it.col);
-          gl.uniform1f(PC.u.uA, it.a);
-          gl.uniform1f(PC.u.uMode, it.mode);
-          bindMesh(it.o);
-        };
-        gl.cullFace(gl.FRONT);
-        concItems.forEach(drawConc);
-        gl.cullFace(gl.BACK);
-        concItems.forEach(drawConc);
-      }
-
-      // --- 2) ghi độ sâu của mặt trước bê tông (không ghi màu) để đất nằm SAU bê tông bị che đúng ---
-      const solidItems = concItems.filter((it) => it.a > 0.05);
-      if (solidItems.length) {
-        gl.useProgram(PM.pr);
-        gl.uniformMatrix4fv(PM.u.uVP, false, M.vp);
-        gl.uniform4fv(PM.u.uClip, clip);
-        this.attribs(gl, 2);
-        gl.colorMask(false, false, false, false);
-        gl.depthMask(true);
-        gl.cullFace(gl.BACK);
-        solidItems.forEach((it) => {
-          if (it.o && it.o.vb && it.o.ib && it.o.n) bindMesh(it.o);
-        });
-        gl.colorMask(true, true, true, true);
-        gl.depthMask(false);
-      }
-
-      // --- 3) đất (nền theo lớp + đất đắp): chỉ vẽ mặt trước và GHI độ sâu → không bị lỗi xuyên thấu ---
-      const PS = this.pSoil;
-      const grass: [number, number, number] = [0.34, 0.5, 0.2];
-      const KIND: Record<string, number> = { sand: 0, clay: 1, mud: 2, rock: 3, fill: 4 };
-      const oS = 1 - this.surf;
-      const soilItems: Array<{ o: GMesh; col: [number, number, number]; a: number; topK: number; kind: number }> = [];
-      if (this.vis.strata && m.ground) {
-        m.ground.forEach((gp, gi) => {
-          if (this.hiddenGround.has(gp.id)) return;
-          soilItems.push({
-            o: m.gpu?.ground?.[gi],
-            col: gp.color,
-            a: gp.kind === 'cover' ? Math.min(1, oS + 0.1) : oS,
-            topK: gp.kind === 'cover' ? 1 : 0,
-            kind: KIND[gp.look] ?? 1,
-          });
-        });
-      }
-      if (this.vis.soil) {
-        soilItems.push({ o: m.gpu.soil, col: [0.6, 0.44, 0.26], a: oS, topK: 1, kind: 4 });
-      }
-      if (PS && soilItems.length) {
-        gl.useProgram(PS.pr);
-        gl.uniformMatrix4fv(PS.u.uVP, false, M.vp);
-        gl.uniform3fv(PS.u.uL, M.L);
-        gl.uniform4fv(PS.u.uClip, clip);
-        gl.uniform3fv(PS.u.uTop, grass);
-        this.attribs(gl, 2);
-        gl.depthMask(true);
-        gl.enable(gl.POLYGON_OFFSET_FILL);
-        gl.polygonOffset(1, 1);
-        gl.cullFace(gl.BACK);
-        soilItems.forEach((it) => {
-          if (!it.o || !it.o.vb || !it.o.ib || !it.o.n || it.a <= 0.003) return;
-          gl.uniform3fv(PS.u.uCol, it.col);
-          gl.uniform1f(PS.u.uA, it.a);
-          gl.uniform1f(PS.u.uTopK, it.topK);
-          gl.uniform1f(PS.u.uKind, it.kind);
-          bindMesh(it.o);
-        });
-        gl.disable(gl.POLYGON_OFFSET_FILL);
-        gl.depthMask(false);
-      }
-      gl.disable(gl.CULL_FACE);
-
-      // --- 4) nét viền đất (sau khi vẽ đất, có kiểm tra độ sâu) ---
-      if (this.vis.edges) {
-        gl.useProgram(P.pr);
-        gl.uniformMatrix4fv(P.u.uVP, false, M.vp);
-        this.attribs(gl, 1);
-        if (this.vis.soil) lines(m.gpu.soil, [0.72, 0.55, 0.36], 0.55);
-        if (this.vis.strata && m.ground) {
-          m.gpu.ground?.forEach((gm, gi) => {
-            if (this.hiddenGround.has(m.ground![gi].id)) return;
-            const c = m.ground![gi].color;
-            lines(gm, [c[0] * 0.6, c[1] * 0.6, c[2] * 0.6], 0.55);
-          });
-        }
-      }
-    }
-
-    if (this.vis.rebar && focus) {
-      gl.enable(gl.BLEND);
-      gl.depthMask(false);
-      const P = tubeUse();
-      m.groups.forEach((gr, gi) => {
-        if (this.hidden.has(gr.id || '') || !dimmed(gr)) return;
-        tubeDraw(P, gr, this.kd, v3GroupColor(gr, this.colorMode, gi), 0.16);
-      });
-    }
-
-    gl.depthMask(true);
     v3AxisDraw(this.ax, M.view);
     this.opts.onDraw?.();
   }
 
+  /** Thép nằm trong bê tông đặc thì không rê / chọn được (tránh chọn nhầm thanh không nhìn thấy). */
+  private rebarHiddenInside(): boolean {
+    return this.vis.conc && this.surfEff() < 0.05;
+  }
+
   pick(mx: number, my: number): V3HoverHit | null {
+    if (this.rebarHiddenInside()) return null;
     return v3Pick(this, mx, my);
   }
 
@@ -1391,6 +1109,16 @@ export class V3 implements V3State {
   setSurf(s: number): void {
     this.surf = Math.max(0, Math.min(1, s));
     this.alpha = 1 - this.surf;
+    this.notify();
+    this.redraw();
+  }
+
+  /** Đổi kiểu hiển thị; `real` đặt bề mặt đặc, `xray` đặt trong mờ 50 % (vẫn chỉnh tiếp được bằng thanh trượt). */
+  setLook(look: V3Look): void {
+    this.look = look;
+    this.surf = look === 'real' ? 0 : 0.5;
+    this.alpha = 1 - this.surf;
+    this.hover = null;
     this.notify();
     this.redraw();
   }

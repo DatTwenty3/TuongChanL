@@ -4,6 +4,7 @@ import { badgeStatusAll, fmt } from './engine';
 import {
   Cad2DViewport,
   CalcReportViewport,
+  CommandPalette,
   HeaderToolbar,
   Model3DViewport,
   SidebarCadPanel,
@@ -17,7 +18,7 @@ import type { AppViewMode, Project, TemplateId } from './types/project';
 
 const APP_VERSION = '1.0.0';
 const DEFAULT_TPL: TemplateId = 'B';
-const INITIAL_MODE: AppViewMode = '2d';
+const INITIAL_MODE: AppViewMode = '3d';
 
 /** Nhãn ngắn cho thanh tab (tên đầy đủ nằm trong tooltip). */
 const SHEET_SHORT = [
@@ -52,6 +53,7 @@ const AppWorkspace: React.FC = () => {
     selectSheetTab,
     setViewMode,
     requestFit2d,
+    theme,
   } = useAppStore();
 
   void feRev;
@@ -74,6 +76,7 @@ const AppWorkspace: React.FC = () => {
       data-tpl={project.tpl}
       data-view={viewMode}
       data-side={sideOpen ? 'open' : 'closed'}
+      data-theme={theme}
     >
       <HeaderToolbar />
       <main>
@@ -199,6 +202,7 @@ const AppWorkspace: React.FC = () => {
         </section>
       </main>
       <ToastBanner />
+      <CommandPalette sideOpen={sideOpen} setSideOpen={setSideOpen} />
     </div>
   );
 };

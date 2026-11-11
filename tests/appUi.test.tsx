@@ -150,11 +150,17 @@ describe('TuongChanL Web App UI integration (Easy -> Medium -> Hard -> Special)'
     setReportDec('.');
   });
 
+  // Ứng dụng mở ở chế độ 3D; các kịch bản dưới đây bắt đầu từ cụm bản vẽ 1 (2D).
   async function mountApp(): Promise<void> {
     root = createRoot(container);
     await act(async () => {
       root!.render(<App />);
     });
+    expect(container.querySelector('.app-shell')?.getAttribute('data-view')).toBe('3d');
+    await act(async () => {
+      container.querySelectorAll<HTMLButtonElement>('#tabs > button')[0].click();
+    });
+    expect(container.querySelector('.app-shell')?.getAttribute('data-view')).toBe('2d');
   }
 
   function triggerOpenFile(fileInput: HTMLInputElement, file: File): void {
@@ -192,7 +198,7 @@ describe('TuongChanL Web App UI integration (Easy -> Medium -> Hard -> Special)'
     );
 
     // Header buttons in 2D mode (zero licensing UI, LEDAT branding)
-    expect(container.textContent).toContain('Tường chắn BTCT');
+    expect(container.textContent).toContain('LEDAT-BIM');
     expect(container.querySelector('header .brand small')?.textContent).toBe(
       'Bản vẽ 2D · mô hình 3D · kiểm toán TCVN 11823 · LEDAT',
     );

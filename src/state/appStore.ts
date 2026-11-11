@@ -54,9 +54,11 @@ import {
   exportCadPdf,
   exportCalcPdf,
   openProjectFromFile,
+  parseProjectFile,
   printCadSheet,
   printCalcReport,
   saveProjectFile,
+  serializeProject,
   setAnc,
 } from '../export';
 import { V3 } from '../model3d';
@@ -66,6 +68,65 @@ import type { CadSheet, QuantitiesResult } from '../types/project';
 export type WorkspaceViewMode = '2d' | '3d' | 'calc';
 export type CalcSubTab = 'sheet' | 'gs' | 'rb' | 'fe' | 'pile';
 export type ToastKind = '' | 'ok' | 'err' | 'wait';
+
+export type ThemeMode = 'light' | 'dark';
+
+/** Bản nháp tự lưu của phiên làm việc trước (localStorage). */
+export interface DraftInfo {
+  /** thời điểm lưu (ms) */
+  t: number;
+  name: string;
+}
+
+const DRAFT_KEY = 'tuong-chan-btct:draft';
+const THEME_KEY = 'tuong-chan-btct:theme';
+const HIST_MAX = 100;
+/** Các thay đổi liên tiếp cách nhau dưới ngưỡng này (gõ số, giữ nút tăng/giảm) gộp thành 1 bước hoàn tác. */
+const HIST_MERGE_MS = 700;
+
+function lsGet(key: string): string | null {
+  try {
+    return typeof localStorage !== 'undefined' ? localStorage.getItem(key) : null;
+  } catch {
+    return null;
+  }
+}
+
+function lsSet(key: string, value: string | null): void {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    if (value === null) localStorage.removeItem(key);
+    else localStorage.setItem(key, value);
+  } catch {
+    /* hết dung lượng / chế độ riêng tư: bỏ qua */
+  }
+}
+
+interface DraftRecord {
+  t: number;
+  name: string;
+  data: string;
+}
+
+function readDraft(): DraftRecord | null {
+  const raw = lsGet(DRAFT_KEY);
+  if (!raw) return null;
+  try {
+    const d = JSON.parse(raw) as Partial<DraftRecord>;
+    if (typeof d.t === 'number' && typeof d.data === 'string') {
+      return { t: d.t, name: typeof d.name === 'string' ? d.name : '', data: d.data };
+    }
+  } catch {
+    /* bản nháp hỏng */
+  }
+  return null;
+}
+
+function initialTheme(): ThemeMode {
+  const saved = lsGet(THEME_KEY);
+  if (saved === 'dark' || saved === 'light') return saved;
+  return 'dark';
+}
 
 export interface ToastMessage {
   id: number;
@@ -204,6 +265,17 @@ export interface AppStoreValue {
   exportDocx: () => Promise<void>;
   export3dPng: () => Promise<void>;
   printCurrent: () => Promise<void>;
+  canUndo: boolean;
+  canRedo: boolean;
+  undo: () => void;
+  redo: () => void;
+  theme: ThemeMode;
+  toggleTheme: () => void;
+  cmdOpen: boolean;
+  setCmdOpen: (open: boolean) => void;
+  draft: DraftInfo | null;
+  restoreDraft: () => void;
+  discardDraft: () => void;
 }
 
 const AppStoreContext = createContext<AppStoreValue | null>(null);
@@ -212,7 +284,7 @@ export const nearestCantiH = (H: number): number => Math.min(13, Math.max(4, Mat
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [project, setProject] = useState<EngineProject>(() => cloneProject(presetCanti(500)));
-  const [viewMode, setViewModeState] = useState<WorkspaceViewMode>('2d');
+  const [viewMode, setViewModeState] = useState<WorkspaceViewMode>('3d');
   const [curSheet, setCurSheet] = useState<number>(0);
   const [calcSub, setCalcSubState] = useState<CalcSubTab>('sheet');
   const [lastH1, setLastH1] = useState<number>(5);
@@ -233,6 +305,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   const [v3Rev, setV3Rev] = useState(0);
   const [cleanRev, setCleanRev] = useState(0);
   const v3Ref = useRef<V3 | null>(null);
+
+  const [theme, setTheme] = useState<ThemeMode>(initialTheme);
+  const [cmdOpen, setCmdOpen] = useState(false);
+  const [histRev, setHistRev] = useState(0);
+  const [draft, setDraft] = useState<DraftInfo | null>(() => {
+    const d = readDraft();
+    return d ? { t: d.t, name: d.name } : null;
+  });
 
   const [cadAccordions, setCadAccordions] = useState<Record<string, boolean>>({});
   const [calcAccordions, setCalcAccordions] = useState<Record<string, boolean>>(() => {
@@ -435,6 +515,118 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       setCalcAccordions((prev) => ({ ...prev, ...patch }));
     }
   }, [project]);
+
+  // ----- Hoàn tác / làm lại: ghi lại mọi thay đổi của `project` (đối tượng bất biến nên chỉ giữ tham chiếu) -----
+  const histRef = useRef<{
+    past: EngineProject[];
+    future: EngineProject[];
+    prev: EngineProject;
+    skip: boolean;
+    t: number;
+  }>({ past: [], future: [], prev: project, skip: false, t: 0 });
+
+  useEffect(() => {
+    const h = histRef.current;
+    if (h.prev === project) return;
+    if (h.skip) {
+      h.skip = false;
+    } else if (JSON.stringify(h.prev) !== JSON.stringify(project)) {
+      const now = Date.now();
+      if (h.past.length === 0 || now - h.t > HIST_MERGE_MS) {
+        h.past.push(h.prev);
+        if (h.past.length > HIST_MAX) h.past.shift();
+      }
+      h.t = now;
+      h.future = [];
+    }
+    h.prev = project;
+    setHistRev((n) => n + 1);
+  }, [project]);
+
+  const undo = useCallback(() => {
+    const h = histRef.current;
+    const target = h.past.pop();
+    if (!target) return;
+    h.future.push(projectRef.current);
+    h.skip = true;
+    h.t = 0;
+    setHeelHint(undefined);
+    setProject(target);
+  }, []);
+
+  const redo = useCallback(() => {
+    const h = histRef.current;
+    const target = h.future.pop();
+    if (!target) return;
+    h.past.push(projectRef.current);
+    h.skip = true;
+    h.t = 0;
+    setHeelHint(undefined);
+    setProject(target);
+  }, []);
+
+  const canUndo = useMemo(() => {
+    void histRev;
+    return histRef.current.past.length > 0;
+  }, [histRev]);
+  const canRedo = useMemo(() => {
+    void histRev;
+    return histRef.current.future.length > 0;
+  }, [histRev]);
+
+  // ----- Giao diện sáng / tối -----
+  const toggleTheme = useCallback(() => {
+    setTheme((cur) => {
+      const next: ThemeMode = cur === 'dark' ? 'light' : 'dark';
+      lsSet(THEME_KEY, next);
+      return next;
+    });
+  }, []);
+
+  // ----- Tự lưu bản nháp: chỉ ghi khi có thay đổi chưa lưu và người dùng đã xử lý bản nháp cũ -----
+  const draftPendingRef = useRef(draft !== null);
+  useEffect(() => {
+    if (draftPendingRef.current) return;
+    const id = window.setTimeout(() => {
+      if (projectSnapshot(project) === cleanSnapRef.current) {
+        lsSet(DRAFT_KEY, null);
+        return;
+      }
+      const rec: DraftRecord = {
+        t: Date.now(),
+        name: project.name || '',
+        data: serializeProject(project),
+      };
+      lsSet(DRAFT_KEY, JSON.stringify(rec));
+    }, 800);
+    return () => window.clearTimeout(id);
+  }, [project, cleanRev]);
+
+  const discardDraft = useCallback(() => {
+    draftPendingRef.current = false;
+    lsSet(DRAFT_KEY, null);
+    setDraft(null);
+  }, []);
+
+  const restoreDraft = useCallback(() => {
+    const rec = readDraft();
+    draftPendingRef.current = false;
+    setDraft(null);
+    if (!rec) {
+      showToast('Không còn bản nháp để khôi phục.', 'err');
+      return;
+    }
+    try {
+      const loaded = cloneProject(parseProjectFile(rec.data));
+      setHeelHint(undefined);
+      setProject(loaded);
+      showToast('Đã khôi phục phiên làm việc trước (chưa lưu thành file).', 'ok');
+    } catch (e) {
+      console.error(e);
+      lsSet(DRAFT_KEY, null);
+      showToast('Bản nháp bị hỏng, không khôi phục được.', 'err');
+    }
+  }, [showToast]);
 
   const updateProject = useCallback((mutator: (draft: EngineProject) => void) => {
     setHeelHint(undefined);
@@ -648,6 +840,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const loaded = cloneProject(await openProjectFromFile(file));
         setHeelHint(undefined);
+        const h = histRef.current;
+        h.past = [];
+        h.future = [];
+        h.skip = true;
         setProject(loaded);
         if (loaded.tpl === 'B') {
           setLastH1(nearestCantiH(loaded.H));
@@ -866,6 +1062,17 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       exportDocx,
       export3dPng,
       printCurrent,
+      canUndo,
+      canRedo,
+      undo,
+      redo,
+      theme,
+      toggleTheme,
+      cmdOpen,
+      setCmdOpen,
+      draft,
+      restoreDraft,
+      discardDraft,
     }),
     [
       project,
@@ -922,6 +1129,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       exportDocx,
       export3dPng,
       printCurrent,
+      canUndo,
+      canRedo,
+      undo,
+      redo,
+      theme,
+      toggleTheme,
+      cmdOpen,
+      draft,
+      restoreDraft,
+      discardDraft,
     ],
   );
 

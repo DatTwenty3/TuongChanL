@@ -217,7 +217,7 @@ async function verifyDocxBytes(page, bytes, label) {
 
   const appXml = zipEntries.get('docProps/app.xml')?.toString('utf8') || '';
   assert.ok(
-    appXml.includes('<Application>Tường chắn BTCT - LEDAT</Application>'),
+    appXml.includes('<Application>LEDAT-BIM</Application>'),
     `${label}: unexpected docProps/app.xml: ${appXml}`,
   );
   assert.equal(/Thợ Vẽ/i.test(appXml), false, `${label}: legacy branding found in docProps/app.xml`);
@@ -593,6 +593,10 @@ async function run() {
     const glPngMeta = checkPngHeader(glShot);
 
     // Slice axis, slider, flip & legend toggle
+    // Tùy chọn hiển thị nằm trong bảng bật lên của thanh công cụ nổi (mặc định đóng)
+    if (!(await page.locator('#v3clipAxis').isVisible())) {
+      await page.locator('#v3barToggle').click();
+    }
     await page.selectOption('#v3clipAxis', 'x');
     await page.locator('#v3clipT').fill('0.5');
     await page.locator('#v3clipT').dispatchEvent('change');

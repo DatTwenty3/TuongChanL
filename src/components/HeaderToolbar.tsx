@@ -16,7 +16,26 @@ export const HeaderToolbar: React.FC = () => {
     exportDocx,
     export3dPng,
     printCurrent,
+    canUndo,
+    canRedo,
+    undo,
+    redo,
+    theme,
+    toggleTheme,
+    setCmdOpen,
+    draft,
+    restoreDraft,
+    discardDraft,
   } = useAppStore();
+
+  const draftWhen = draft
+    ? new Date(draft.t).toLocaleString('vi-VN', {
+        hour: '2-digit',
+        minute: '2-digit',
+        day: '2-digit',
+        month: '2-digit',
+      })
+    : '';
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -27,12 +46,84 @@ export const HeaderToolbar: React.FC = () => {
           <BrandMark />
         </span>
         <div>
-          <b>Tường chắn BTCT</b>
+          <b>LEDAT-BIM</b>
           <small>Bản vẽ 2D · mô hình 3D · kiểm toán TCVN 11823 · LEDAT</small>
         </div>
       </div>
 
+      <button
+        id="bCmd"
+        type="button"
+        className="cmdbtn"
+        title="Tìm lệnh, bản vẽ, thông số (Ctrl+K)"
+        aria-label="Tìm lệnh"
+        onClick={() => setCmdOpen(true)}
+      >
+        <Icon name="search" />
+        <span>Tìm lệnh, thông số…</span>
+        <kbd>Ctrl K</kbd>
+      </button>
+
       <div className="actions">
+        {draft ? (
+          <div className="agrp draftgrp" data-grp="draft">
+            <button
+              id="bRestore"
+              type="button"
+              title={`Phiên làm việc trước (${draftWhen}) có thay đổi chưa lưu — nhấn để khôi phục`}
+              aria-label="Khôi phục phiên trước"
+              onClick={restoreDraft}
+            >
+              <Icon name="history" />
+              <span>Khôi phục phiên {draftWhen}</span>
+            </button>
+            <button
+              id="bDraftX"
+              type="button"
+              className="icononly"
+              title="Bỏ bản nháp của phiên trước"
+              aria-label="Bỏ bản nháp"
+              onClick={discardDraft}
+            >
+              <Icon name="close" />
+            </button>
+          </div>
+        ) : null}
+        <div className="agrp" data-grp="edit">
+          <button
+            id="bUndo"
+            type="button"
+            className="icononly"
+            disabled={!canUndo}
+            title="Hoàn tác (Ctrl+Z)"
+            aria-label="Hoàn tác"
+            onClick={undo}
+          >
+            <Icon name="undo" />
+          </button>
+          <button
+            id="bRedo"
+            type="button"
+            className="icononly"
+            disabled={!canRedo}
+            title="Làm lại (Ctrl+Y)"
+            aria-label="Làm lại"
+            onClick={redo}
+          >
+            <Icon name="redo" />
+          </button>
+          <button
+            id="bTheme"
+            type="button"
+            className="icononly"
+            aria-pressed={theme === 'dark'}
+            title={theme === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+            aria-label="Đổi giao diện sáng / tối"
+            onClick={toggleTheme}
+          >
+            <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
+          </button>
+        </div>
         <div className="agrp" data-grp="file">
           <button id="bOpen" type="button" onClick={() => fileInputRef.current?.click()} aria-label="Mở dự án">
             <Icon name="open" />

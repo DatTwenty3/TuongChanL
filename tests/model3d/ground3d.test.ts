@@ -57,10 +57,16 @@ describe('ground3d – địa tầng nền trong mô hình 3D', () => {
     expect(m.sig).not.toContain('ground');
   });
 
-  it('độ mờ bề mặt: mặc định 50%, kẹp 0..100%, độ đặc bê tông = 1 − độ mờ', () => {
+  it('kiểu xem: mặc định chân thực (bề mặt đặc), xem cốt thép = trong mờ 50%; độ đặc bê tông = 1 − độ mờ', () => {
     const v = new V3();
+    expect(v.look).toBe('real');
+    expect(v.surf).toBe(0);
+    expect(v.alpha).toBe(1);
+    v.setLook('xray');
     expect(v.surf).toBe(0.5);
     expect(v.alpha).toBeCloseTo(0.5, 9);
+    v.setLook('real');
+    expect(v.surf).toBe(0);
     v.setSurf(1.4);
     expect(v.surf).toBe(1);
     expect(v.alpha).toBe(0);

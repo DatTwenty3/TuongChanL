@@ -104,7 +104,11 @@ function build(host: HTMLElement, parts: Model3DGroundPart[], narrow: boolean, s
 }
 
 /** Vẽ lại vị trí các nhãn cho khung hình hiện tại; xóa nhãn nếu tắt / không có địa tầng. */
-export function renderSoilLabels(v3: V3, host: HTMLElement | null, reserveRight: number): void {
+export function renderSoilLabels(
+  v3: V3,
+  host: HTMLElement | null,
+  ins: { l: number; r: number; t: number; b: number },
+): void {
   if (!host) return;
   const m = v3.model;
   const on = !!m && !!m.ground && m.ground.length > 0 && v3.vis.strata && v3.vis.labels;
@@ -142,13 +146,18 @@ export function renderSoilLabels(v3: V3, host: HTMLElement | null, reserveRight:
     }
     const side = e.gp.kind === 'cover' ? 'L' : 'R';
     const a = pts.reduce((best, p) => (side === 'R' ? (p.x > best.x ? p : best) : p.x < best.x ? p : best));
-    inputs.push({ id: e.gp.id, ax: a.x, ay: a.y, side, w: e.w, h: e.h });
+    inputs.push({ id: e.gp.id, ax: a.x - ins.l, ay: a.y - ins.t, side, w: e.w, h: e.h });
   });
 
-  const pos = layoutSoilLabels(inputs, v3.W, v3.H, { reserveRight, offset: 44 });
+  // bố trí trong vùng không bị bảng nổi che; lớp phủ được dịch theo lề trái / trên
+  const fw = Math.max(120, v3.W - ins.l - ins.r);
+  const fh = Math.max(80, v3.H - ins.t - ins.b);
+  host.style.left = `${ins.l}px`;
+  host.style.top = `${ins.t}px`;
+  const pos = layoutSoilLabels(inputs, fw, fh, { offset: 44 });
   const byId = new Map(pos.map((p) => [p.id, p]));
-  st.svg.setAttribute('width', String(v3.W));
-  st.svg.setAttribute('height', String(v3.H));
+  st.svg.setAttribute('width', String(fw));
+  st.svg.setAttribute('height', String(fh));
   st.els.forEach((e) => {
     const p = byId.get(e.gp.id);
     if (!p) {

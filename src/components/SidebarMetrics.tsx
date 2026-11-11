@@ -99,6 +99,9 @@ export const SidebarMetrics: React.FC = () => {
                   <Sym ch={x.ok ? '✓' : x.info ? '!' : '✗'} />{' '}
                   {xv > 99 ? '> 99' : fmt2(xv)}
                 </b>
+                <i className="ub" aria-hidden="true">
+                  <i style={{ width: `${Math.round(Math.max(0, Math.min(1, xv)) * 100)}%` }} />
+                </i>
               </div>
             );
           })}

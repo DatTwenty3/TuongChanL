@@ -52,7 +52,9 @@ export const Model3DViewport: React.FC = () => {
   const isMobile = () =>
     typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 900px)').matches;
   const [legMin, setLegMin] = useState(isMobile);
-  const [barMin, setBarMin] = useState(false);
+  // Tùy chọn hiển thị nằm trong bảng bật lên của thanh công cụ nổi; mặc định đóng để nhường chỗ cho mô hình.
+  const [barMin, setBarMin] = useState(true);
+  const barRef = useRef<HTMLDivElement | null>(null);
   const [tip, setTip] = useState<TipState | null>(null);
   const [tipPos, setTipPos] = useState<{ left: number; top: number }>({ left: 8, top: 8 });
 
@@ -70,24 +72,51 @@ export const Model3DViewport: React.FC = () => {
     const cv = glCanvasRef.current;
     if (!cv) return;
 
+    // Phần canvas bị các bảng nổi che (bảng thông số, thanh tab, chú giải, thanh công cụ):
+    // mô hình và nhãn được căn vào vùng còn trống.
+    const getInsets = () => {
+      const zero = { l: 0, r: 0, t: 0, b: 0 };
+      const r = cv.getBoundingClientRect();
+      if (!r.width || !r.height) return zero;
+      const rect = (el: Element | null | undefined) => {
+        if (!el || !(el instanceof HTMLElement) || el.hidden || !el.offsetWidth) return null;
+        return el.getBoundingClientRect();
+      };
+      const narrow = !!window.matchMedia?.('(max-width: 900px)').matches;
+      const out = { ...zero };
+      if (!narrow) {
+        const a = rect(document.querySelector('.app-shell aside'));
+        if (a && a.right > r.left && a.left < r.left + r.width / 2 && a.height > r.height / 2) {
+          out.l = a.right - r.left + 10;
+        }
+        const leg = legRef.current;
+        const lg = leg && !leg.classList.contains('min') ? rect(leg) : null;
+        if (lg && lg.left < r.right) out.r = r.right - lg.left + 10;
+      }
+      const nav = rect(document.querySelector('.app-shell nav'));
+      if (nav && nav.bottom > r.top && nav.top < r.top + r.height / 3) out.t = nav.bottom - r.top + 8;
+      const bar = rect(barRef.current?.querySelector('.v3dock') ?? null);
+      if (bar && bar.top < r.bottom && bar.top > r.top + r.height / 2) out.b = r.bottom - bar.top + 8;
+      if (r.width - out.l - out.r < 220) {
+        out.l = 0;
+        out.r = 0;
+      }
+      if (r.height - out.t - out.b < 180) {
+        out.t = 0;
+        out.b = 0;
+      }
+      return out;
+    };
+
     const v3 = new V3({
       axisCanvas: axCanvasRef.current,
-      getLegOffsetPx: () => {
-        const leg = legRef.current;
-        if (!leg || leg.hidden || leg.classList.contains('min')) return 0;
-        // điện thoại: bảng chú giải nằm phía dưới, không chiếm bề ngang
-        if (window.matchMedia?.('(max-width: 900px)').matches) return 0;
-        return leg.offsetWidth ? leg.offsetWidth + 14 : 0;
-      },
+      getInsets,
       isHidden: () => viewModeRef.current !== '3d',
       onChange: () => {
         bumpV3Rev();
       },
       onDraw: () => {
-        const leg = legRef.current;
-        const narrow = window.matchMedia?.('(max-width: 900px)').matches;
-        const reserve = !leg || leg.hidden || leg.classList.contains('min') || narrow ? 0 : leg.offsetWidth + 14;
-        renderSoilLabels(v3, labRef.current, reserve);
+        renderSoilLabels(v3, labRef.current, getInsets());
       },
       onHover: (hit: V3HoverHit | null, mouse: { x: number; y: number } | null) => {
         if (!hit || !mouse) {
@@ -102,7 +131,23 @@ export const Model3DViewport: React.FC = () => {
     v3Ref.current = v3;
     v3.attach(cv, { axisCanvas: axCanvasRef.current });
 
+    // Thu gọn / mở bảng thông số làm đổi vùng trống: căn lại mô hình.
+    const shell = cv.closest('.app-shell');
+    let refitTimer = 0;
+    const mo =
+      shell && typeof MutationObserver !== 'undefined'
+        ? new MutationObserver(() => {
+            window.clearTimeout(refitTimer);
+            refitTimer = window.setTimeout(() => {
+              if (v3.model && viewModeRef.current === '3d') v3.go(v3.cam.yaw, v3.cam.pitch, true);
+            }, 240);
+          })
+        : null;
+    if (mo && shell) mo.observe(shell, { attributes: true, attributeFilter: ['data-side'] });
+
     return () => {
+      mo?.disconnect();
+      window.clearTimeout(refitTimer);
       if (v3Ref.current === v3) v3Ref.current = null;
       lastUploadedRef.current = null;
       v3.dispose();
@@ -195,7 +240,30 @@ export const Model3DViewport: React.FC = () => {
 
   return (
     <div id="v3d" hidden={viewMode !== '3d'}>
-      <div id="v3bar">
+      <div id="v3bar" ref={barRef} className={barMin ? 'min' : undefined}>
+        <div className="v3dock">
+        <div className="v3g">
+          <span className="v3t">Kiểu xem</span>
+          <span className="v3seg" id="v3look">
+            <button
+              type="button"
+              className={'v3b' + ((v3?.look ?? 'real') === 'real' ? ' pri' : '')}
+              title="Bê tông đặc, bầu trời, bóng đổ"
+              onClick={() => v3?.setLook('real')}
+            >
+              Chân thực
+            </button>
+            <button
+              type="button"
+              className={'v3b' + (v3?.look === 'xray' ? ' pri' : '')}
+              title="Bê tông và đất trong mờ để thấy cốt thép"
+              onClick={() => v3?.setLook('xray')}
+            >
+              Xem cốt thép
+            </button>
+          </span>
+        </div>
+
         <div className="v3g">
           <span className="v3t">Góc nhìn</span>
           {(Object.keys(V3_VIEWS) as V3ViewPresetId[]).map((id) => (
@@ -228,6 +296,7 @@ export const Model3DViewport: React.FC = () => {
             <Icon name="chevron" size={13} />
             Tùy chọn
           </button>
+        </div>
         </div>
 
         <div className="v3more" hidden={barMin}>
