@@ -48,7 +48,9 @@ export const Model3DViewport: React.FC = () => {
   const legRef = useRef<HTMLDivElement | null>(null);
   const tipRef = useRef<HTMLDivElement | null>(null);
 
-  const [legMin, setLegMin] = useState(false);
+  const isMobile = () =>
+    typeof window !== 'undefined' && !!window.matchMedia?.('(max-width: 900px)').matches;
+  const [legMin, setLegMin] = useState(isMobile);
   const [barMin, setBarMin] = useState(false);
   const [tip, setTip] = useState<TipState | null>(null);
   const [tipPos, setTipPos] = useState<{ left: number; top: number }>({ left: 8, top: 8 });
@@ -71,6 +73,8 @@ export const Model3DViewport: React.FC = () => {
       getLegOffsetPx: () => {
         const leg = legRef.current;
         if (!leg || leg.hidden || leg.classList.contains('min')) return 0;
+        // điện thoại: bảng chú giải nằm phía dưới, không chiếm bề ngang
+        if (window.matchMedia?.('(max-width: 900px)').matches) return 0;
         return leg.offsetWidth ? leg.offsetWidth + 14 : 0;
       },
       isHidden: () => viewModeRef.current !== '3d',
@@ -429,7 +433,10 @@ export const Model3DViewport: React.FC = () => {
 
         <div id="v3st">
           <span id="v3info">{v3?.infoText ?? ''}</span>
-          <span className="v3hint">
+          <span className="v3hint v3hint-touch">
+            1 ngón: xoay · 2 ngón: thu phóng / di chuyển · chạm thanh thép: tô sáng
+          </span>
+          <span className="v3hint v3hint-mouse">
             Kéo: xoay · Shift hoặc chuột phải + kéo: di chuyển · Lăn: phóng to/thu nhỏ · Nhấp vào
             thanh thép: tô sáng cả nhóm · Nhấp đúp: vừa khung
           </span>

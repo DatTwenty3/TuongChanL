@@ -34,7 +34,7 @@ export const HeaderToolbar: React.FC = () => {
 
       <div className="actions">
         <div className="agrp" data-grp="file">
-          <button id="bOpen" type="button" onClick={() => fileInputRef.current?.click()}>
+          <button id="bOpen" type="button" onClick={() => fileInputRef.current?.click()} aria-label="Mở dự án">
             <Icon name="open" />
             <span>Mở dự án</span>
           </button>
@@ -49,7 +49,7 @@ export const HeaderToolbar: React.FC = () => {
                 : 'Lưu dự án (.tcl.json)'
             }
             onClick={saveProject}
-          >
+           aria-label="Lưu dự án">
             <Icon name="save" />
             <span>Lưu dự án</span>
           </button>
@@ -61,7 +61,7 @@ export const HeaderToolbar: React.FC = () => {
             className="pri"
             hidden={viewMode !== '2d'}
             onClick={() => exportDxf(false)}
-          >
+           aria-label="Xuất DXF (cụm này)">
             <Icon name="download" />
             <span>Xuất DXF (cụm này)</span>
           </button>
@@ -71,7 +71,7 @@ export const HeaderToolbar: React.FC = () => {
             className="pri"
             hidden={viewMode !== '3d'}
             onClick={() => void export3dPng()}
-          >
+           aria-label="Ảnh 3D (PNG)">
             <Icon name="image" />
             <span>Ảnh 3D (PNG)</span>
           </button>
@@ -80,11 +80,11 @@ export const HeaderToolbar: React.FC = () => {
             type="button"
             hidden={viewMode === 'calc'}
             onClick={() => exportDxf(true)}
-          >
+           aria-label="DXF tất cả cụm">
             <Icon name="layers" />
             <span>DXF tất cả cụm</span>
           </button>
-          <button id="bSvg" type="button" hidden={viewMode !== '2d'} onClick={exportSvg}>
+          <button id="bSvg" type="button" hidden={viewMode !== '2d'} onClick={exportSvg} aria-label="SVG">
             <Icon name="code" />
             <span>SVG</span>
           </button>
@@ -97,7 +97,7 @@ export const HeaderToolbar: React.FC = () => {
             hidden={viewMode !== 'calc'}
             disabled={exportBusy}
             onClick={() => void exportDocx()}
-          >
+           aria-label="Xuất Word (.docx)">
             <Icon name="file" />
             <span>Xuất Word (.docx)</span>
           </button>
@@ -107,7 +107,7 @@ export const HeaderToolbar: React.FC = () => {
             hidden={viewMode === '3d'}
             disabled={exportBusy}
             onClick={() => void printCurrent()}
-          >
+           aria-label="In / PDF">
             <Icon name="printer" />
             <span>In / PDF</span>
           </button>
@@ -117,11 +117,11 @@ export const HeaderToolbar: React.FC = () => {
             hidden={viewMode === '3d'}
             disabled={exportBusy}
             onClick={() => void exportPdf()}
-          >
+           aria-label="Xuất PDF">
             <Icon name="file" />
             <span>Xuất PDF</span>
           </button>
-          <button id="bCsv" type="button" hidden={viewMode === 'calc'} onClick={exportCsv}>
+          <button id="bCsv" type="button" hidden={viewMode === 'calc'} onClick={exportCsv} aria-label="Bảng thép (CSV)">
             <Icon name="table" />
             <span>Bảng thép (CSV)</span>
           </button>

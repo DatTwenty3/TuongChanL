@@ -56,7 +56,10 @@ const AppWorkspace: React.FC = () => {
 
   void feRev;
 
-  const [sideOpen, setSideOpen] = useState(true);
+  // Điện thoại: bảng thông số là ngăn kéo (mặc định đóng) để ưu tiên vùng xem bản vẽ / 3D.
+  const [sideOpen, setSideOpen] = useState(
+    () => typeof window === 'undefined' || !window.matchMedia?.('(max-width: 900px)').matches,
+  );
 
   const badge = calcBadgeStatus(calcResult, project);
   const sh = getSheet(curSheet);
@@ -83,6 +86,14 @@ const AppWorkspace: React.FC = () => {
             <span className="side-sub">
               {viewMode === 'calc' ? 'Kiểm toán TCVN 11823' : 'Kích thước · cốt thép'}
             </span>
+            <button
+              type="button"
+              className="side-close"
+              aria-label="Đóng bảng thông số"
+              onClick={() => setSideOpen(false)}
+            >
+              <Icon name="close" size={16} />
+            </button>
           </div>
           <div className="side-sum">
             <SidebarMetrics />
@@ -91,6 +102,12 @@ const AppWorkspace: React.FC = () => {
             {viewMode === 'calc' ? <SidebarCalcPanel /> : <SidebarCadPanel />}
           </div>
         </aside>
+
+        <div
+          className="scrim"
+          onClick={() => setSideOpen(false)}
+          aria-hidden="true"
+        />
 
         <section className="view">
           <nav>

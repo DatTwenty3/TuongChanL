@@ -90,8 +90,18 @@ export function zoomViewBox(
   clientY: number,
   deltaY: number,
 ): CadViewBox {
+  return zoomViewBoxBy(vb, rect, clientX, clientY, deltaY < 0 ? 0.85 : 1 / 0.85);
+}
+
+/** Zoom quanh điểm (clientX, clientY) với hệ số k trên kích thước viewBox (k < 1: phóng to). */
+export function zoomViewBoxBy(
+  vb: CadViewBox,
+  rect: ViewportRect,
+  clientX: number,
+  clientY: number,
+  k: number,
+): CadViewBox {
   if (rect.width <= 0 || rect.height <= 0 || vb.w <= 0 || vb.h <= 0) return vb;
-  const k = deltaY < 0 ? 0.85 : 1 / 0.85;
   const ar = rect.width / rect.height;
   const sar = vb.w / vb.h;
   let scale: number;
@@ -135,6 +145,8 @@ export interface CadViewportController {
   getViewBox: () => CadViewBox | null;
   setViewBox: (vb: CadViewBox) => void;
   fit: () => CadViewBox | null;
+  /** Phóng to / thu nhỏ quanh tâm khung (k < 1: phóng to). */
+  zoomBy: (k: number) => void;
   dispose: () => void;
 }
 
@@ -180,15 +192,56 @@ export function attachCadViewport(
     apply(zoomViewBox(cur, stageEl.getBoundingClientRect(), e.clientX, e.clientY, e.deltaY));
   };
 
+  // Con trỏ đang chạm (hỗ trợ kéo 1 ngón = di chuyển, 2 ngón = phóng to/thu nhỏ + di chuyển).
+  const ptrs = new Map<number, { x: number; y: number }>();
+  let pinch: { d: number; cx: number; cy: number } | null = null;
+  let lastTap: { t: number; x: number; y: number } | null = null;
+
+  const startDrag = (x: number, y: number) => {
+    const cur = ensureVb();
+    if (cur) drag = { x, y, vb: { ...cur } };
+  };
+
   const onPointerDown = (e: PointerEvent) => {
     const cur = ensureVb();
     if (!cur) return;
-    drag = { x: e.clientX, y: e.clientY, vb: { ...cur } };
-    stageEl.setPointerCapture?.(e.pointerId);
+    ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try {
+      stageEl.setPointerCapture?.(e.pointerId);
+    } catch {
+      /* con trỏ không còn hoạt động – bỏ qua */
+    }
     stageEl.classList.add('grab');
+    if (ptrs.size === 2) {
+      const [a, b] = [...ptrs.values()];
+      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), cx: (a.x + b.x) / 2, cy: (a.y + b.y) / 2 };
+      drag = null;
+    } else if (ptrs.size === 1) {
+      drag = { x: e.clientX, y: e.clientY, vb: { ...cur } };
+    }
   };
 
   const onPointerMove = (e: PointerEvent) => {
+    const pt = ptrs.get(e.pointerId);
+    if (pt) {
+      pt.x = e.clientX;
+      pt.y = e.clientY;
+    }
+    if (ptrs.size >= 2 && pinch) {
+      const cur = ensureVb();
+      if (!cur) return;
+      const [a, b] = [...ptrs.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      const cx = (a.x + b.x) / 2;
+      const cy = (a.y + b.y) / 2;
+      const rect = stageEl.getBoundingClientRect();
+      let next = cur;
+      if (d > 4 && pinch.d > 4) next = zoomViewBoxBy(next, rect, cx, cy, pinch.d / d);
+      next = panViewBox(next, rect, cx - pinch.cx, cy - pinch.cy);
+      pinch = { d, cx, cy };
+      apply(next);
+      return;
+    }
     if (!drag) return;
     apply(
       panViewBox(
@@ -200,13 +253,43 @@ export function attachCadViewport(
     );
   };
 
-  const onPointerUp = () => {
+  const onPointerUp = (e: PointerEvent) => {
+    const wasTwo = ptrs.size >= 2;
+    ptrs.delete(e.pointerId);
+    pinch = null;
+    if (ptrs.size === 1) {
+      // còn 1 ngón: tiếp tục kéo từ vị trí hiện tại, không bị giật
+      const [rest] = [...ptrs.values()];
+      startDrag(rest.x, rest.y);
+      return;
+    }
     drag = null;
     stageEl.classList.remove('grab');
+    // chạm đúp (cảm ứng / bút) = vừa khung
+    if (!wasTwo && e.type === 'pointerup' && e.pointerType !== 'mouse') {
+      const now = Date.now();
+      if (
+        lastTap &&
+        now - lastTap.t < 320 &&
+        Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 28
+      ) {
+        lastTap = null;
+        fit();
+      } else {
+        lastTap = { t: now, x: e.clientX, y: e.clientY };
+      }
+    }
   };
 
   const onDblClick = () => {
     fit();
+  };
+
+  const zoomBy = (k: number) => {
+    const cur = ensureVb();
+    if (!cur) return;
+    const r = stageEl.getBoundingClientRect();
+    apply(zoomViewBoxBy(cur, r, r.left + r.width / 2, r.top + r.height / 2, k));
   };
 
   stageEl.addEventListener('wheel', onWheel, { passive: false });
@@ -222,6 +305,7 @@ export function attachCadViewport(
     getViewBox: () => vb,
     setViewBox: (next: CadViewBox) => apply(next),
     fit,
+    zoomBy,
     dispose: () => {
       stageEl.removeEventListener('wheel', onWheel);
       stageEl.removeEventListener('pointerdown', onPointerDown);

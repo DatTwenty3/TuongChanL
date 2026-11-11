@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
 import { attachCadViewport, toSVG, type CadViewportController } from '../cad';
 import { useAppStore } from '../state/appStore';
+import { Icon } from './Icon';
 
 export const Cad2DViewport: React.FC = () => {
   const { viewMode, curSheet, getSheet, fitNonce } = useAppStore();
@@ -45,11 +46,42 @@ export const Cad2DViewport: React.FC = () => {
   }, [svgMarkup, sheetKey, fitNonce]);
 
   return (
-    <div
-      id="stage"
-      ref={stageRef}
-      hidden={viewMode !== '2d'}
-      dangerouslySetInnerHTML={{ __html: svgMarkup }}
-    />
+    <>
+      <div
+        id="stage"
+        ref={stageRef}
+        hidden={viewMode !== '2d'}
+        dangerouslySetInnerHTML={{ __html: svgMarkup }}
+      />
+      <div className="zoomctl" hidden={viewMode !== '2d'}>
+        <button
+          id="bZoomIn"
+          type="button"
+          aria-label="Phóng to"
+          title="Phóng to"
+          onClick={() => ctrlRef.current?.zoomBy(0.7)}
+        >
+          <Icon name="plus" size={18} />
+        </button>
+        <button
+          id="bZoomOut"
+          type="button"
+          aria-label="Thu nhỏ"
+          title="Thu nhỏ"
+          onClick={() => ctrlRef.current?.zoomBy(1 / 0.7)}
+        >
+          <Icon name="minus" size={18} />
+        </button>
+        <button
+          id="bZoomFit"
+          type="button"
+          aria-label="Vừa khung"
+          title="Vừa khung"
+          onClick={() => ctrlRef.current?.fit()}
+        >
+          <Icon name="fit" size={17} />
+        </button>
+      </div>
+    </>
   );
 };

@@ -17,6 +17,9 @@ const PATHS: Record<string, string> = {
   sidebar: 'M5 4h14a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z M9 4v16',
   fit: 'M4 9V4h5 M20 9V4h-5 M4 15v5h5 M20 15v5h-5',
   chevron: 'M6 9l6 6 6-6',
+  close: 'M6 6l12 12 M18 6L6 18',
+  plus: 'M12 5v14 M5 12h14',
+  minus: 'M5 12h14',
   sliders: 'M4 6h10 M18 6h2 M4 12h4 M12 12h8 M4 18h12 M20 18h0 M14 4v4 M8 10v4 M16 16v4',
 };
 

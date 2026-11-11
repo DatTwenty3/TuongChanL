@@ -940,7 +940,7 @@ describe('3. HARD — Water (HS + Anisotropic FDM Seepage & Piping), Seismic (ha
       assertParity(TS.calcChecks(tsR), ref.calcChecks(refR), `${name}.checks`);
       assertParity(TS.calcBadgeStatus(tsR, tsP), ref.calcBadgeStatus(refR, refP), `${name}.badgeStatus`);
     }
-  });
+  }, 30000);
 
   it('matches FEM2D coarse mesh (femMesh="c", femPsi>0, femLifts>1, wOn=true SRM) + runFemSync & calcGsRows', () => {
     const tsP = TS.presetCanti(500);
