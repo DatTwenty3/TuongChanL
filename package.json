@@ -1,0 +1,30 @@
+{
+  "name": "tuong-chan-l-webapp",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Tường chắn chữ L – bản vẽ 2D, mô hình 3D WebGL và bảng tính TCVN 11823:2017 (Web App)",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "pdf-lib": "^1.17.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "jsdom": "^26.0.0",
+    "playwright-core": "^1.65.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.11",
+    "vitest": "^3.0.5"
+  }
+}

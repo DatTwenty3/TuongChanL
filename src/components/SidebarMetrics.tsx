@@ -1,0 +1,161 @@
+import React from 'react';
+import {
+  calcChecks,
+  calcFeStale,
+  fmt,
+  fmt2,
+  getFeCache,
+  isCalcValid,
+} from '../engine';
+import { useAppStore } from '../state/appStore';
+
+export const SidebarMetrics: React.FC = () => {
+  const { project, viewMode, barsRes, quantitiesRes, calcResult, feRev } = useAppStore();
+  void feRev;
+
+  if (viewMode === 'calc') {
+    const R = calcResult;
+    if (!R) {
+      return (
+        <>
+          <div id="sum" className="sum" />
+          <div id="warn" className="warn">
+            <div className="wt">⚠ Không tính được: </div>
+          </div>
+        </>
+      );
+    }
+    if ('error' in R && R.error !== undefined) {
+      return (
+        <>
+          <div id="sum" className="sum" />
+          <div id="warn" className="warn">
+            <div className="wt">⚠ Không tính được: {R.error || ''}</div>
+          </div>
+        </>
+      );
+    }
+    if ('unsupported' in R && R.unsupported) {
+      return (
+        <>
+          <div id="sum" className="sum" />
+          <div id="warn" className="warn">
+            <div className="wt">{R.msg}</div>
+          </div>
+        </>
+      );
+    }
+    if (!isCalcValid(R)) {
+      return (
+        <>
+          <div id="sum" className="sum" />
+          <div id="warn" className="warn" />
+        </>
+      );
+    }
+
+    const checks = calcChecks(R);
+    const bad = checks.filter((x) => !x.ok && !x.info);
+    const inf = checks.filter((x) => !x.ok && x.info);
+    const feStale = calcFeStale(project);
+    const feCache = getFeCache();
+    const feErr = feCache.fe && 'err' in feCache.fe ? (feCache.fe as { err?: string }).err : undefined;
+
+    return (
+      <>
+        <div id="sum" className="sum">
+          {checks.map((x) => {
+            const xv = x.v ?? 0;
+            const cls = 'card ck ' + (x.ok ? 'ok' : x.info ? 'inf' : 'bad');
+            return (
+              <div
+                key={x.id}
+                className={cls}
+                title={
+                  x.info
+                    ? 'Đối chiếu bằng mô hình FE, không tính vào kết luận (đổi ở mục 7)'
+                    : 'Hệ số sử dụng = nhu cầu / khả năng (≤ 1 là đạt)'
+                }
+              >
+                <small>{x.t}</small>
+                <b>
+                  {(x.ok ? '✓ ' : x.info ? '! ' : '✗ ') + (xv > 99 ? '> 99' : fmt2(xv))}
+                </b>
+              </div>
+            );
+          })}
+        </div>
+        <div id="warn" className="warn">
+          {feStale ? (
+            <div className="wi">
+              … Mô hình FE đang tính, kết quả sẽ cập nhật sau giây lát
+            </div>
+          ) : feErr && project.calc?.feOn ? (
+            <div className="wt">⚠ Mô hình FE không chạy được: {feErr}</div>
+          ) : null}
+
+          {inf.length > 0 && (
+            <div className="wi">
+              ! Mô hình FE (đối chiếu) cho hệ số sử dụng{' '}
+              {(inf[0].v ?? 0) > 99 ? '> 99' : fmt2(inf[0].v ?? 0)} &gt; 1 – xem mục FE trong bảng
+              tính
+            </div>
+          )}
+
+          {bad.length > 0 ? (
+            <>
+              <div className="wt">⚠ {bad.length} hạng mục chưa đạt</div>
+              {bad.map((x) => {
+                const xv = x.v ?? 0;
+                return (
+                  <div key={x.id} className="wi">
+                    {x.t} – hệ số sử dụng {xv > 99 ? '> 99' : fmt2(xv)}
+                  </div>
+                );
+              })}
+            </>
+          ) : (
+            <div className="ok">✓ Đạt tất cả các hạng mục kiểm toán</div>
+          )}
+        </div>
+      </>
+    );
+  }
+
+  const cards: Array<[string, string]> = [
+    ['Bê tông', `${fmt2(quantitiesRes.vol)} m³`],
+    ['Ván khuôn', `${fmt2(quantitiesRes.form.tot)} m²`],
+    ['Bê tông lót', `${fmt2(quantitiesRes.blind)} m³`],
+    ['Cốt thép', `${fmt(quantitiesRes.totKg, 0)} kg`],
+    ['Hàm lượng', `${fmt(quantitiesRes.ratio, 1)} kg/m³`],
+  ];
+
+  return (
+    <>
+      <div id="sum" className="sum">
+        {cards.map(([label, val]) => (
+          <div key={label} className="card">
+            <small>{label}</small>
+            <b>{val}</b>
+          </div>
+        ))}
+      </div>
+      <div id="warn" className="warn">
+        {barsRes.warn.length > 0 ? (
+          <>
+            <div className="wt">⚠ {barsRes.warn.length} cảnh báo</div>
+            {barsRes.warn.map((msg, idx) => (
+              <div key={`${idx}-${msg}`} className="wi">
+                {msg}
+              </div>
+            ))}
+          </>
+        ) : (
+          <div className="ok">
+            ✓ Không có cảnh báo về khoảng cách, lớp bảo vệ, chiều dài thanh
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
