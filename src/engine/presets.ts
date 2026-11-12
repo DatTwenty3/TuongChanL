@@ -17,6 +17,8 @@ import type {
   RebarMap,
 } from './types.ts';
 import { pileEnsure } from './pile.ts';
+import { cuEnsure } from './cuTram.ts';
+import { lunEnsure } from './lun.ts';
 
 // ---------------------------------------------------------------------------
 // 1. Pure Math & Formatting Helpers
@@ -2593,5 +2595,7 @@ export function mergeProject(s: Partial<EngineProject> & Record<string, unknown>
     if (sc.as > 0) o.rb.an.a = Math.round(sc.as * 100);
   }
   pileEnsure(o);
+  cuEnsure(o);
+  lunEnsure(o);
   return o;
 }

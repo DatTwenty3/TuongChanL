@@ -31,6 +31,8 @@ import {
 import { getProjectPath, useAppStore } from '../state/appStore';
 import { Glyphs, Sym } from './Icon';
 import { PilePanel } from './PilePanel';
+import { CuTramPanel } from './CuTramPanel';
+import { LunPanel } from './LunPanel';
 import {
   AccTitle,
   ChkField,
@@ -1083,6 +1085,16 @@ export const SidebarCalcPanel: React.FC = () => {
       {/* 12. Móng cọc BTCT (mô đun mở rộng, tùy chọn) */}
       <CalcAccordion id="12" title="12. Móng cọc BTCT" initialOpen={false}>
         <PilePanel />
+      </CalcAccordion>
+
+      {/* 13. Móng cừ tràm (mô đun mở rộng, tùy chọn) */}
+      <CalcAccordion id="13" title="13. Móng cừ tràm" initialOpen={false}>
+        <CuTramPanel />
+      </CalcAccordion>
+
+      {/* 14. Độ lún cố kết của nền (mô đun mở rộng, tùy chọn) */}
+      <CalcAccordion id="14" title="14. Độ lún cố kết của nền" initialOpen={false}>
+        <LunPanel />
       </CalcAccordion>
     </div>
   );

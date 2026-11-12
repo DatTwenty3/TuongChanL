@@ -20,9 +20,17 @@ import type {
 } from '../types/project';
 import { model3D } from './bars3d';
 import { M3Tubes, m3cross, m3dot, m3norm, m3sub } from './mesh';
-import { Scene3, type Scene3Like, type Scene3TubeChunk, type V3Look } from './scene3';
+import {
+  Scene3,
+  type Scene3Frame,
+  type Scene3Like,
+  type Scene3TubeChunk,
+  type V3Look,
+  type V3Weather,
+} from './scene3';
 
-export type { V3Look } from './scene3';
+export type { V3Look, V3Weather } from './scene3';
+export { V3_WEATHER_LABEL } from './scene3';
 
 export const V3_PAL: [number, number, number][] = [
   [255, 99, 99],
@@ -550,6 +558,7 @@ export class V3 implements V3State {
     labels: true,
     grid: true,
     rebar: true,
+    cu: true,
   };
   hidden: Set<string> = new Set();
   /** Id khối đất (Model3DGroundPart.id) đang bị ẩn trong chú giải. */
@@ -562,6 +571,8 @@ export class V3 implements V3State {
   static sceneFactory: (cv: HTMLCanvasElement) => Scene3Like = (cv) => new Scene3(cv);
   /** Kiểu hiển thị: `real` chân thực (bê tông đặc, trời, bóng đổ) · `xray` nhìn xuyên xem cốt thép. */
   look: V3Look = 'real';
+  /** Thời tiết mô phỏng (ánh sáng, trời, sương, mưa, bề mặt ướt) – chỉ ở kiểu xem chân thực. */
+  weather: V3Weather = 'sunny';
   /** Độ mờ bề mặt 0..1 (0 = đặc, 1 = trong suốt hoàn toàn); `alpha` (độ đặc bê tông) suy ra từ đây. */
   surf = 0;
   alpha = 1;
@@ -613,6 +624,8 @@ export class V3 implements V3State {
   private initGl(cv: HTMLCanvasElement): boolean {
     try {
       this.scene = V3.sceneFactory(cv);
+      // vật liệu ảnh / HDRI nạp xong sau: vẽ lại
+      this.scene.onAssets = () => this.redraw();
       this.gl = this.scene.gl;
     } catch (e) {
       this.ok = false;
@@ -980,7 +993,17 @@ export class V3 implements V3State {
   draw(): void {
     if (!this.ok || !this.model || !this.scene || !this.cv) return;
     if (this.opts.isHidden?.()) return;
+    const M = this.frame();
+    if (!M) return;
+    this.scene.render(M.f);
+    v3AxisDraw(this.ax, M.view);
+    this.opts.onDraw?.();
+    // cảnh có chuyển động (mưa rơi): vẽ liên tục
+    if (this.scene.animating) this.redraw();
+  }
 
+  private frame(): { f: Scene3Frame; view: number[] } | null {
+    if (!this.model || !this.cv) return null;
     const cv = this.cv;
     const dpr = Math.min((typeof window !== 'undefined' ? window.devicePixelRatio : 1) || 1, 2);
     const cw = Math.max(2, cv.clientWidth || cv.width);
@@ -998,7 +1021,7 @@ export class V3 implements V3State {
     this.pxK = M.pxK;
     this.dpr = W / Math.max(1, cw);
 
-    this.scene.render({
+    const f: Scene3Frame = {
       cssW: cw,
       cssH: ch,
       dpr,
@@ -1021,12 +1044,11 @@ export class V3 implements V3State {
       surf: this.surfEff(),
       kd: this.kd,
       look: this.look,
+      weather: this.weather,
       colorMode: this.colorMode,
       colorOf: (gr, gi) => v3GroupColor(gr, this.colorMode, gi),
-    });
-
-    v3AxisDraw(this.ax, M.view);
-    this.opts.onDraw?.();
+    };
+    return { f, view: M.view };
   }
 
   /** Thép nằm trong bê tông đặc thì không rê / chọn được (tránh chọn nhầm thanh không nhìn thấy). */
@@ -1119,6 +1141,12 @@ export class V3 implements V3State {
     this.surf = look === 'real' ? 0 : 0.5;
     this.alpha = 1 - this.surf;
     this.hover = null;
+    this.notify();
+    this.redraw();
+  }
+
+  setWeather(w: V3Weather): void {
+    this.weather = w;
     this.notify();
     this.redraw();
   }

@@ -23,6 +23,8 @@ export * from './pileGeom.ts';
 export * from './tcvn10304.ts';
 export * from './pileCore.ts';
 export * from './pileChecks.ts';
+export * from './cuTram.ts';
+export * from './lun.ts';
 export {
   calcGlobalChecks,
   calcRibChecks,

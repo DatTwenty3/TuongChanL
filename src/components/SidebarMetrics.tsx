@@ -163,6 +163,13 @@ export const SidebarMetrics: React.FC = () => {
       ['Bê tông cọc', `${fmt2(quantitiesRes.pile.vol)} m³`],
     );
   }
+  // Cừ tràm (tùy chọn): thêm 2 thẻ khi bật.
+  if (quantitiesRes.cu) {
+    cards.push(
+      ['Cừ tràm', `${quantitiesRes.cu.n} cây`],
+      ['Tổng dài cừ', `${fmt(quantitiesRes.cu.totLen, 0)} m`],
+    );
+  }
 
   return (
     <>

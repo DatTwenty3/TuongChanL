@@ -18,6 +18,8 @@ import {
   ancEnsure,
   buildBars,
   pileEnsure,
+  cuEnsure,
+  lunEnsure,
   calcApplyFixes,
   calcEnsure,
   calcFamilyFix,
@@ -66,7 +68,7 @@ import { setCalcDec as setReportDec, type FeInteractiveState } from '../reports'
 import type { CadSheet, QuantitiesResult } from '../types/project';
 
 export type WorkspaceViewMode = '2d' | '3d' | 'calc';
-export type CalcSubTab = 'sheet' | 'gs' | 'rb' | 'fe' | 'pile';
+export type CalcSubTab = 'sheet' | 'gs' | 'rb' | 'fe' | 'pile' | 'cu' | 'lun';
 export type ToastKind = '' | 'ok' | 'err' | 'wait';
 
 export type ThemeMode = 'light' | 'dark';
@@ -154,6 +156,8 @@ const META_KEYS: Array<keyof EngineProject> = [
   'fillH',
   'calc',
   'pile',
+  'cu',
+  'lun',
 ];
 
 export function cloneProject(p: EngineProject): EngineProject {
@@ -161,6 +165,8 @@ export function cloneProject(p: EngineProject): EngineProject {
   calcEnsure(next);
   ancEnsure(next);
   pileEnsure(next);
+  cuEnsure(next);
+  lunEnsure(next);
   return next;
 }
 
@@ -636,6 +642,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       calcEnsure(draft);
       ancEnsure(draft);
       pileEnsure(draft);
+      cuEnsure(draft);
+      lunEnsure(draft);
       return draft;
     });
   }, []);

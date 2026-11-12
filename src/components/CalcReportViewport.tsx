@@ -5,6 +5,8 @@ import {
   getFeCache,
   isCalcValid,
   pileOn,
+  cuOn,
+  lunOn,
   setCalcDec as setEngineCalcDec,
   type EngineProject,
 } from '../engine';
@@ -13,6 +15,8 @@ import {
   FE_VIEWS,
   calcGsView,
   calcPileSheetHtml,
+  calcCuSheetHtml,
+  calcLunSheetHtml,
   calcRbView,
   calcSheetHTML,
   cfFeContour,
@@ -267,8 +271,12 @@ export const CalcReportViewport: React.FC = () => {
 
   const feOn = Boolean(project.calc?.feOn);
   const pileShown = pileOn(project);
+  const cuShown = cuOn(project);
+  const lunShown = lunOn(project);
   const activeSub =
-    (!feOn && calcSub === 'fe') || (!pileShown && calcSub === 'pile') ? 'sheet' : calcSub;
+    (!feOn && calcSub === 'fe') || (!pileShown && calcSub === 'pile') || (!cuShown && calcSub === 'cu') || (!lunShown && calcSub === 'lun')
+      ? 'sheet'
+      : calcSub;
 
   const helperTexts: Record<string, string> = {
     sheet: 'Bảng tính kiểm toán đầy đủ (in, xuất Word)',
@@ -276,6 +284,8 @@ export const CalcReportViewport: React.FC = () => {
     rb: 'Sơ đồ bố trí cốt thép có mác, bảng thống kê chi tiết cho 1 m dài tường, kết luận',
     fe: 'M, V, N của từng phần tử thân – bản đáy – sườn, theo tổ hợp',
     pile: 'Sức chịu tải cọc, phản lực đầu cọc theo tổ hợp, kiểm tra theo TCVN 10304:2025',
+    cu: 'Sức chịu tải khối móng cừ tràm, từng cây cừ, số cây cần trên 1 m², đất dưới mũi cừ',
+    lun: 'Lún cố kết theo phân tầng lấy tổng (Cc, Cr, Pc), tổng lún S = m·Sc, dự báo lún theo thời gian',
   };
 
   const valid = isCalcValid(calcResult);
@@ -296,6 +306,8 @@ export const CalcReportViewport: React.FC = () => {
     setEngineCalcDec(dec);
     if (activeSub === 'fe') return '';
     if (activeSub === 'pile') return calcPileSheetHtml(project, calcResult);
+    if (activeSub === 'cu') return calcCuSheetHtml(project, calcResult);
+    if (activeSub === 'lun') return calcLunSheetHtml(project, calcResult);
     if (activeSub === 'gs' && valid && calcResult.g) {
       return calcGsView(project, calcResult);
     }
@@ -336,6 +348,24 @@ export const CalcReportViewport: React.FC = () => {
             onClick={() => setCalcSub('pile')}
           >
             Móng cọc
+          </button>
+        ) : null}
+        {cuShown ? (
+          <button
+            type="button"
+            className={activeSub === 'cu' ? 'on' : undefined}
+            onClick={() => setCalcSub('cu')}
+          >
+            Cừ tràm
+          </button>
+        ) : null}
+        {lunShown ? (
+          <button
+            type="button"
+            className={activeSub === 'lun' ? 'on' : undefined}
+            onClick={() => setCalcSub('lun')}
+          >
+            Lún
           </button>
         ) : null}
         {feOn ? (

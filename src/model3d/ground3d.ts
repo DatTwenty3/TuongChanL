@@ -169,6 +169,38 @@ export function m3Ground(pIn: Project | EngineProject, resIn: BarsResult | Engin
         y1: z0,
       });
     }
+  } else if (p.cu && p.cu.on) {
+    // Cừ tràm: khối đất yếu được gia cố (sâu hơn mũi cừ 1 m) + lớp đất phủ trên đáy móng
+    const cu = p.cu;
+    const soil = { kind: 'clay' as const, gamma: cu.gamma, c: cu.c, phi: cu.phi, Su: 0, IL: 1, N: 0, E: 0 };
+    const depth = Math.max(250, (Math.max(0, cu.L) + 1) * 100 + (p.blindOn === false ? 0 : p.tBlind || 0));
+    out.push({
+      id: 'gl0',
+      name: 'Đất yếu gia cố cừ tràm',
+      kind: 'strata',
+      color: groundColor(soil),
+      kindText: 'Bùn sét (đất yếu)',
+      props: layerProps(soil),
+      look: 'mud',
+      mesh: box(xa, xb, 0, -depth),
+      y0: -depth,
+      y1: 0,
+    });
+    const hm = Math.max(0, cu.hm) * 100;
+    if (hm > 1e-6) {
+      out.push({
+        id: 'glc',
+        name: 'Đất phủ mặt – trước mũi tường',
+        kind: 'cover',
+        color: groundColor(soil),
+        kindText: 'Đất tự nhiên trên đáy móng',
+        props: [`h = ${fmt(cu.hm, 2)} m`],
+        look: 'mud',
+        mesh: box(xa, 0, hm, 0),
+        y0: 0,
+        y1: hm,
+      });
+    }
   } else {
     const c = (p as EngineProject).calc;
     const rock = c?.soil === 'a';

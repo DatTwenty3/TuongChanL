@@ -1,4 +1,6 @@
 import { calcPileSheetHtml } from './calcPileSheet';
+import { calcCuSheetHtml } from './calcCuSheet';
+import { calcLunSheetHtml } from './calcLunSheet';
 import {
   CALC,
   buildBars,
@@ -1400,5 +1402,6 @@ export function calcSheetHTML(
       ? calcSheetCanti(P, Rv as CantiCalcResult)
       : calcSheetRib(P, Rv as RibCalcResult);
   // Móng cọc (mô đun mở rộng): chỉ nối thêm khi bật; tắt thì kết quả giữ nguyên từng ký tự.
-  return pileOn(P) ? main + calcPileSheetHtml(P, R) : main;
+  // Cừ tràm cũng vậy (hàm trả chuỗi rỗng khi tắt).
+  return (pileOn(P) ? main + calcPileSheetHtml(P, R) : main) + calcCuSheetHtml(P, R) + calcLunSheetHtml(P, R);
 }

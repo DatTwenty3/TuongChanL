@@ -347,6 +347,89 @@ export interface PileConfig {
   ignoreShallow: boolean;
 }
 
+/** Móng cừ tràm gia cố nền (tùy chọn). Đơn vị: m, kN, kPa; riêng `d` là cm. */
+export interface CuTramConfig {
+  on: boolean;
+  /** Đường kính thân trung bình (cm). */
+  d: number;
+  /** Chiều dài cừ (m). */
+  L: number;
+  /** Mật độ đóng (cây/m²). */
+  n: number;
+  /** Chiều sâu chôn móng: đáy bản đáy dưới mặt đất tự nhiên (m). */
+  hm: number;
+  /** Đất yếu quanh và dưới cừ: góc ma sát trong (độ), dung trọng (kN/m³), lực dính (kPa). */
+  phi: number;
+  gamma: number;
+  c: number;
+  /** Dung trọng đất phía trên đáy móng (kN/m³); null = lấy bằng `gamma`. */
+  gammaAbove: number | null;
+  /** Hệ số điều kiện làm việc và độ tin cậy của công thức R_tc. */
+  m1: number;
+  m2: number;
+  ktc: number;
+  /** Hệ số an toàn cho phần chống mũi / bám dính xung quanh của khối móng cừ. */
+  fsTip: number;
+  fsSide: number;
+  /** Sức chống của đất dưới mũi cừ (kPa) và các hệ số của 20TCN 21-86 cho từng cây cừ. */
+  Rtip: number;
+  m: number;
+  mR: number;
+  mf: number;
+  /** k_tc của công thức sức chịu tải đất dưới đáy móng khối quy ước. */
+  ktcBlock: number;
+  /** Khi bật cừ tràm: kiểm tra sức kháng nền của móng nông chỉ mang tính tham khảo. */
+  ignoreShallow: boolean;
+}
+
+/** Một lớp đất trong tính lún cố kết. */
+export interface LunLayer {
+  id: string;
+  name: string;
+  /** Bề dày (m), dung trọng tự nhiên (kN/m³), hệ số rỗng ban đầu. */
+  thk: number;
+  gamma: number;
+  e0: number;
+  /** Hệ số cố kết C_v (10⁻⁴ cm²/s); 0 = lớp không cố kết theo thời gian (cát, đất tốt). */
+  Cv: number;
+  /** Chỉ số nén C_c, chỉ số nén lại C_r, áp lực tiền cố kết P_c (kPa). C_c = 0: lớp không lún. */
+  Cc: number;
+  Cr: number;
+  Pc: number;
+}
+
+/** Tính lún cố kết của nền dưới bản đáy (tùy chọn). Đơn vị: m, kN/m³, kPa. */
+export interface LunConfig {
+  on: boolean;
+  /** Mực nước ngầm dưới mặt đất tự nhiên (m). */
+  hw: number;
+  /** Đáy bản đáy dưới mặt đất tự nhiên (m). Khi bật cừ tràm thì dùng `cu.hm`. */
+  hm: number;
+  /** Địa tầng tính từ đáy bản đáy trở xuống. */
+  layers: LunLayer[];
+  /** Bề dày phân tố (m) và ngưỡng dừng σ_z/σ_vz. */
+  dz: number;
+  stop: number;
+  /** Hệ số m: S = m·S_c. */
+  m: number;
+  /** Độ lún giới hạn cho phép (cm). */
+  Slim: number;
+  /** Thoát nước 1 chiều hay 2 chiều. */
+  drain: 1 | 2;
+  /** Số năm dự báo lún theo thời gian. */
+  years: number;
+  /** Kể tải của đất đắp sau gót tường. */
+  backfill: boolean;
+}
+
+/** Khối lượng cừ tràm – chỉ có khi bật. */
+export interface CuQuantities {
+  /** Số cây trong một đơn nguyên. */
+  n: number;
+  /** Tổng chiều dài (m). */
+  totLen: number;
+}
+
 /** Root retaining wall project model (cross-section units in `cm`, diameters in `mm`). */
 export interface Project {
   name: string;
@@ -415,6 +498,10 @@ export interface Project {
   calc?: CalcConfig;
   /** Móng cọc BTCT (tùy chọn). Vắng mặt = không dùng cọc. */
   pile?: PileConfig;
+  /** Móng cừ tràm gia cố nền (tùy chọn). Vắng mặt = không dùng. */
+  cu?: CuTramConfig;
+  /** Tính lún cố kết của nền (tùy chọn). Vắng mặt = không tính. */
+  lun?: LunConfig;
 }
 
 export interface ProjectFileEnvelope {
@@ -664,6 +751,8 @@ export interface QuantitiesResult {
   ratio: number;
   /** Chỉ có khi bật móng cọc. */
   pile?: PileQuantities;
+  /** Chỉ có khi bật cừ tràm. */
+  cu?: CuQuantities;
 }
 
 // ---------------------------------------------------------------------------
@@ -960,6 +1049,8 @@ export interface Model3DData {
   soil: M3MeshData;
   /** Khối bê tông cọc – chỉ có khi bật móng cọc. */
   pile?: M3MeshData;
+  /** Các cây cừ tràm – chỉ có khi bật cừ tràm. */
+  cu?: M3MeshData;
   /** Các khối đất nền theo lớp (hiển thị 3D). */
   ground?: Model3DGroundPart[];
   groups: M3BarGroup[];
@@ -979,6 +1070,8 @@ export interface V3Visibility {
   labels: boolean;
   grid: boolean;
   rebar: boolean;
+  /** Cừ tràm (chỉ có tác dụng khi mô hình có cừ). */
+  cu?: boolean;
 }
 
 export interface V3CameraState {

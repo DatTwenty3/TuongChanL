@@ -32,6 +32,7 @@ import type {
 } from '../types/project';
 import { m3Concrete } from './mesh';
 import { m3PileGroups, m3PileMesh } from './piles3d';
+import { cuTopY, m3CuMesh } from './cu3d';
 
 type PtLike = Point2D | number[] | BarDotCoord;
 
@@ -1032,21 +1033,34 @@ export function model3D(
   const pileMesh = on ? m3PileMesh(p, res) : null;
   if (on) groups.push(...m3PileGroups(p, res, groups.length));
   const pileDepth = on ? pileGrid(p, g.B)?.L ?? 0 : 0;
+  // Cừ tràm (tùy chọn): thêm lưới cây cừ dưới bê tông lót; tắt thì mô hình giữ nguyên.
+  const cuMesh = m3CuMesh(p, res);
+  const cuL = (p as unknown as { cu?: { L: number } }).cu?.L ?? 0;
+  const cuDepth = cuMesh ? cuL * 100 - cuTopY(p) : 0;
   return {
     conc: ms.conc,
     lean: ms.lean,
     soil: ms.soil,
     ...(pileMesh ? { pile: pileMesh } : {}),
+    ...(cuMesh ? { cu: cuMesh } : {}),
     ground: m3Ground(p, res),
     groups,
     bbox: {
       x0: 0,
       x1: g.B,
-      y0: -Math.max((g.dn || 0) + tl, g.an ? g.an.Lb : 0, pileDepth),
+      y0: -Math.max((g.dn || 0) + tl, g.an ? g.an.Lb : 0, pileDepth, cuDepth),
       y1: g.yTop,
       z0: 0,
       z1: p.Lu,
     },
-    sig: [p.tpl, p.type, p.H, p.Lu, g.B, ...(on ? ['pile', Math.round(pileDepth)] : [])].join('|'),
+    sig: [
+      p.tpl,
+      p.type,
+      p.H,
+      p.Lu,
+      g.B,
+      ...(on ? ['pile', Math.round(pileDepth)] : []),
+      ...(cuMesh ? ['cu', Math.round(cuDepth)] : []),
+    ].join('|'),
   };
 }

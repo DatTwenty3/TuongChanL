@@ -14,6 +14,7 @@ import type {
   QuantitiesResult,
 } from './types.ts';
 import { pileQuantities } from './pileGeom.ts';
+import { cuGrid } from './cuTram.ts';
 
 export function quantities(
   p: EngineProject,
@@ -99,6 +100,11 @@ export function quantities(
   const pileKg = res.bars.reduce((s, b) => s + (b.pile ? (b.kg ?? 0) : 0), 0);
   const pile = p.pile && p.pile.on ? pileQuantities(p, g.B, pileKg) : undefined;
 
+  // Cừ tràm (tùy chọn): chỉ đếm số cây và tổng chiều dài.
+  const cuQ = (p as { cu?: { on: boolean; n: number; L: number } }).cu;
+  const cuN = cuQ && cuQ.on ? cuGrid(cuQ, g.B / 100, p.Lu / 100).n : 0;
+  const cu = cuQ && cuQ.on ? { n: cuN, totLen: cuN * cuQ.L } : undefined;
+
   return {
     vol,
     conc,
@@ -108,5 +114,6 @@ export function quantities(
     totKg,
     ratio: pile ? totKg / (vol + pile.vol) : totKg / vol,
     ...(pile ? { pile } : {}),
+    ...(cu ? { cu } : {}),
   };
 }

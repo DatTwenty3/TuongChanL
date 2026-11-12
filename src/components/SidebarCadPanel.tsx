@@ -26,6 +26,7 @@ import {
 } from '../engine';
 import { useAppStore } from '../state/appStore';
 import { PilePanel } from './PilePanel';
+import { CuTramPanel } from './CuTramPanel';
 import { AccTitle, KE_HS, NumField, QuickHRow, SelField, TxtField, keFirst, keLabel } from './FieldControls';
 
 type FieldDef = [string, string, string, number, number, number];
@@ -445,6 +446,11 @@ export const SidebarCadPanel: React.FC = () => {
       {/* 2c. Móng cọc BTCT (mô đun mở rộng): cùng dữ liệu với mục 12 của tab Tính toán */}
       <CadAccordion id="2c_pile" title="2c. Móng cọc BTCT" defaultOpen>
         <PilePanel />
+      </CadAccordion>
+
+      {/* 2d. Móng cừ tràm (mô đun mở rộng): cùng dữ liệu với mục 13 của tab Tính toán */}
+      <CadAccordion id="2d_cu" title="2d. Móng cừ tràm">
+        <CuTramPanel />
       </CadAccordion>
 
       {/* 2b. Chi tiết mẫu 2 */}

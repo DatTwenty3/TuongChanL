@@ -252,4 +252,115 @@ describe('Nâng cấp giao diện: hoàn tác, bảng lệnh, giao diện tối,
     expect(localStorage.getItem(DRAFT_KEY)).toBeNull();
     expect(kpi()).toEqual(base);
   }, 30000);
+  it('cừ tràm: bật ở mục 2d → thẻ khối lượng, 3 mục kiểm tra, tab con "Cừ tràm"; tắt thì trở lại như cũ', async () => {
+    await mountApp();
+    const shell = q<HTMLElement>('.app-shell');
+    const base = kpi();
+    expect(base.length).toBe(5);
+    const sec = Array.from(container.querySelectorAll<HTMLDetailsElement>('#panel details')).find((d) =>
+      d.querySelector('summary')?.textContent?.includes('2d. Móng cừ tràm'),
+    )!;
+    expect(sec).toBeDefined();
+    const chk = sec.querySelector<HTMLInputElement>('input[data-path="cu.on"]')!;
+    expect(chk.checked).toBe(false);
+    await act(async () => {
+      chk.click();
+    });
+    const withCu = kpi();
+    expect(withCu.slice(0, 5)).toEqual(base);
+    expect(withCu[5]).toBe('Cừ tràm375 cây');
+    expect(withCu[6]).toBe('Tổng dài cừ1688 m');
+    expect(sec.querySelector('#cuInfo')?.textContent).toContain('15 × 25 = 375 cây');
+
+    await act(async () => {
+      key({ key: '7' });
+    });
+    expect(shell.getAttribute('data-view')).toBe('calc');
+    const cards = Array.from(container.querySelectorAll('#sum .card')).map((c) => c.textContent || '');
+    expect(cards.filter((t) => t.startsWith('Cừ tràm')).length).toBe(3);
+    const tab = Array.from(container.querySelectorAll<HTMLButtonElement>('#calcv .csub button')).find(
+      (b) => b.textContent === 'Cừ tràm',
+    )!;
+    expect(tab).toBeDefined();
+    await act(async () => {
+      tab.click();
+    });
+    const sheet = container.querySelector('#calcv .csheet')?.textContent || '';
+    expect(sheet).toContain('Móng cừ tràm gia cố nền dưới bản đáy');
+    expect(sheet).toContain('Khả năng chịu tải của khối móng cừ tràm');
+    expect(sheet).not.toContain('NaN');
+
+    // tắt ở mục 13 của tab Tính toán: thẻ kiểm tra và tab con biến mất
+    const sec13 = Array.from(container.querySelectorAll<HTMLDetailsElement>('#panel details')).find((d) =>
+      d.querySelector('summary')?.textContent?.includes('13. Móng cừ tràm'),
+    )!;
+    await act(async () => {
+      sec13.querySelector<HTMLInputElement>('input[data-path="cu.on"]')!.click();
+    });
+    expect(
+      Array.from(container.querySelectorAll('#sum .card')).some((c) => (c.textContent || '').startsWith('Cừ tràm')),
+    ).toBe(false);
+    expect(
+      Array.from(container.querySelectorAll('#calcv .csub button')).some((b) => b.textContent === 'Cừ tràm'),
+    ).toBe(false);
+    await act(async () => {
+      key({ key: '1' });
+    });
+    expect(kpi()).toEqual(base);
+  }, 30000);
+  it('tính lún: bật ở mục 14 → thẻ "Độ lún cố kết", tab con "Lún", thêm / xóa lớp đất; tắt thì trở lại như cũ', async () => {
+    await mountApp();
+    await act(async () => {
+      key({ key: '7' });
+    });
+    const cards = (): string[] => Array.from(container.querySelectorAll('#sum .card')).map((c) => c.textContent || '');
+    const base = cards();
+    const sec = Array.from(container.querySelectorAll<HTMLDetailsElement>('#panel details')).find((d) =>
+      d.querySelector('summary')?.textContent?.includes('14. Độ lún cố kết của nền'),
+    )!;
+    expect(sec).toBeDefined();
+    const chk = sec.querySelector<HTMLInputElement>('input[data-path="lun.on"]')!;
+    await act(async () => {
+      chk.click();
+    });
+    const withLun = cards();
+    expect(withLun.slice(0, base.length)).toEqual(base);
+    expect(withLun.length).toBe(base.length + 1);
+    expect(withLun[withLun.length - 1].startsWith('Độ lún cố kết')).toBe(true);
+    expect(sec.querySelector('#lunRes')?.textContent).toMatch(/Sc = [\d.,]+ cm · S = [\d.,]+ cm/);
+    expect(sec.querySelectorAll('[data-lun-layer]').length).toBe(3);
+
+    // thêm rồi xóa một lớp đất
+    const addBtn = Array.from(sec.querySelectorAll<HTMLButtonElement>('button.wide')).find((b) =>
+      (b.textContent || '').includes('Thêm lớp đất'),
+    )!;
+    await act(async () => {
+      addBtn.click();
+    });
+    expect(sec.querySelectorAll('[data-lun-layer]').length).toBe(4);
+    await act(async () => {
+      sec.querySelectorAll<HTMLButtonElement>('[data-lun-layer] .pbtn')[3].click();
+    });
+    expect(sec.querySelectorAll('[data-lun-layer]').length).toBe(3);
+
+    const tab = Array.from(container.querySelectorAll<HTMLButtonElement>('#calcv .csub button')).find(
+      (b) => b.textContent === 'Lún',
+    )!;
+    expect(tab).toBeDefined();
+    await act(async () => {
+      tab.click();
+    });
+    const sheet = container.querySelector('#calcv .csheet')?.textContent || '';
+    expect(sheet).toContain('Độ lún cố kết của nền dưới bản đáy');
+    expect(sheet).toContain('Dự báo độ lún theo thời gian');
+    expect(sheet).not.toContain('NaN');
+
+    await act(async () => {
+      chk.click();
+    });
+    expect(cards()).toEqual(base);
+    expect(
+      Array.from(container.querySelectorAll('#calcv .csub button')).some((b) => b.textContent === 'Lún'),
+    ).toBe(false);
+  }, 30000);
 });

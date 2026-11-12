@@ -3,6 +3,8 @@ import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   V3,
   V3_VIEWS,
+  V3_WEATHER_LABEL,
+  type V3Weather,
   v3Diff,
   v3Drawn,
   v3FormatTip,
@@ -231,6 +233,8 @@ export const Model3DViewport: React.FC = () => {
     ['Cốt thép', 'rebar'],
     ['Lưới nền', 'grid'],
   ];
+  // Công tắc cừ tràm chỉ hiện khi mô hình có cừ
+  if (model?.cu) visItems.splice(5, 0, ['Cừ tràm', 'cu']);
 
   const totBars = model
     ? model.groups.reduce((s, g) => s + (g.bs && g.bs.length ? g.count : 0), 0)
@@ -307,7 +311,7 @@ export const Model3DViewport: React.FC = () => {
             <label key={key} className="v3c">
               <input
                 type="checkbox"
-                checked={vis[key]}
+                checked={vis[key] !== false}
                 onChange={(e) => v3?.setVis(key, e.target.checked)}
               />{' '}
               {label}
@@ -361,6 +365,23 @@ export const Model3DViewport: React.FC = () => {
           >
             <option value="mark">Màu thép: theo mác</option>
             <option value="cad">Màu thép: đỏ như CAD</option>
+          </select>
+        </div>
+
+        <div className="v3g">
+          <span className="v3t">Thời tiết</span>
+          <select
+            id="v3weather"
+            value={v3?.weather ?? 'sunny'}
+            disabled={(v3?.look ?? 'real') !== 'real'}
+            title="Mô phỏng thời tiết: ánh sáng, bầu trời, sương, mưa và bề mặt ướt (chỉ ở kiểu xem Chân thực)"
+            onChange={(e) => v3?.setWeather(e.target.value as V3Weather)}
+          >
+            {(Object.keys(V3_WEATHER_LABEL) as V3Weather[]).map((k) => (
+              <option key={k} value={k}>
+                {V3_WEATHER_LABEL[k]}
+              </option>
+            ))}
           </select>
         </div>
 
