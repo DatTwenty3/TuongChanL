@@ -197,20 +197,20 @@ describe('Nâng cấp giao diện: hoàn tác, bảng lệnh, giao diện tối,
     expect(container.querySelectorAll('#tabs > button').length).toBe(7);
   }, 30000);
 
-  it('giao diện: mặc định tối, đổi sang sáng và ghi nhớ', async () => {
+  it('giao diện: mặc định sáng, đổi sang tối và ghi nhớ', async () => {
     await mountApp();
     const shell = q<HTMLElement>('.app-shell');
-    expect(shell.getAttribute('data-theme')).toBe('dark');
+    expect(shell.getAttribute('data-theme')).toBe('light');
     expect(shell.getAttribute('data-view')).toBe('3d');
     await act(async () => {
       q<HTMLButtonElement>('#bTheme').click();
     });
-    expect(shell.getAttribute('data-theme')).toBe('light');
-    expect(localStorage.getItem(THEME_KEY)).toBe('light');
+    expect(shell.getAttribute('data-theme')).toBe('dark');
+    expect(localStorage.getItem(THEME_KEY)).toBe('dark');
 
     unmountApp();
     await mountApp();
-    expect(q<HTMLElement>('.app-shell').getAttribute('data-theme')).toBe('light');
+    expect(q<HTMLElement>('.app-shell').getAttribute('data-theme')).toBe('dark');
   });
 
   it('bản nháp tự lưu: ghi khi có thay đổi, khôi phục ở phiên sau, bỏ được', async () => {

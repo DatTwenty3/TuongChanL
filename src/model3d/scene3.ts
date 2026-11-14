@@ -868,7 +868,10 @@ export class Scene3 implements Scene3Like {
   /** Nạp ảnh vật liệu và bầu trời HDRI (không đồng bộ). Thiếu file / ngoại tuyến: giữ vật liệu thủ tục và vòm trời vẽ bằng mã. */
   private loadAssets(): void {
     if (typeof document === 'undefined') return;
-    const url = (f: string) => new URL('tex/' + f, document.baseURI).href;
+    // Tài nguyên ở gốc site (`public/tex/`), KHÔNG tính từ đường dẫn trang: trang này nằm ở `/tuong-chan/`
+    // nên `document.baseURI` + 'tex/' sẽ trỏ nhầm sang `/tuong-chan/tex/` (404 → HTML thay vì ảnh).
+    const siteRoot = (import.meta as ImportMeta & { env?: { BASE_URL?: string } }).env?.BASE_URL ?? '/';
+    const url = (f: string) => new URL(siteRoot.replace(/\/?$/, '/') + 'tex/' + f, document.baseURI).href;
     const aniso = Math.min(8, this.renderer.capabilities.getMaxAnisotropy());
     const L = new THREE.TextureLoader();
     const out = {} as Record<TexName, TexSet>;

@@ -1,0 +1,79 @@
+/* ==========================================================================
+   Thanh chuyển phân hệ LEDAT-BIM (dùng chung cho `/` và `/cau-cong/`)
+   Chỉ dùng token chung của hai trang: --acc, --ink, --mut, --line, --glass-2.
+   Mọi selector bắt đầu bằng .modsw để không lọt vào bản in / PDF (collectDocumentCss).
+   ========================================================================== */
+
+.modsw {
+  display: inline-flex;
+  flex: none;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 11px;
+  background: var(--glass-2, rgba(255, 255, 255, 0.6));
+  border: 1px solid var(--line, #d2e0f5);
+}
+
+.modsw a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  color: var(--ink, #0e2147);
+  font: 600 12.5px/1.2 "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, Arial,
+    sans-serif;
+  letter-spacing: -0.003em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+
+.modsw a:hover {
+  background: var(--accs, #e8f0fe);
+  color: var(--accd, #1d4ed8);
+}
+
+.modsw a:focus-visible {
+  outline: 2px solid var(--acc, #2563eb);
+  outline-offset: 1px;
+}
+
+.modsw a[aria-current="page"] {
+  background: var(--acc, #2563eb);
+  color: #fff;
+  cursor: default;
+  box-shadow: 0 1px 6px rgba(37, 99, 235, 0.35);
+}
+
+.modsw .modsw-ico {
+  flex: none;
+}
+
+.modsw .modsw-short {
+  display: none;
+}
+
+/* hẹp dần: nhãn đầy đủ → nhãn ngắn → chỉ icon */
+@media (max-width: 1450px) {
+  .modsw .modsw-full {
+    display: none;
+  }
+  .modsw .modsw-short {
+    display: inline;
+  }
+}
+
+@media (max-width: 1180px) {
+  .modsw a {
+    padding: 5px 8px;
+  }
+  .modsw .modsw-short {
+    display: none;
+  }
+}
+
+.modsw a.modsw-home {
+  padding: 5px 8px;
+}

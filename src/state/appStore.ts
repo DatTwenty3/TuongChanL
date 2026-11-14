@@ -127,7 +127,7 @@ function readDraft(): DraftRecord | null {
 function initialTheme(): ThemeMode {
   const saved = lsGet(THEME_KEY);
   if (saved === 'dark' || saved === 'light') return saved;
-  return 'dark';
+  return 'light';
 }
 
 export interface ToastMessage {

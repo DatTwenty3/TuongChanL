@@ -1,5 +1,6 @@
 import React, { useRef } from 'react';
 import { useAppStore } from '../state/appStore';
+import { ModuleSwitch } from '../shared/ModuleSwitch';
 import { BrandMark, Icon } from './Icon';
 
 export const HeaderToolbar: React.FC = () => {
@@ -50,6 +51,8 @@ export const HeaderToolbar: React.FC = () => {
           <small>Bản vẽ 2D · mô hình 3D · kiểm toán TCVN 11823 · LEDAT</small>
         </div>
       </div>
+
+      <ModuleSwitch current="walls" />
 
       <button
         id="bCmd"

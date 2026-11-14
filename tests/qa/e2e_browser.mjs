@@ -14,7 +14,7 @@ const __dirname = path.dirname(__filename);
 const WEBAPP_DIR = path.resolve(__dirname, '../..');
 const CHROME_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe';
 const PREVIEW_PORT = 4179;
-const BASE_URL = `http://127.0.0.1:${PREVIEW_PORT}/`;
+const BASE_URL = `http://127.0.0.1:${PREVIEW_PORT}/tuong-chan/`;
 
 function crc32(buf) {
   let c = 0xffffffff;
