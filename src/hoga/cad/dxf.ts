@@ -15,19 +15,25 @@ export interface Placed {
 
 export type DxfVersion = 'R2000' | 'R12';
 
-/** Xếp các nhóm tờ (mỗi nhóm = một ga) thành các hàng, mỗi hàng nằm ngang, các hàng chồng xuống dưới. */
+/**
+ * Xếp các nhóm tờ (mỗi nhóm = một ga) thành các hàng, mỗi hàng nằm ngang, các hàng chồng xuống dưới.
+ * Các tờ trong hàng chung đáy; hàng sau đặt NGAY DƯỚI hàng trước (cạnh trên của hàng sau thấp hơn đáy hàng trước
+ * một khoảng hở) nên không bao giờ đè nhau dù tờ của các ga có tỷ lệ — tức kích thước mô hình — khác nhau.
+ * (Bản cũ đặt hàng sau cách hàng trước 1,1 × chiều cao hàng TRƯỚC: ga sau có tờ cao hơn thì chồng lên hàng trên.)
+ */
 export function layoutSheets(groups: Sheet[][]): Placed[] {
   const out: Placed[] = [];
-  let y = 0;
+  let top: number | null = null; // cạnh trên của hàng sắp đặt (hàng đầu có đáy ở y = 0 như trước)
   for (const g of groups) {
+    if (!g.length) continue;
+    const rowH = g.reduce((m, sh) => Math.max(m, sh.h), 0);
+    const oy: number = top === null ? 0 : top - rowH;
     let x = 0;
-    let rowH = 0;
     for (const sh of g) {
-      out.push({ sheet: sh, ox: x, oy: y });
-      x += sh.w + sh.w * 0.08;
-      rowH = Math.max(rowH, sh.h);
+      out.push({ sheet: sh, ox: x, oy });
+      x += sh.w * 1.08;
     }
-    y -= rowH * 1.1;
+    top = oy - rowH * 0.1;
   }
   return out;
 }
