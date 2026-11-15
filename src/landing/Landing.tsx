@@ -1,8 +1,10 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { BrandMark, Icon } from '../components/Icon';
+import { Icon } from '../components/Icon';
+import { LOGO_PATH, LOGO_VIEWBOX } from '../shared/brand';
 import { siteBase } from '../shared/ModuleSwitch';
 import { readTheme, writeTheme, type ThemeMode } from '../shared/theme';
 import { applyLandingTheme } from './theme';
+import { Backdrop } from './Backdrop';
 
 /** Khóa localStorage của hai phân hệ (chỉ ĐỌC để gợi ý "tiếp tục làm việc"). */
 const WALLS_DRAFT_KEY = 'tuong-chan-btct:draft';
@@ -72,9 +74,29 @@ interface CardDef {
   title: string;
   tag: string;
   icon: 'wall' | 'calc' | 'manhole';
-  points: string[];
-  cta: string;
+  /** Mô tả một dòng (giữ ngắn — trang chủ chỉ để chọn phân hệ). */
+  desc: string;
   resume: string | null;
+}
+
+const BRAND = 'LEDAT-BIM';
+/** Chữ cái đầu tiên của "BIM": từ đây trở đi chữ chạy gradient (sáng lần lượt B → I → M). */
+const BIM_FROM = 6;
+const TAGLINE = 'Structural Solutions';
+
+/** Một chữ của chữ thương hiệu: chuyển động vào và gradient nằm trên hai phần tử khác nhau (một phần tử chỉ có một animation). */
+function brandLetter(ch: string, k: number): React.ReactNode {
+  return (
+    <span key={k} aria-hidden="true" className="lp-letter" style={{ animationDelay: `${1.25 + k * 0.07}s` }}>
+      {k >= BIM_FROM ? (
+        <span className="wm-g" style={{ animationDelay: `${-1.2 + (k - BIM_FROM) * 0.3}s` }}>
+          {ch}
+        </span>
+      ) : (
+        ch
+      )}
+    </span>
+  );
 }
 
 export const Landing: React.FC = () => {
@@ -97,13 +119,7 @@ export const Landing: React.FC = () => {
         title: 'Tường chắn BTCT',
         tag: 'Bản vẽ 2D · Mô hình 3D · Kiểm toán',
         icon: 'wall',
-        points: [
-          '4 mẫu tường: chữ T ngược, có sườn, khối kè, neo đá',
-          '5 cụm bản vẽ CAD — xuất DXF, SVG, PDF, bảng thép CSV',
-          'Mô hình 3D chân thực, cốt thép từng thanh, cắt lát',
-          'Bảng tính TCVN 11823:2017, xuất Word; móng cọc, cừ tràm, tính lún',
-        ],
-        cta: 'Mở Tường chắn',
+        desc: 'Bản vẽ CAD, mô hình 3D, kiểm toán tường chắn',
         resume: wallsResume(),
       },
       {
@@ -112,13 +128,7 @@ export const Landing: React.FC = () => {
         title: 'Cầu cống',
         tag: 'Bảng tính kết cấu · Thủy văn thủy lực',
         icon: 'calc',
-        points: [
-          'Kết cấu nhịp, mố, trụ; móng cọc, cọc khoan nhồi, móng nông',
-          'Cống hộp, cống tròn, tường chắn trọng lực và chữ L',
-          'Thủy văn thủy lực cầu, cống; phân chia lưu vực từ DEM',
-          'Xuất Excel, PDF; bộ kiểm chứng phần mềm đối chiếu chuẩn',
-        ],
-        cta: 'Mở Cầu cống',
+        desc: 'Nhịp, mố, trụ, cống hộp, cống tròn, thủy văn',
         resume: culvertResume(),
       },
       {
@@ -127,13 +137,7 @@ export const Landing: React.FC = () => {
         title: 'Hố ga BTCT',
         tag: 'Bản vẽ · Bóc khối lượng · Chiết tính thép',
         icon: 'manhole',
-        points: [
-          '5 loại ga: thăm, thăm + thu; liền khối, nắp rời, không cổ',
-          'Bảng ga kiểu Excel, nhập thẳng tệp “HO GA v4”; cấu hình đầy đủ',
-          'Bản vẽ A3: kết cấu, cốt thép, lưới thép tường, tấm nắp, thống kê thép',
-          'Xuất DXF (hatch, dimension — mở được trong AutoCAD), Excel, CSV',
-        ],
-        cta: 'Mở Hố ga',
+        desc: 'Vẽ A3, bóc khối lượng, chiết tính thép hố ga',
         resume: hogaResume(),
       },
     ],
@@ -144,59 +148,67 @@ export const Landing: React.FC = () => {
 
   return (
     <div className="lp" data-theme={theme}>
-      <header className="lp-top">
-        <div className="lp-brand">
-          <span className="lp-logo" aria-hidden="true">
-            <BrandMark />
-          </span>
-          <b>LEDAT-<span className="wm-g">BIM</span></b>
-        </div>
-        <button
-          id="bTheme"
-          type="button"
-          className="lp-icon"
-          aria-pressed={theme === 'dark'}
-          aria-label="Đổi giao diện sáng / tối"
-          title={theme === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
-          onClick={toggle}
-        >
-          <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
-        </button>
-      </header>
+      <Backdrop />
+      <button
+        id="bTheme"
+        type="button"
+        className="lp-icon lp-theme"
+        aria-pressed={theme === 'dark'}
+        aria-label="Đổi giao diện sáng / tối"
+        title={theme === 'dark' ? 'Chuyển sang giao diện sáng' : 'Chuyển sang giao diện tối'}
+        onClick={toggle}
+      >
+        <Icon name={theme === 'dark' ? 'sun' : 'moon'} />
+      </button>
 
       <main className="lp-main">
-        <section className="lp-hero">
-          <h1>Bản vẽ, mô hình 3D và bảng tính kết cấu</h1>
-          <p>
-            Ba phân hệ chạy ngay trên trình duyệt, tính theo <b>TCVN 11823:2017</b>. Dữ liệu nằm trên máy của
-            bạn — lưu và mở lại bằng tệp dự án.
-          </p>
-        </section>
+        {/* Thương hiệu lớn: dấu hiệu tự vẽ nét rồi tô đặc, chữ hiện từng chữ, dòng phụ giãn đúng bằng bề ngang chữ. */}
+        <div className="lp-lockup">
+          <span className="lp-mark">
+            <span className="lp-halo" aria-hidden="true" />
+            <svg viewBox={LOGO_VIEWBOX} aria-hidden="true" focusable="false">
+              <path d={LOGO_PATH} fill="none" stroke="currentColor" strokeWidth={8} strokeLinejoin="round" pathLength={1} className="lp-draw" />
+              <path d={LOGO_PATH} fill="currentColor" fillRule="evenodd" className="lp-fill" />
+            </svg>
+          </span>
+          <div className="lp-word">
+            <h1 aria-label={BRAND}>{[...BRAND].map((ch, k) => brandLetter(ch, k))}</h1>
+            <span className="lp-tagline" aria-label={TAGLINE}>
+              {[...TAGLINE].map((ch, i) => (
+                <span key={i} aria-hidden="true">
+                  {ch === ' ' ? ' ' : ch}
+                </span>
+              ))}
+            </span>
+          </div>
+        </div>
 
-        <section className="lp-cards" aria-label="Chọn phân hệ">
+        <section className="lp-pick" aria-label="Chọn phân hệ">
           {cards.map((c) => (
             <a key={c.id} className="lp-card" data-mod={c.id} href={base + c.path}>
               <span className="lp-card-ico" aria-hidden="true">
-                <Icon name={c.icon} size={26} />
+                <Icon name={c.icon} size={24} />
               </span>
-              <span className="lp-card-tag">{c.tag}</span>
-              <h2>{c.title}</h2>
-              <ul>
-                {c.points.map((p) => (
-                  <li key={p}>{p}</li>
-                ))}
-              </ul>
-              {c.resume ? <span className="lp-resume">{c.resume}</span> : null}
-              <span className="lp-cta">
-                {c.cta}
+              <span className="lp-card-body">
+                <h2>{c.title}</h2>
+                <span className="lp-card-tag">{c.tag}</span>
+                <span className="lp-card-desc">{c.desc}</span>
+                {c.resume ? <span className="lp-resume">{c.resume}</span> : null}
+              </span>
+              <span className="lp-go" aria-hidden="true">
                 <Icon name="chevron" size={16} />
               </span>
             </a>
           ))}
         </section>
+
+        <p className="lp-note">
+          Ba phân hệ chạy ngay trên trình duyệt, tính theo <b>TCVN 11823:2017</b>. Dữ liệu nằm trên máy của bạn — lưu
+          và mở lại bằng tệp dự án.
+        </p>
       </main>
 
-      <footer className="lp-foot">LEDAT-BIM · tính toán và bản vẽ chạy hoàn toàn trong trình duyệt</footer>
+      <footer className="lp-foot">© LEDAT</footer>
     </div>
   );
 };
