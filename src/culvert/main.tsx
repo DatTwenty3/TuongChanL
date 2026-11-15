@@ -21,6 +21,7 @@ import { readTheme } from '../shared/theme.ts';
 import './styles/app.css';
 import '../shared/modswitch.css';
 import './styles/suite.css';
+import '../shared/ledatgis.css';
 
 // Giao diện sáng/tối áp trước khi vẽ để không bị nháy màu
 applyTheme(readTheme());

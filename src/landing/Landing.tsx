@@ -149,7 +149,7 @@ export const Landing: React.FC = () => {
           <span className="lp-logo" aria-hidden="true">
             <BrandMark />
           </span>
-          <b>LEDAT-BIM</b>
+          <b>LEDAT-<span className="wm-g">BIM</span></b>
         </div>
         <button
           id="bTheme"

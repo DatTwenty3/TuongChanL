@@ -2,36 +2,76 @@
    Trang chủ LEDAT-BIM — cùng token màu / kính / sáng-tối với hai phân hệ
    ========================================================================== */
 
+@font-face {
+  font-family: "Be Vietnam Pro";
+  src: url("/fonts/BeVietnamPro-Regular.ttf") format("truetype");
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Be Vietnam Pro";
+  src: url("/fonts/BeVietnamPro-Bold.ttf") format("truetype");
+  font-weight: 600 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* Phong cách LEDAT-GIS: navy trên nền trắng ngả xanh có vệt aurora + lưới mờ (xem shared/ledatgis.css) */
 :root {
-  --bg: #e9f1fd;
-  --ink: #0e2147;
-  --ink-2: #2b4470;
-  --mut: #5a7096;
-  --line: #d2e0f5;
+  --bg: #ffffff;
+  --navy: #0e1f3b;
+  --ink: #0e1f3b;
+  --ink-2: #2e4a6a;
+  --mut: #5e7591;
+  --line: #dde5ee;
   --acc: #2563eb;
   --accd: #1d4ed8;
-  --accs: #e8f0fe;
-  --glass: rgba(255, 255, 255, 0.78);
-  --glass-line: rgba(255, 255, 255, 0.8);
-  --glass-shadow: 0 12px 40px rgba(15, 35, 80, 0.16), 0 1px 0 rgba(255, 255, 255, 0.6) inset;
-  --backdrop: linear-gradient(180deg, #cfe0f6 0%, #e9f1fb 55%, #f4f7fb 100%);
-  --font-ui: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --accs: #eaf1fe;
+  --seg: #eff3f8;
+  --surface: #ffffff;
+  --primary: #0e1f3b;
+  --primary-h: #1b2f52;
+  --glass: rgba(255, 255, 255, 0.95);
+  --glass-2: #eff3f8;
+  --glass-line: rgba(221, 229, 238, 0.7);
+  --glass-shadow: 0 10px 32px rgba(11, 53, 88, 0.1), 0 1px 2px rgba(11, 53, 88, 0.06);
+  --card-shadow: 0 1px 2px rgba(11, 53, 88, 0.04);
+  --backdrop:
+    radial-gradient(48vw 48vw at -8% -12%, rgba(147, 197, 253, 0.55) 0%, transparent 70%),
+    radial-gradient(44vw 44vw at 108% 22%, rgba(165, 180, 252, 0.5) 0%, transparent 70%),
+    radial-gradient(52vw 40vw at 22% 112%, rgba(186, 230, 253, 0.55) 0%, transparent 70%),
+    linear-gradient(rgba(14, 31, 59, 0.045) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, rgba(14, 31, 59, 0.045) 1px, transparent 1px) 0 0 / 48px 48px, #ffffff;
+  --font-ui: "Be Vietnam Pro", "Inter", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
   color-scheme: light;
 }
 
 html[data-theme="dark"] {
-  --bg: #0a111e;
+  --bg: #081429;
+  --navy: #e7eefb;
   --ink: #e7eefb;
-  --ink-2: #c2d0e8;
-  --mut: #8ea3c6;
-  --line: #233455;
-  --acc: #3b82f6;
+  --ink-2: #c3d0de;
+  --mut: #8fa2b8;
+  --line: #1f3556;
+  --acc: #5b9bff;
   --accd: #9cc0ff;
-  --accs: #172b50;
-  --glass: rgba(13, 21, 38, 0.74);
-  --glass-line: rgba(150, 180, 235, 0.16);
-  --glass-shadow: 0 14px 44px rgba(0, 0, 0, 0.5), 0 1px 0 rgba(170, 200, 255, 0.07) inset;
-  --backdrop: radial-gradient(1200px 720px at 72% -12%, #1c3c70 0%, #0d1830 46%, #080d18 100%);
+  --accs: #12305f;
+  --seg: #0b1730;
+  --surface: #0f1d38;
+  --primary: #3b82f6;
+  --primary-h: #5b9bff;
+  --glass: rgba(11, 23, 48, 0.9);
+  --glass-2: rgba(15, 29, 56, 0.85);
+  --glass-line: rgba(120, 160, 220, 0.18);
+  --glass-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --backdrop:
+    radial-gradient(48vw 48vw at -8% -12%, rgba(29, 78, 216, 0.5) 0%, transparent 70%),
+    radial-gradient(44vw 44vw at 108% 22%, rgba(67, 56, 202, 0.45) 0%, transparent 70%),
+    radial-gradient(52vw 40vw at 22% 112%, rgba(3, 105, 161, 0.45) 0%, transparent 70%),
+    linear-gradient(rgba(150, 180, 235, 0.06) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, rgba(150, 180, 235, 0.06) 1px, transparent 1px) 0 0 / 48px 48px, #081429;
   color-scheme: dark;
 }
 
@@ -72,9 +112,10 @@ body {
   border: 1px solid var(--glass-line);
   border-radius: 16px;
   background: var(--glass);
-  backdrop-filter: blur(20px) saturate(1.5);
-  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   box-shadow: var(--glass-shadow);
+  animation: lp-drop 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .lp-brand {
@@ -91,9 +132,13 @@ body {
   border-radius: 10px;
   display: grid;
   place-items: center;
-  background: linear-gradient(180deg, #3b74ee, #1d4ed8);
-  color: #fff;
-  box-shadow: 0 3px 10px rgba(29, 78, 216, 0.4);
+  background: none;
+  color: var(--ink);
+}
+
+.lp-brand b {
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .lp-icon {
@@ -138,6 +183,7 @@ body {
 
 .lp-hero h1 {
   margin: 0 0 12px;
+  animation: lp-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
   font-size: clamp(26px, 4vw, 40px);
   line-height: 1.15;
   font-weight: 700;
@@ -164,25 +210,33 @@ body {
   gap: 10px;
   padding: 24px 24px 20px;
   border: 1px solid var(--glass-line);
-  border-radius: 20px;
+  border-radius: 16px;
   background: var(--glass);
-  backdrop-filter: blur(20px) saturate(1.5);
-  -webkit-backdrop-filter: blur(20px) saturate(1.5);
-  box-shadow: var(--glass-shadow);
+  box-shadow: var(--card-shadow);
   color: inherit;
   text-decoration: none;
   transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  animation: lp-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.lp-card:nth-child(2) {
+  animation-delay: 0.07s;
+}
+
+.lp-card:nth-child(3) {
+  animation-delay: 0.14s;
 }
 
 .lp-card:hover {
   transform: translateY(-3px);
   border-color: var(--acc);
+  box-shadow: var(--glass-shadow);
 }
 
 .lp-card-ico {
   width: 48px;
   height: 48px;
-  border-radius: 14px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
   background: var(--accs);
@@ -191,8 +245,8 @@ body {
 
 .lp-card-tag {
   color: var(--mut);
-  font: 700 11px var(--font-ui);
-  letter-spacing: 0.08em;
+  font: 600 10.5px var(--font-ui);
+  letter-spacing: 0.18em;
   text-transform: uppercase;
 }
 
@@ -245,19 +299,14 @@ body {
   margin-top: auto;
   padding: 9px 16px;
   border-radius: 10px;
-  background: var(--acc);
+  background: var(--primary);
   color: #fff;
   font-weight: 600;
   transition: background 0.12s;
 }
 
 .lp-card:hover .lp-cta {
-  background: var(--accd);
-}
-
-html[data-theme="dark"] .lp-card:hover .lp-cta {
-  background: #2f6fe0;
-  color: #fff;
+  background: var(--primary-h);
 }
 
 .lp-cta .ico {
@@ -285,5 +334,35 @@ html[data-theme="dark"] .lp-card:hover .lp-cta {
 
   .lp-hero p {
     font-size: 15px;
+  }
+}
+
+@keyframes lp-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes lp-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-top,
+  .lp-card,
+  .lp-hero h1 {
+    animation: none;
   }
 }

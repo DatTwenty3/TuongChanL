@@ -9,9 +9,9 @@
   flex: none;
   gap: 2px;
   padding: 3px;
-  border-radius: 11px;
-  background: var(--glass-2, rgba(255, 255, 255, 0.6));
-  border: 1px solid var(--line, #d2e0f5);
+  border-radius: 10px;
+  background: var(--seg, var(--glass-2, #eff3f8));
+  border: 1px solid var(--line, #dde5ee);
 }
 
 .modsw a {
@@ -21,18 +21,16 @@
   padding: 5px 11px;
   border-radius: 8px;
   border: 1px solid transparent;
-  color: var(--ink, #0e2147);
-  font: 600 12.5px/1.2 "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, Roboto, Arial,
-    sans-serif;
-  letter-spacing: -0.003em;
+  color: var(--mut, #5e7591);
+  font: 500 12.5px/1.2 "Be Vietnam Pro", "Inter", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
   text-decoration: none;
   white-space: nowrap;
   transition: background 0.12s, color 0.12s, border-color 0.12s;
 }
 
 .modsw a:hover {
-  background: var(--accs, #e8f0fe);
-  color: var(--accd, #1d4ed8);
+  background: var(--surface, var(--panel, #fff));
+  color: var(--ink, #0e1f3b);
 }
 
 .modsw a:focus-visible {
@@ -41,10 +39,11 @@
 }
 
 .modsw a[aria-current="page"] {
-  background: var(--acc, #2563eb);
+  background: var(--primary, #0e1f3b);
   color: #fff;
   cursor: default;
-  box-shadow: 0 1px 6px rgba(37, 99, 235, 0.35);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(11, 53, 88, 0.2);
 }
 
 .modsw .modsw-ico {
@@ -76,4 +75,36 @@
 
 .modsw a.modsw-home {
   padding: 5px 8px;
+}
+
+/* ==========================================================================
+   Chữ thương hiệu kiểu LEDAT-GIS: "LEDAT-" navy + "BIM" gradient chạy chậm. Dùng ở mọi tiêu đề trang.
+   ========================================================================== */
+.wm-g {
+  background-image: linear-gradient(90deg, #0e1f3b, #1e40af, #2563eb, #0e1f3b);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: wm-shimmer 6s linear infinite;
+}
+
+html[data-theme="dark"] .wm-g {
+  background-image: linear-gradient(90deg, #9cc0ff, #5b9bff, #3b82f6, #9cc0ff);
+}
+
+@keyframes wm-shimmer {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wm-g {
+    animation: none;
+  }
 }

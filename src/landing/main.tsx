@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { Landing } from './Landing';
 import { applyLandingTheme } from './theme';
 import './landing.css';
+import '../shared/modswitch.css';
 
 applyLandingTheme();
 

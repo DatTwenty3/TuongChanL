@@ -1,4 +1,5 @@
 import React from 'react';
+import { LOGO_PATH, LOGO_VIEWBOX } from '../shared/brand';
 
 /** Bộ icon nét đơn (24×24, stroke currentColor) dùng chung cho toàn giao diện. */
 const PATHS: Record<string, string> = {
@@ -78,21 +79,17 @@ export const Glyphs: React.FC<{ text: string }> = ({ text }) => (
   </>
 );
 
-/** Biểu tượng thương hiệu: mặt cắt tường chắn chữ T ngược. */
-export const BrandMark: React.FC<{ size?: number }> = ({ size = 22 }) => (
+/** Dấu hiệu thương hiệu LEDAT (giống LEDAT-GIS): vẽ bằng currentColor nên đổi màu theo giao diện sáng / tối. */
+export const BrandMark: React.FC<{ size?: number }> = ({ size = 28 }) => (
   <svg
     width={size}
     height={size}
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth={2}
-    strokeLinejoin="round"
-    strokeLinecap="round"
+    viewBox={LOGO_VIEWBOX}
+    fill="currentColor"
+    fillRule="evenodd"
     aria-hidden="true"
     focusable="false"
   >
-    <path d="M9 3h5v12h7v5H3v-5h6z" fill="currentColor" fillOpacity={0.22} />
-    <path d="M17.5 5.5l-2 2 M19 9l-3.5 3.5" />
+    <path d={LOGO_PATH} />
   </svg>
 );

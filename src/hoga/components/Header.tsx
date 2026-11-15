@@ -81,8 +81,8 @@ export function Header() {
           <BrandMark />
         </span>
         <div>
-          <b>LEDAT-BIM</b>
-          <small>Hố ga BTCT · vẽ, bóc khối lượng, chiết tính thép</small>
+          <b>LEDAT-<span className="wm-g">BIM</span></b>
+          <small>Hố ga BTCT</small>
         </div>
       </div>
       <ModuleSwitch current="hoga" />

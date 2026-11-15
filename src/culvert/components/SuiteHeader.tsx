@@ -35,7 +35,7 @@ export function SuiteHeader() {
           <BrandMark />
         </span>
         <div>
-          <b>LEDAT-BIM</b>
+          <b>LEDAT-<span className="wm-g">BIM</span></b>
           <small>Bảng tính cầu cống · TCVN 11823:2017 · LEDAT</small>
         </div>
       </div>

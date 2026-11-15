@@ -1,0 +1,199 @@
+/* ==========================================================================
+   Phong cách LEDAT-GIS cho phân hệ Tường chắn (`/tuong-chan/`) và Cầu cống (`/cau-cong/`)
+   Nạp SAU css riêng của từng trang: chỉ ghi đè token màu / kính / nền / phông và vài chi tiết đặc trưng
+   (nút chính navy, tên thương hiệu gradient, tab phân đoạn, vòng focus mảnh). Bố cục giữ nguyên.
+   "Navy ink on cool marble": chữ navy #0e1f3b, xám pha navy, nhấn xanh #2563eb, thẻ trắng viền mảnh,
+   khối nổi trắng mờ, nền trắng có vệt aurora + lưới mờ. Giao diện tối là cùng bảng màu đảo.
+   Selector bám theo phạm vi của từng trang (.app-shell, .suite-bar…) — KHÔNG đụng :root để bản in / PDF
+   (nhúng toàn bộ CSS của trang) không đổi màu. Trang Hố ga có bản riêng ở hoga/styles/app.css.
+   ========================================================================== */
+
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  src: url('/fonts/BeVietnamPro-Regular.ttf') format('truetype');
+  font-weight: 400 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Be Vietnam Pro';
+  src: url('/fonts/BeVietnamPro-Bold.ttf') format('truetype');
+  font-weight: 600 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ---------------- token: sáng ---------------- */
+.app-shell,
+.app-shell[data-view],
+.suite-bar,
+.cv-nav,
+.cv-main > .tool {
+  --font-ui: 'Be Vietnam Pro', 'Inter', 'Segoe UI', system-ui, -apple-system, Roboto, Arial, sans-serif;
+  --navy: #0e1f3b;
+  --ink: #0e1f3b;
+  --ink-2: #2e4a6a;
+  --mut: #5e7591;
+  --line: #dde5ee;
+  --line-2: #eff3f8;
+  --field: #ffffff;
+  --field-line: #dde5ee;
+  --panel: #ffffff;
+  --panel-2: #f8f9fb;
+  --panel-3: #eff3f8;
+  --accs: #eaf1fe;
+  --accb: #bcd1fb;
+  --ring: rgba(37, 99, 235, 0.14);
+  --glass: rgba(255, 255, 255, 0.95);
+  --glass-2: #f4f7fb;
+  --glass-line: rgba(221, 229, 238, 0.7);
+  --glass-shadow: 0 10px 32px rgba(11, 53, 88, 0.1), 0 1px 2px rgba(11, 53, 88, 0.06);
+  --primary: #0e1f3b;
+  --primary-h: #1b2f52;
+  --shadow: 0 1px 2px rgba(11, 53, 88, 0.05), 0 4px 14px rgba(11, 53, 88, 0.07);
+}
+.app-shell,
+.app-shell[data-view] {
+  --backdrop:
+    radial-gradient(48vw 48vw at -8% -12%, rgba(147, 197, 253, 0.55) 0%, transparent 70%),
+    radial-gradient(44vw 44vw at 108% 22%, rgba(165, 180, 252, 0.5) 0%, transparent 70%),
+    radial-gradient(52vw 40vw at 22% 112%, rgba(186, 230, 253, 0.55) 0%, transparent 70%),
+    linear-gradient(rgba(14, 31, 59, 0.045) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, rgba(14, 31, 59, 0.045) 1px, transparent 1px) 0 0 / 48px 48px, #ffffff;
+  --bg: #ffffff;
+}
+html[data-theme='light'] {
+  --desk:
+    radial-gradient(48vw 48vw at -8% -12%, rgba(147, 197, 253, 0.55) 0%, transparent 70%),
+    radial-gradient(44vw 44vw at 108% 22%, rgba(165, 180, 252, 0.5) 0%, transparent 70%),
+    radial-gradient(52vw 40vw at 22% 112%, rgba(186, 230, 253, 0.55) 0%, transparent 70%),
+    linear-gradient(rgba(14, 31, 59, 0.045) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, rgba(14, 31, 59, 0.045) 1px, transparent 1px) 0 0 / 48px 48px, #ffffff;
+}
+
+/* ---------------- token: tối ---------------- */
+.app-shell[data-theme='dark'],
+.app-shell[data-view][data-theme='dark'],
+html[data-theme='dark'] .suite-bar,
+html[data-theme='dark'] .cv-nav,
+html[data-theme='dark'] .cv-main > .tool {
+  --navy: #e7eefb;
+  --ink: #e7eefb;
+  --ink-2: #c3d0de;
+  --mut: #8fa2b8;
+  --line: #1f3556;
+  --line-2: #172a49;
+  --field: #0b1730;
+  --field-line: #26416b;
+  --panel: #0f1d38;
+  --panel-2: #0b1730;
+  --panel-3: #12264a;
+  --accs: #12305f;
+  --accb: #2b4f8a;
+  --ring: rgba(91, 155, 255, 0.28);
+  --glass: rgba(11, 23, 48, 0.9);
+  --glass-2: rgba(15, 29, 56, 0.85);
+  --glass-line: rgba(120, 160, 220, 0.18);
+  --glass-shadow: 0 12px 36px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --primary: #3b82f6;
+  --primary-h: #5b9bff;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+.app-shell[data-theme='dark'],
+.app-shell[data-view][data-theme='dark'] {
+  --backdrop:
+    radial-gradient(48vw 48vw at -8% -12%, rgba(29, 78, 216, 0.5) 0%, transparent 70%),
+    radial-gradient(44vw 44vw at 108% 22%, rgba(67, 56, 202, 0.45) 0%, transparent 70%),
+    radial-gradient(52vw 40vw at 22% 112%, rgba(3, 105, 161, 0.45) 0%, transparent 70%),
+    linear-gradient(rgba(150, 180, 235, 0.06) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, rgba(150, 180, 235, 0.06) 1px, transparent 1px) 0 0 / 48px 48px, #081429;
+  --bg: #081429;
+}
+html[data-theme='dark'] {
+  --desk:
+    radial-gradient(48vw 48vw at -8% -12%, rgba(29, 78, 216, 0.5) 0%, transparent 70%),
+    radial-gradient(44vw 44vw at 108% 22%, rgba(67, 56, 202, 0.45) 0%, transparent 70%),
+    radial-gradient(52vw 40vw at 22% 112%, rgba(3, 105, 161, 0.45) 0%, transparent 70%),
+    linear-gradient(rgba(150, 180, 235, 0.06) 1px, transparent 1px) 0 0 / 48px 48px,
+    linear-gradient(90deg, rgba(150, 180, 235, 0.06) 1px, transparent 1px) 0 0 / 48px 48px, #081429;
+}
+
+/* ---------------- phông ---------------- */
+.app-shell,
+.suite-bar,
+.cv-nav,
+.cv-main > .tool {
+  font-family: var(--font-ui);
+}
+.suite-bar button,
+.cv-main > .tool button,
+.cv-main > .tool .modesel,
+.cv-main > .tool .modesel select {
+  font-family: var(--font-ui);
+}
+
+/* ---------------- thương hiệu: chữ gradient, phụ đề in hoa ---------------- */
+.app-shell > header .brand b,
+.suite-bar .brand b {
+  color: var(--ink);
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+.app-shell > header .brand small,
+.suite-bar .brand small {
+  color: var(--mut);
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+.app-shell > header .brand .logo,
+.suite-bar .logo {
+  background: none;
+  box-shadow: none;
+  color: var(--ink);
+  width: 34px;
+  height: 34px;
+}
+.app-shell > header .brand .logo svg,
+.suite-bar .logo svg {
+  color: var(--ink);
+}
+
+/* ---------------- nút chính: navy ở giao diện sáng ---------------- */
+.app-shell header button.pri,
+.app-shell header button.pri:disabled:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 1px 2px rgba(11, 53, 88, 0.18);
+}
+.app-shell header button.pri:hover {
+  background: var(--primary-h);
+  border-color: var(--primary-h);
+}
+.cv-main > .tool #btnX,
+.cv-main > .tool #btnP,
+.cv-main > .tool #btnX:disabled,
+.cv-main > .tool #btnP:disabled {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.cv-main > .tool #btnX:hover:not(:disabled),
+.cv-main > .tool #btnP:hover:not(:disabled),
+html[data-theme='dark'] .cv-main > .tool #btnX:hover:not(:disabled),
+html[data-theme='dark'] .cv-main > .tool #btnP:hover:not(:disabled) {
+  background: var(--primary-h);
+  border-color: var(--primary-h);
+  color: #fff;
+}
+
+/* ---------------- ô nhập: vòng focus mảnh ---------------- */
+.app-shell input:focus,
+.app-shell select:focus,
+.cv-main > .tool select:focus {
+  border-color: var(--acc);
+  box-shadow: 0 0 0 4px var(--ring);
+  outline: none;
+}

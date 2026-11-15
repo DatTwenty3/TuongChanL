@@ -47,7 +47,7 @@ export const HeaderToolbar: React.FC = () => {
           <BrandMark />
         </span>
         <div>
-          <b>LEDAT-BIM</b>
+          <b>LEDAT-<span className="wm-g">BIM</span></b>
           <small>Bản vẽ 2D · mô hình 3D · kiểm toán TCVN 11823 · LEDAT</small>
         </div>
       </div>
