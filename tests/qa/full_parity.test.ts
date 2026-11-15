@@ -1802,6 +1802,7 @@ describe('QA 6. Licensing / Trial / Activation Absence Audit', () => {
       path.join(webappRoot, 'index.html'),
       path.join(webappRoot, 'tuong-chan', 'index.html'),
       path.join(webappRoot, 'cau-cong', 'index.html'),
+      path.join(webappRoot, 'ho-ga', 'index.html'),
       path.join(webappRoot, 'start-webapp.bat'),
       ...walk(path.join(webappRoot, 'src')),
     ];

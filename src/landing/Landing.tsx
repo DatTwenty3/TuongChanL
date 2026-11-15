@@ -7,6 +7,7 @@ import { applyLandingTheme } from './theme';
 /** Khóa localStorage của hai phân hệ (chỉ ĐỌC để gợi ý "tiếp tục làm việc"). */
 const WALLS_DRAFT_KEY = 'tuong-chan-btct:draft';
 const CULVERT_MODE_KEY = 'ckn_mode';
+const HOGA_DRAFT_KEY = 'ledat-hoga:draft';
 
 const CULVERT_MODE_LABEL: Record<string, string> = {
   cau: 'Cầu: kết cấu nhịp, mố, cọc',
@@ -52,12 +53,25 @@ function culvertResume(): string | null {
   return `Đang làm dở: ${(m && CULVERT_MODE_LABEL[m]) || CULVERT_MODE_LABEL.cau}`;
 }
 
+function hogaResume(): string | null {
+  const raw = lsGet(HOGA_DRAFT_KEY);
+  if (!raw) return null;
+  try {
+    const d = JSON.parse(raw) as { title?: unknown; rows?: unknown };
+    if (!Array.isArray(d.rows)) return null;
+    const name = typeof d.title === 'string' && d.title ? `“${d.title}” · ` : '';
+    return `Có bản nháp chưa lưu: ${name}${d.rows.length} ga`;
+  } catch {
+    return null;
+  }
+}
+
 interface CardDef {
-  id: 'walls' | 'culvert';
+  id: 'walls' | 'culvert' | 'hoga';
   path: string;
   title: string;
   tag: string;
-  icon: 'wall' | 'calc';
+  icon: 'wall' | 'calc' | 'manhole';
   points: string[];
   cta: string;
   resume: string | null;
@@ -107,6 +121,21 @@ export const Landing: React.FC = () => {
         cta: 'Mở Cầu cống',
         resume: culvertResume(),
       },
+      {
+        id: 'hoga',
+        path: 'ho-ga/',
+        title: 'Hố ga BTCT',
+        tag: 'Bản vẽ · Bóc khối lượng · Chiết tính thép',
+        icon: 'manhole',
+        points: [
+          '5 loại ga: thăm, thăm + thu; liền khối, nắp rời, không cổ',
+          'Bảng ga kiểu Excel, nhập thẳng tệp “HO GA v4”; cấu hình đầy đủ',
+          'Bản vẽ A3: kết cấu, cốt thép, lưới thép tường, tấm nắp, thống kê thép',
+          'Xuất DXF (hatch, dimension — mở được trong AutoCAD), Excel, CSV',
+        ],
+        cta: 'Mở Hố ga',
+        resume: hogaResume(),
+      },
     ],
     [],
   );
@@ -139,7 +168,7 @@ export const Landing: React.FC = () => {
         <section className="lp-hero">
           <h1>Bản vẽ, mô hình 3D và bảng tính kết cấu</h1>
           <p>
-            Hai phân hệ chạy ngay trên trình duyệt, tính theo <b>TCVN 11823:2017</b>. Dữ liệu nằm trên máy của
+            Ba phân hệ chạy ngay trên trình duyệt, tính theo <b>TCVN 11823:2017</b>. Dữ liệu nằm trên máy của
             bạn — lưu và mở lại bằng tệp dự án.
           </p>
         </section>

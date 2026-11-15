@@ -7,7 +7,7 @@ import React from 'react';
  * id, class `body.*` và listener toàn cục của hai ứng dụng không bao giờ cùng tồn tại trong một tài liệu.
  * Màu lấy từ token của trang chủ (`--acc`, `--ink`, `--line`, `--glass-2`) — xem `modswitch.css`.
  */
-export type ModuleId = 'walls' | 'culvert';
+export type ModuleId = 'walls' | 'culvert' | 'hoga';
 
 interface ModuleDef {
   id: ModuleId;
@@ -37,6 +37,14 @@ export const MODULES: readonly ModuleDef[] = [
     path: 'cau-cong/',
     hint: 'Bảng tính kết cấu cầu, cống, tường chắn, thủy văn thủy lực theo TCVN 11823:2017',
     icon: 'M3 8h18 M5 8v4 M19 8v4 M3 20h18 M6 20c0-5 12-5 12 0 M12 8v5',
+  },
+  {
+    id: 'hoga',
+    label: 'Hố ga BTCT',
+    short: 'Hố ga',
+    path: 'ho-ga/',
+    hint: 'Bản vẽ, bóc khối lượng và chiết tính cốt thép hố ga BTCT (5 loại), xuất DXF/Excel',
+    icon: 'M4 4h16v16H4z M8 8h8v8H8z M12 12m-1.6 0a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0 -3.2 0',
   },
 ];
 

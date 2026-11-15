@@ -20,3 +20,5 @@ TCVN/
 
 # Bảng tính tham khảo của người dùng (tài liệu nội bộ) – không đưa lên repo
 bang tinh/
+# dữ liệu của bên thứ ba (VHGpro) dùng làm chuẩn đối chiếu – xem tests/hoga/fixtures/README.md
+tests/hoga/fixtures/vhg-templates.json

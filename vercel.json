@@ -6,7 +6,8 @@
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/cau-cong", "destination": "/cau-cong/index.html" },
-    { "source": "/tuong-chan", "destination": "/tuong-chan/index.html" }
+    { "source": "/tuong-chan", "destination": "/tuong-chan/index.html" },
+    { "source": "/ho-ga", "destination": "/ho-ga/index.html" }
   ],
   "headers": [
     {
