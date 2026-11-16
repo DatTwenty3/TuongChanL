@@ -2,7 +2,9 @@
  * Thực thể CAD 2D trung gian (mm, y hướng lên). Cùng một danh sách thực thể được xuất ra SVG (xem trên web)
  * và DXF R12 (mở trong AutoCAD) nên hai kết quả luôn khớp nhau.
  */
-export type LayerName = 'KC' | 'LOT' | 'CONG' | 'THEP' | 'KT' | 'TEXT' | 'HATCH' | 'TIM' | 'KHUNG' | 'NET';
+import { PATTERNS, type PatternName } from './patterns';
+
+export type LayerName = 'KC' | 'LOT' | 'CONG' | 'THEP' | 'THEP2' | 'THEP3' | 'THEP4' | 'KT' | 'TEXT' | 'TIEUDE' | 'HATCH' | 'TIM' | 'KHUNG' | 'NET';
 
 export interface LayerDef {
   name: LayerName;
@@ -12,20 +14,42 @@ export interface LayerDef {
   linetype: 'CONTINUOUS' | 'DASHED' | 'CENTER';
   /** bề dày nét (px khi xem) */
   weight: number;
+  /** tên lớp trong tệp DXF – đặt theo bản vẽ mẫu của VHGpro (VHG-BT, VHG-Thep …) */
+  dxf: string;
 }
 
+/**
+ * Bảng lớp theo bản vẽ mẫu VHGpro: bê tông xanh lơ (4), cốt thép đỏ (1) / vàng (2, thép buộc) / tím nét đứt (6) / xám nét đứt (8),
+ * kích thước xanh da trời (140), đường khuất xanh dương nét đứt (5), cống xanh dương (150), vật liệu xám (251), đường tim tím (6).
+ * `TIEUDE` (tên hình, màu 3 xanh lá) dùng chung lớp VHG-Text với `TEXT` nhưng ghi màu riêng trên từng thực thể.
+ */
 export const LAYERS: LayerDef[] = [
-  { name: 'KC', label: 'Kết cấu BTCT', aci: 4, linetype: 'CONTINUOUS', weight: 1.4 },
-  { name: 'LOT', label: 'Lớp lót, đường khuất', aci: 6, linetype: 'DASHED', weight: 1 },
-  { name: 'CONG', label: 'Cống, rãnh, vữa trát', aci: 5, linetype: 'CONTINUOUS', weight: 1.1 },
-  { name: 'THEP', label: 'Cốt thép', aci: 1, linetype: 'CONTINUOUS', weight: 1.6 },
-  { name: 'KT', label: 'Kích thước', aci: 3, linetype: 'CONTINUOUS', weight: 0.8 },
-  { name: 'TEXT', label: 'Ghi chú', aci: 7, linetype: 'CONTINUOUS', weight: 0.8 },
-  { name: 'HATCH', label: 'Ký hiệu vật liệu', aci: 8, linetype: 'CONTINUOUS', weight: 0.6 },
-  { name: 'TIM', label: 'Đường tim', aci: 1, linetype: 'CENTER', weight: 0.8 },
-  { name: 'NET', label: 'Nét mảnh', aci: 9, linetype: 'CONTINUOUS', weight: 0.6 },
-  { name: 'KHUNG', label: 'Khung tên, bảng', aci: 7, linetype: 'CONTINUOUS', weight: 1.2 },
+  { name: 'KC', label: 'Kết cấu BTCT', aci: 4, linetype: 'CONTINUOUS', weight: 1.3, dxf: 'VHG-BT' },
+  { name: 'LOT', label: 'Đường khuất', aci: 5, linetype: 'DASHED', weight: 1, dxf: 'VHG-Dashed' },
+  { name: 'CONG', label: 'Cống, rãnh, vữa trát', aci: 150, linetype: 'CONTINUOUS', weight: 1.1, dxf: 'VHG-150' },
+  { name: 'THEP', label: 'Cốt thép', aci: 1, linetype: 'CONTINUOUS', weight: 1.5, dxf: 'VHG-Thep' },
+  { name: 'THEP2', label: 'Thép buộc, thép lớp 2', aci: 2, linetype: 'CONTINUOUS', weight: 1.2, dxf: 'VHG-Thep2' },
+  { name: 'THEP3', label: 'Thép khuất', aci: 6, linetype: 'DASHED', weight: 1, dxf: 'VHG-Thep3' },
+  { name: 'THEP4', label: 'Thép khuất (lớp kia)', aci: 8, linetype: 'DASHED', weight: 1, dxf: 'VHG-Thep4' },
+  { name: 'KT', label: 'Kích thước', aci: 140, linetype: 'CONTINUOUS', weight: 0.8, dxf: 'VHG-Dim' },
+  { name: 'TEXT', label: 'Ghi chú', aci: 7, linetype: 'CONTINUOUS', weight: 0.8, dxf: 'VHG-Text' },
+  { name: 'TIEUDE', label: 'Tên hình', aci: 3, linetype: 'CONTINUOUS', weight: 0.8, dxf: 'VHG-Text' },
+  { name: 'HATCH', label: 'Ký hiệu vật liệu', aci: 251, linetype: 'CONTINUOUS', weight: 0.6, dxf: 'VHG-VL' },
+  { name: 'TIM', label: 'Đường tim', aci: 6, linetype: 'CENTER', weight: 0.8, dxf: 'VHG-Center' },
+  { name: 'NET', label: 'Đường dẫn chú thích', aci: 140, linetype: 'CONTINUOUS', weight: 0.7, dxf: 'VHG-Dim' },
+  { name: 'KHUNG', label: 'Khung bản vẽ, bảng', aci: 140, linetype: 'CONTINUOUS', weight: 1.1, dxf: 'VHG-140' },
 ];
+
+/** Các lớp DXF (không trùng tên): lớp dùng chung giữ định nghĩa của lớp đầu tiên khai báo (VHG-Text lấy màu của TEXT). */
+export const DXF_LAYERS: LayerDef[] = LAYERS.filter((l, i) => LAYERS.findIndex((o) => o.dxf === l.dxf) === i);
+
+const LAYER_BY_NAME = new Map(LAYERS.map((l) => [l.name, l]));
+/** Tên lớp DXF của một lớp nội bộ, và màu ACI ghi riêng trên thực thể khi lớp DXF dùng chung nhưng màu khác. */
+export function dxfLayerOf(name: LayerName): { layer: string; aci?: number } {
+  const l = LAYER_BY_NAME.get(name)!;
+  const first = DXF_LAYERS.find((o) => o.dxf === l.dxf)!;
+  return { layer: l.dxf, aci: first.aci !== l.aci ? l.aci : undefined };
+}
 
 export interface LineEnt {
   t: 'line';
@@ -64,13 +88,19 @@ export interface TextEnt {
   rot?: number;
   bold?: boolean;
 }
-/** Tô vật liệu: các vòng kín (quy tắc chẵn/lẻ), góc và khoảng cách nét (mm mô hình). Xuất DXF thành HATCH thật. */
+/**
+ * Tô vật liệu: các vòng kín (quy tắc chẵn/lẻ). Hai kiểu:
+ *  - đường song song: `angle` + `gap` (mm mô hình), DXF ghi mẫu ANSI31 với khoảng cách tuỳ chỉnh;
+ *  - mẫu chuẩn: `pattern` + `pscale` (hệ số nhân định nghĩa mẫu theo inch), như HATCH của VHGpro (ví dụ ANSI32 × 4·tỷ lệ).
+ */
 export interface HatchEnt {
   t: 'hatch';
   layer: LayerName;
   loops: [number, number][][];
   angle: number;
   gap: number;
+  pattern?: PatternName;
+  pscale?: number;
 }
 /** Kích thước thẳng. `kind` h: đo theo x, đường kích thước tại y = `pos`; v: đo theo y, tại x = `pos`. Xuất DXF thành DIMENSION. */
 export interface DimEnt {
@@ -121,7 +151,8 @@ export function expandEnts(ents: Ent[]): Ent[] {
   const out: Ent[] = [];
   for (const e of ents) {
     if (e.t === 'hatch') {
-      for (const [a, b, c, d] of hatchLines(e.loops, e.angle, e.gap)) out.push({ t: 'line', layer: e.layer, x1: a, y1: b, x2: c, y2: d });
+      const segs = e.pattern ? patternSegments(e.loops, e.pattern, e.pscale ?? 1) : hatchLines(e.loops, e.angle, e.gap);
+      for (const [a, b, c, d] of segs) out.push({ t: 'line', layer: e.layer, x1: a, y1: b, x2: c, y2: d });
     } else if (e.t === 'dim') out.push(...dimGeometry(e));
     else out.push(e);
   }
@@ -221,6 +252,10 @@ export class Builder {
   hatch(polys: [number, number][][], angleDeg = 45, gapPaper = 2.2, layer: LayerName = 'HATCH'): void {
     if (polys.length) this.ents.push({ t: 'hatch', layer, loops: polys, angle: angleDeg, gap: this.paper(gapPaper) });
   }
+  /** Tô theo mẫu chuẩn AutoCAD (ANSI32, AR-CONC …): hệ số mẫu = `k` × mẫu số tỷ lệ bản vẽ (VHGpro: ANSI* ×4, AR-CONC ×0,4). */
+  hatchPat(polys: [number, number][][], pattern: PatternName, k: number, layer: LayerName = 'HATCH'): void {
+    if (polys.length) this.ents.push({ t: 'hatch', layer, loops: polys, angle: 0, gap: 0, pattern, pscale: k * this.s });
+  }
   /** Kích thước thẳng nằm ngang: từ x1 đến x2, đường kích thước tại y; điểm gốc đối tượng tại yRef. */
   dimH(x1: number, x2: number, y: number, yRef: number, label?: string): void {
     this.ents.push({ t: 'dim', layer: 'KT', kind: 'h', a: x1, b: x2, ref: yRef, pos: y, text: label ?? String(Math.round(Math.abs(x2 - x1))), s: this.s });
@@ -264,6 +299,91 @@ export function hatchLines(polys: [number, number][][], angleDeg: number, gap: n
       const bx = xs[i + 1] * c - y * s;
       const by = xs[i + 1] * s + y * c;
       out.push([ax, ay, bx, by]);
+    }
+  }
+  return out;
+}
+
+/**
+ * Các đoạn thẳng của một mẫu tô chuẩn bên trong tập đa giác (quy tắc chẵn/lẻ), có xử lý nét đứt / chấm theo định nghĩa mẫu.
+ * Dùng cho SVG và DXF R12; DXF R2000 ghi HATCH thật nên AutoCAD tự tô.
+ */
+export function patternSegments(loops: [number, number][][], name: PatternName, scale: number, maxLines = 6000): [number, number, number, number][] {
+  const out: [number, number, number, number][] = [];
+  let bx0 = Infinity;
+  let by0 = Infinity;
+  let bx1 = -Infinity;
+  let by1 = -Infinity;
+  for (const l of loops) {
+    for (const [x, y] of l) {
+      bx0 = Math.min(bx0, x);
+      by0 = Math.min(by0, y);
+      bx1 = Math.max(bx1, x);
+      by1 = Math.max(by1, y);
+    }
+  }
+  if (!Number.isFinite(bx0) || !(scale > 0)) return out;
+  const corners: [number, number][] = [[bx0, by0], [bx1, by0], [bx1, by1], [bx0, by1]];
+  for (const [ang, px, py, ox, oy, dashes] of PATTERNS[name]) {
+    const th = (ang * Math.PI) / 180;
+    const ux = Math.cos(th);
+    const uy = Math.sin(th);
+    const nx = -uy;
+    const ny = ux;
+    const Px = px * scale;
+    const Py = py * scale;
+    const Ox = ox * scale;
+    const Oy = oy * scale;
+    const dn = Ox * nx + Oy * ny;
+    if (Math.abs(dn) < 1e-9) continue;
+    const ks = corners.map(([x, y]) => ((x - Px) * nx + (y - Py) * ny) / dn);
+    const k0 = Math.floor(Math.min(...ks));
+    const k1 = Math.ceil(Math.max(...ks));
+    if (k1 - k0 > maxLines) continue;
+    const D = dashes.map((v) => v * scale);
+    const period = D.reduce((a, v) => a + Math.abs(v), 0);
+    const dot = 0.02 * scale;
+    for (let k = k0; k <= k1; k++) {
+      const lx = Px + k * Ox;
+      const ly = Py + k * Oy;
+      const ts: number[] = [];
+      for (const lp of loops) {
+        for (let i = 0; i < lp.length; i++) {
+          const [x1, y1] = lp[i];
+          const [x2, y2] = lp[(i + 1) % lp.length];
+          const d1 = (x1 - lx) * nx + (y1 - ly) * ny;
+          const d2 = (x2 - lx) * nx + (y2 - ly) * ny;
+          if ((d1 <= 0 && d2 > 0) || (d2 <= 0 && d1 > 0)) {
+            const f = d1 / (d1 - d2);
+            ts.push((x1 + f * (x2 - x1) - lx) * ux + (y1 + f * (y2 - y1) - ly) * uy);
+          }
+        }
+      }
+      ts.sort((a, b) => a - b);
+      for (let i = 0; i + 1 < ts.length; i += 2) {
+        const t0 = ts[i];
+        const t1 = ts[i + 1];
+        const seg = (a: number, b: number) => out.push([lx + a * ux, ly + a * uy, lx + b * ux, ly + b * uy]);
+        if (!D.length || period < 1e-9) {
+          seg(t0, t1);
+          continue;
+        }
+        let t = Math.floor(t0 / period) * period;
+        while (t < t1) {
+          for (const v of D) {
+            const len = Math.abs(v);
+            if (v === 0) {
+              if (t >= t0 && t <= t1) seg(t, t + dot);
+            } else if (v > 0) {
+              const a = Math.max(t, t0);
+              const b = Math.min(t + len, t1);
+              if (b > a) seg(a, b);
+            }
+            t += len;
+            if (t >= t1) break;
+          }
+        }
+      }
     }
   }
   return out;

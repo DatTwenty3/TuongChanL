@@ -3,9 +3,10 @@ import type { Sheet } from './sheets';
 
 export type CadTheme = 'light' | 'dark';
 
+/** Bảng màu theo ACI của bản vẽ mẫu VHGpro (nền đen của AutoCAD → `dark`; nền giấy trắng → các tông đậm hơn để đọc được). */
 const PALETTE: Record<CadTheme, Record<string, string>> = {
-  dark: { KC: '#4fd8ee', LOT: '#c78bd9', CONG: '#6aa3ff', THEP: '#ff5a4d', KT: '#58d68d', TEXT: '#e8edf2', HATCH: '#7c8794', TIM: '#ff7a6b', NET: '#8a94a0', KHUNG: '#e8edf2', paper: '#0b1425' },
-  light: { KC: '#0a7a8f', LOT: '#8a3fa0', CONG: '#1f5fd1', THEP: '#d62a1d', KT: '#16803c', TEXT: '#1c242d', HATCH: '#7a8590', TIM: '#d62a1d', NET: '#6c7782', KHUNG: '#1c242d', paper: '#ffffff' },
+  dark: { KC: '#00e5f0', LOT: '#4d7cff', CONG: '#1e8fff', THEP: '#ff3b30', THEP2: '#ffe600', THEP3: '#ff4dff', THEP4: '#a0a0a0', KT: '#00bfff', TEXT: '#f0f4f8', TIEUDE: '#2cff4f', HATCH: '#8c8c8c', TIM: '#ff4dff', NET: '#00bfff', KHUNG: '#00bfff', paper: '#0b1425' },
+  light: { KC: '#00909e', LOT: '#2a4fd6', CONG: '#0a63c7', THEP: '#d62a1d', THEP2: '#c9a800', THEP3: '#c21fc2', THEP4: '#707070', KT: '#0090c2', TEXT: '#1c242d', TIEUDE: '#0a9a2a', HATCH: '#6c6c6c', TIM: '#c21fc2', NET: '#0090c2', KHUNG: '#0090c2', paper: '#ffffff' },
 };
 
 export function svgStyle(theme: CadTheme): string {
@@ -14,7 +15,7 @@ export function svgStyle(theme: CadTheme): string {
     const dash = l.linetype === 'DASHED' ? 'stroke-dasharray:6 4;' : l.linetype === 'CENTER' ? 'stroke-dasharray:14 3 3 3;' : '';
     return `.l-${l.name}{stroke:${p[l.name]};stroke-width:${l.weight}px;${dash}fill:none;vector-effect:non-scaling-stroke}.t-${l.name}{fill:${p[l.name]};stroke:none}.f-${l.name}{fill:${p[l.name]};stroke:${p[l.name]};stroke-width:0.6px;vector-effect:non-scaling-stroke}`;
   }).join('');
-  return `${css}text{font-family:Arial,Helvetica,sans-serif}`;
+  return `${css}.l-HATCH{stroke-linecap:round}text{font-family:Arial,Helvetica,sans-serif}`;
 }
 
 const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

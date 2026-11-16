@@ -33,12 +33,12 @@ export interface View {
   ents: Ent[];
 }
 
-type Pt = [number, number];
-const circlePoly = (cx: number, cy: number, r: number, n = 40): Pt[] => Array.from({ length: n }, (_, i) => [cx + r * Math.cos((2 * Math.PI * i) / n), cy + r * Math.sin((2 * Math.PI * i) / n)] as Pt);
-const rectPoly = (x0: number, y0: number, x1: number, y1: number): Pt[] => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+export type Pt = [number, number];
+export const circlePoly = (cx: number, cy: number, r: number, n = 40): Pt[] => Array.from({ length: n }, (_, i) => [cx + r * Math.cos((2 * Math.PI * i) / n), cy + r * Math.sin((2 * Math.PI * i) / n)] as Pt);
+export const rectPoly = (x0: number, y0: number, x1: number, y1: number): Pt[] => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
 
 /** u (dọc tường), n (khoảng cách pháp tuyến từ tâm ga) → toạ độ x,y */
-function wallXY(i: number, u: number, n: number): Pt {
+export function wallXY(i: number, u: number, n: number): Pt {
   if (i === 0) return [-u, n];
   if (i === 1) return [n, u];
   if (i === 2) return [u, -n];
@@ -46,10 +46,10 @@ function wallXY(i: number, u: number, n: number): Pt {
 }
 
 /** các khoảng [u0,u1] bị lỗ chiếm trên tường i */
-function gapsOf(ops: WallOpening[], i: number, extra = 0): [number, number][] {
+export function gapsOf(ops: WallOpening[], i: number, extra = 0): [number, number][] {
   return ops.filter((o) => o.wall === i).map((o) => [o.uc - o.w / 2 - extra, o.uc + o.w / 2 + extra] as [number, number]).sort((a, b) => a[0] - b[0]);
 }
-function subtractGaps(a: number, b: number, gaps: [number, number][]): [number, number][] {
+export function subtractGaps(a: number, b: number, gaps: [number, number][]): [number, number][] {
   let segs: [number, number][] = [[a, b]];
   for (const [g0, g1] of gaps) {
     const next: [number, number][] = [];
@@ -65,7 +65,7 @@ function subtractGaps(a: number, b: number, gaps: [number, number][]): [number, 
   return segs;
 }
 
-const fmtMm = (x: number) => String(Math.round(x));
+export const fmtMm = (x: number) => String(Math.round(x));
 /** Kích thước (mm) ghi trong tên block nắp, ví dụ `VIN.TNM.LD.820x570` → [820, 570]. */
 export function lidBlockDims(name: string): [number, number] | null {
   const m = /(\d+)x(\d+)(?:\.(?:MB|AA|BB))?$/i.exec(name.trim());
@@ -211,7 +211,7 @@ function sectionMarks(b: Builder, d: Dims, lx: number, ly: number): void {
   void d;
 }
 
-function neckOutline(b: Builder, n: Neck, t: number, layer: 'LOT' | 'KC'): void {
+export function neckOutline(b: Builder, n: Neck, t: number, layer: 'LOT' | 'KC'): void {
   if (n.round) {
     b.circle(layer, n.cx, n.cy, n.a / 2);
     b.circle(layer, n.cx, n.cy, n.a / 2 + t);
@@ -305,7 +305,7 @@ export function planRoof(c: Ctx, s: number): View {
   return { id: 'planRoof', title: c.info.hasNeck ? 'MẶT BẰNG TRẦN GA' : 'MẶT BẰNG TẤM NẮP', ents: b.ents };
 }
 
-function lidDraw(c: Ctx, b: Builder, cx: number, cy: number, a: number, bb: number, round: boolean, tNeck: number, cham: number): void {
+export function lidDraw(c: Ctx, b: Builder, cx: number, cy: number, a: number, bb: number, round: boolean, tNeck: number, cham: number): void {
   const { cfg } = c;
   if (cfg.lid.type === 'Gang') {
     // nắp gang: theo kích thước ghi trong tên block, có đường chéo; vát nắp vẽ nét đứt
@@ -363,17 +363,17 @@ interface Axis {
 const AXIS_A: Axis = { id: 'A', half: 0, left: 3, right: 1, along: (n) => n.cx, cross: (n) => n.cy, ext: (n) => [n.a, n.b] };
 const AXIS_B: Axis = { id: 'B', half: 0, left: 2, right: 0, along: (n) => n.cy, cross: (n) => n.cx, ext: (n) => [n.b, n.a] };
 
-function axisOf(c: Ctx, id: 'A' | 'B'): Axis & { half: number; other: number } {
+export function axisOf(c: Ctx, id: 'A' | 'B'): Axis & { half: number; other: number } {
   const base = id === 'A' ? AXIS_A : AXIS_B;
   return { ...base, half: (id === 'A' ? c.d.L : c.d.B) / 2, other: (id === 'A' ? c.d.B : c.d.L) / 2 };
 }
 
 /** Lỗ trên tường `i` bị mặt cắt cắt qua (mặt phẳng cắt đi qua tim tường). */
-function cutOpening(c: Ctx, i: number): WallOpening | undefined {
+export function cutOpening(c: Ctx, i: number): WallOpening | undefined {
   return c.ops.find((o) => o.wall === i && Math.abs(o.uc) < o.w / 2);
 }
 
-function sectionBase(c: Ctx, b: Builder, id: 'A' | 'B'): { ax: ReturnType<typeof axisOf>; zTop: number } {
+export function sectionBase(c: Ctx, b: Builder, id: 'A' | 'B'): { ax: ReturnType<typeof axisOf>; zTop: number } {
   const ax = axisOf(c, id);
   const { d, cfg, row, info } = c;
   const ho = ax.half + d.tw; // nửa chiều rộng ngoài
@@ -390,12 +390,12 @@ function sectionBase(c: Ctx, b: Builder, id: 'A' | 'B'): { ax: ReturnType<typeof
   if (l1 > 0) {
     const e = bw + cfg.liner.l1Ext;
     lotPolys.push(rectPoly(-e, -d.tb - l1, e, -d.tb));
-    b.rect('LOT', -e, -d.tb - l1, e, -d.tb);
+    b.rect('KC', -e, -d.tb - l1, e, -d.tb);
   }
   if (l2 > 0) {
     const e = bw + cfg.liner.l2Ext;
     lotPolys.push(rectPoly(-e, -d.tb - l1 - l2, e, -d.tb - l1));
-    b.rect('LOT', -e, -d.tb - l1 - l2, e, -d.tb - l1);
+    b.rect('KC', -e, -d.tb - l1 - l2, e, -d.tb - l1);
   }
   // bản đáy + vát
   const c5 = cfg.bottom.chamfer;
@@ -565,9 +565,10 @@ function sectionBase(c: Ctx, b: Builder, id: 'A' | 'B'): { ax: ReturnType<typeof
       b.poly('LOT', lt, true);
     }
   }
-  // tô vật liệu
-  b.hatch(hatchPolys, 45, 2.4);
-  b.hatch(lotPolys, 135, 1.6);
+  // tô vật liệu (như bản vẽ mẫu VHGpro: bê tông ANSI32 × 4·tỷ lệ + AR-CONC × 0,4·tỷ lệ; bê tông lót / đệm AR-CONC)
+  b.hatchPat(hatchPolys, 'ANSI32', 4);
+  b.hatchPat(hatchPolys, 'AR-CONC', 0.4);
+  b.hatchPat(lotPolys, 'AR-CONC', 0.4);
   // viền BTCT (đáy + tường)
   b.rect('KC', -bw, -d.tb, bw, 0);
   for (const sd of [L, R]) {
@@ -596,8 +597,22 @@ function sectionBase(c: Ctx, b: Builder, id: 'A' | 'B'): { ax: ReturnType<typeof
     const xhi = Math.max(xo, xin);
     strips.push(rectPoly(xlo, zo0, xhi, zo0 + e));
     if (op.pipe.kind !== 'ditch') strips.push(rectPoly(xlo, zo1 - e, xhi, zo1));
-    b.hatch(strips, 135, 1.8);
+    b.hatchPat(strips, 'ANSI37', 4);
     strips.forEach((st) => b.poly('CONG', st, true));
+    // nhãn loại cống cạnh tim cống và chú thích vữa trát có đường dẫn gạch chân (như bản mẫu)
+    const dirP = sd === L ? -1 : 1;
+    b.text('TEXT', xlo - b.paper(1), (zo0 + zo1) / 2 + b.paper(0.8), op.pipe.spec, 2, dirP === -1 ? 'r' : 'l');
+    {
+      const px = (xa + xb) / 2;
+      const pz = op.z0 + cfg.pipeHole.plaster / 2;
+      const tx = dirP === -1 ? xlo - b.paper(6) : xhi + b.paper(6);
+      const tz = op.z0 - b.paper(9);
+      const txt = cfg.materials.plaster;
+      const len = b.paper(1.8) + txt.length * b.paper(2) * 0.55;
+      b.line('NET', px, pz, tx, tz);
+      b.line('NET', tx, tz, tx - dirP * -len, tz);
+      b.text('TEXT', tx + (dirP === -1 ? -b.paper(0.8) : b.paper(0.8)), tz + b.paper(0.8), txt, 2, dirP === -1 ? 'r' : 'l');
+    }
     // lỗ trát
     b.line('CONG', xa, op.z0, xb, op.z0);
     if (op.pipe.kind !== 'ditch') b.line('CONG', xa, op.z1, xb, op.z1);
@@ -620,20 +635,26 @@ function sectionBase(c: Ctx, b: Builder, id: 'A' | 'B'): { ax: ReturnType<typeof
     }
     b.text('TEXT', sg * (ax.half - cfg.ladder.depth - b.paper(2)), d.H * 0.5, `${cfg.ladder.prefix} Ø${cfg.ladder.dia}`, 2, sg === 1 ? 'r' : 'l', 90);
   }
-  // ghi chú vật liệu
+  // ghi chú vật liệu: một đường dẫn đứng xuyên bản đáy và các lớp lót, các dòng chữ gạch chân xếp bên dưới (như bản mẫu)
+  const zb = -d.tb - l1 - l2 - b.paper(10);
   {
     const m = cfg.materials;
-    const lines: string[] = [];
-    if (l1 > 0) lines.push(`Lớp lót: ${m.liner1}`);
-    if (l2 > 0) lines.push(`Lớp lót 2: ${m.liner2}`);
-    lines.push(`Thân ga: ${m.body}`);
-    if (info.hasNeck) lines.push(`Cổ ga: ${m.neck}`);
-    if (c.ops.length) lines.push(`Trát lỗ cống: ${m.plaster}`);
-    if (mortarT > 0) lines.push(`Đệm trần: ${m.mortar}`);
-    lines.forEach((t, i) => b.text('TEXT', -ho, -d.tb - l1 - l2 - b.paper(24 + 3.6 * i), t, 2.4, 'l'));
+    const notes: [string, number][] = [[m.body, -d.tb / 2]];
+    if (l1 > 0) notes.push([m.liner1, -d.tb - l1 / 2]);
+    if (l2 > 0) notes.push([m.liner2, -d.tb - l1 - l2 / 2]);
+    const nx = -bw * 0.28;
+    const h = b.paper(2);
+    const row = b.paper(3.4);
+    const zTxt = zb - b.paper(7) - b.paper(10);
+    b.line('NET', nx, notes[0][1], nx, zTxt - row * (notes.length - 1) + b.paper(0.8));
+    for (const [, z] of notes) b.circle('THEP', nx, z, b.paper(0.35), true);
+    notes.forEach(([t, ], i) => {
+      const y = zTxt - row * i;
+      b.text('TEXT', nx + b.paper(0.8), y + b.paper(0.8), t, 2, 'l');
+      b.line('NET', nx, y, nx + b.paper(1.6) + t.length * h * 0.55, y);
+    });
   }
   // kích thước ngang
-  const zb = -d.tb - l1 - l2 - b.paper(10);
   b.dimH(-ho, -ax.half, zb, -d.tb - l1 - l2, fmtMm(d.tw));
   b.dimH(-ax.half, ax.half, zb, -d.tb - l1 - l2, fmtMm(2 * ax.half));
   b.dimH(ax.half, ho, zb, -d.tb - l1 - l2, fmtMm(d.tw));
@@ -699,11 +720,13 @@ export function sectionRebar(c: Ctx, s: number, id: 'A' | 'B'): View {
   const dot = (x: number, z: number, _dia: number) => b.circle('THEP', x, z, Math.max(cfg.cover.notch / 2, b.paper(0.3)), true);
   const barLine = (x0: number, z0: number, x1: number, z1: number) => b.line('THEP', x0, z0, x1, z1);
   const mark = (x: number, z: number, text: string, dx = 0, dz = 0) => {
+    const dir = dx >= 0 ? 1 : -1;
+    const len = b.paper(1.8) + text.length * b.paper(2) * 0.55;
     b.line('NET', x, z, x + dx, z + dz);
-    b.text('TEXT', x + dx, z + dz, text, 2.2, dx >= 0 ? 'l' : 'r');
+    b.line('NET', x + dx, z + dz, x + dx + dir * len, z + dz);
+    b.text('TEXT', x + dx + dir * b.paper(0.8), z + dz + b.paper(0.8), text, 2, dir === 1 ? 'l' : 'r');
+    b.circle('THEP', x, z, b.paper(0.35), true);
   };
-  const sym = cfg.fmt.densSym;
-  const tag = (sp: { dia: number; spacing: number } | null) => (sp ? `Ø${sp.dia}${sym}${sp.spacing}` : '');
 
   // ---- bản đáy: lớp dưới (đường) + lớp trên (đường) ; thanh phương kia = chấm
   const cb = cfg.cover.bottom;
@@ -720,7 +743,7 @@ export function sectionRebar(c: Ctx, s: number, id: 'A' | 'B'): View {
     b.poly('THEP', pts, false);
     const sp = spaced(2 * (bw - cb), low.spacing, cfg.fmt.mesh, 2);
     sp.pos.forEach((p) => dot(-bw + cb + p, z + low.dia, low.dia));
-    mark(bw - cb - 100, z, tag(low), b.paper(7), -b.paper(5));
+    mark(bw - cb - 100, z, 'Đáy dưới', b.paper(7), -b.paper(6));
   }
   if (up) {
     const z = -cb;
@@ -732,6 +755,7 @@ export function sectionRebar(c: Ctx, s: number, id: 'A' | 'B'): View {
     b.poly('THEP', pts, false);
     const sp = spaced(2 * (bw - cb), up.spacing, cfg.fmt.mesh, 2);
     sp.pos.forEach((p) => dot(-bw + cb + p, z - up.dia, up.dia));
+    mark(bw / 3, z, 'Đáy trên', b.paper(7), -b.paper(15));
   }
   // ---- tường: thép đứng (đường) + thép ngang (chấm)
   const cw = cfg.cover.wall;
@@ -756,7 +780,7 @@ export function sectionRebar(c: Ctx, s: number, id: 'A' | 'B'): View {
         if (op && z >= op.z0 - cw && z <= op.z1 + cw) return;
         dot(xdot, z, dH);
       });
-      if (sg === 1) mark(xs, d.H * (name === 'ngoài' ? 0.7 : 0.5), tag(spec), b.paper(9), b.paper(name === 'ngoài' ? 6 : -4));
+      mark(xs, d.H * (name === 'ngoài' ? 0.72 : 0.5), `T${(sg === -1 ? ax.left : ax.right) + 1} ${name}`, sg * b.paper(name === 'ngoài' ? 9 : -9), b.paper(name === 'ngoài' ? 6 : -4));
     }
   }
   // ---- trần
@@ -773,8 +797,9 @@ export function sectionRebar(c: Ctx, s: number, id: 'A' | 'B'): View {
     if (upR) {
       barLine(-ho + cr, z1, ho - cr, z1);
       spaced(2 * (ho - cr), upR.spacing, cfg.fmt.mesh).pos.forEach((p) => dot(-ho + cr + p, z1 - upR.dia, upR.dia));
-      mark(-ho + cr + 60, z1, tag(upR), -b.paper(8), b.paper(5));
+      mark(-ho + cr + 60, z1, 'Trần trên', -b.paper(8), b.paper(5));
     }
+    if (lowR) mark(ho - cr - 60, z0, 'Trần dưới', b.paper(8), -b.paper(7));
   }
   // ---- cổ
   const neck = c.neck;
@@ -787,6 +812,7 @@ export function sectionRebar(c: Ctx, s: number, id: 'A' | 'B'): View {
     const zn1 = zn0 + row.neck.h;
     const o = parseRebar(row.neck.out);
     const i2 = parseRebar(row.neck.in);
+    if (o) mark(al + (ea / 2 + V - cn), zn0 + row.neck.h * 0.5, 'Cổ ga', b.paper(12), b.paper(4));
     for (const sg of [-1, 1]) {
       if (o) barLine(al + sg * (ea / 2 + V - cn), zn0 - (d.tr - cfg.cover.roof), al + sg * (ea / 2 + V - cn), zn1 - cn);
       if (i2) barLine(al + sg * (ea / 2 + cn), zn0, al + sg * (ea / 2 + cn), zn1 - cn);

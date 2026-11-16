@@ -2,17 +2,20 @@ import { useMemo, useState } from 'react';
 import { actions, useStore, type SheetTab } from '../state/store';
 import { compute } from '../state/compute';
 import { GA_KINDS } from '../engine/types';
-import { buildLidSheet, buildScheduleSheets, buildSummarySheets, buildViewSheet, buildWallSheet, SCALES, type Sheet } from '../cad/sheets';
+import { buildLidSheet, buildSummarySheets, SCALES, type Sheet } from '../cad/sheets';
+import { buildVhgSet } from '../cad/vhgSheets';
 import { sheetToSvg } from '../cad/svg';
 import { Icon } from './Icon';
 
-const TABS: { id: SheetTab; label: string }[] = [
-  { id: 'struct', label: 'Kết cấu' },
-  { id: 'rebar', label: 'Cốt thép' },
-  { id: 'wall', label: 'Lưới thép tường' },
-  { id: 'lid', label: 'Tấm nắp' },
-  { id: 'schedule', label: 'Thống kê thép' },
-  { id: 'summary', label: 'Tổng hợp khối lượng' },
+/** Các tờ của một ga theo bố cục bản vẽ mẫu VHGpro (xem cad/vhgSheets.ts), cộng chi tiết tấm nắp và bảng tổng hợp. */
+const TABS: { id: SheetTab; label: string; hint: string }[] = [
+  { id: 'vhg1', label: 'Tờ 1', hint: 'Mặt bằng, mặt cắt, lưới thép tường' },
+  { id: 'vhg2', label: 'Tờ 2', hint: 'Thép bản đáy, tường T1 – T2' },
+  { id: 'vhg3', label: 'Tờ 3', hint: 'Thép tường T3 – T4, trần' },
+  { id: 'vhg4', label: 'Tờ 4', hint: 'Thép cổ ga, bảng thống kê thép' },
+  { id: 'vhg5', label: 'Tờ 5', hint: 'Hình dạng các thanh thép' },
+  { id: 'lid', label: 'Tấm nắp', hint: 'Chi tiết tấm nắp đúc sẵn' },
+  { id: 'summary', label: 'Tổng hợp khối lượng', hint: 'Bảng tổng hợp toàn dự án' },
 ];
 
 export function DrawView() {
@@ -20,7 +23,6 @@ export function DrawView() {
   const sel = useStore((s) => s.sel);
   const sheetTab = useStore((s) => s.sheet);
   const scale = useStore((s) => s.scale);
-  const cols = useStore((s) => s.cols);
   const theme = useStore((s) => s.theme);
   const [zoom, setZoom] = useState(1);
   const [page, setPage] = useState(0);
@@ -29,21 +31,19 @@ export function DrawView() {
     const c = compute(project);
     const res = c.results[Math.min(sel, c.results.length - 1)];
     const info = GA_KINDS[project.kind];
-    const sc = scale === 'auto' ? undefined : scale;
-    const colOpt = cols === 'auto' ? undefined : cols;
-    if (sheetTab === 'struct' || sheetTab === 'rebar') return [buildViewSheet(res, project.config, project.catalog, info, sheetTab, { scale: sc, cols: colOpt })];
-    if (sheetTab === 'wall') return [buildWallSheet(res, project.config, project.catalog, info, { scale: sc })];
     if (sheetTab === 'lid') {
       const l = buildLidSheet(res, project.config, project.catalog, info);
       return l ? [l] : [];
     }
-    if (sheetTab === 'schedule') return buildScheduleSheets(res, project.config);
-    return buildSummarySheets(project, c.items);
-  }, [project, sel, sheetTab, scale, cols]);
+    if (sheetTab === 'summary') return buildSummarySheets(project, c.items);
+    const set = buildVhgSet(res, project.config, project.catalog, info, { scale });
+    const kind = sheetTab;
+    return set.filter((x) => x.kind === kind);
+  }, [project, sel, sheetTab, scale]);
 
   const cur = sheets[Math.min(page, sheets.length - 1)];
   const svg = useMemo(() => (cur ? sheetToSvg(cur, theme, { responsive: true }) : ''), [cur, theme]);
-  const isView = sheetTab === 'struct' || sheetTab === 'rebar' || sheetTab === 'wall';
+  const isView = sheetTab.startsWith('vhg');
 
   return (
     <div className="drawview">
@@ -54,6 +54,7 @@ export function DrawView() {
               key={t.id}
               role="tab"
               aria-selected={sheetTab === t.id}
+              title={t.hint}
               className={sheetTab === t.id ? 'on' : ''}
               onClick={() => {
                 actions.setSheet(t.id);
@@ -65,16 +66,6 @@ export function DrawView() {
           ))}
         </div>
         <div className="tools">
-          {(sheetTab === 'struct' || sheetTab === 'rebar') && (
-            <label className="field inline">
-              <span>Bố cục</span>
-              <select id="selCols" value={String(cols)} onChange={(e) => actions.setCols(e.target.value === 'auto' ? 'auto' : (Number(e.target.value) as 2 | 3))}>
-                <option value="auto">Tự động</option>
-                <option value="2">Nhóm 2 cột</option>
-                <option value="3">Nhóm 3 cột</option>
-              </select>
-            </label>
-          )}
           {isView && (
             <label className="field inline">
               <span>Tỷ lệ</span>

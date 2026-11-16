@@ -4,7 +4,8 @@ import { compute, useComputed } from '../state/compute';
 import { GA_KINDS, GA_KIND_ORDER, type GaKind } from '../engine/types';
 import { baseName, parseProject, PROJECT_EXT, serializeProject } from '../export/projectIo';
 import { barTable, buildXlsx, qtyTable, steelTable, toCsv } from '../export/exportXlsx';
-import { buildLidSheet, buildScheduleSheets, buildSummarySheets, buildViewSheet, buildWallSheet, type Sheet } from '../cad/sheets';
+import { buildLidSheet, buildSummarySheets, type Sheet } from '../cad/sheets';
+import { buildVhgSet } from '../cad/vhgSheets';
 import { layoutSheets, toDXF } from '../cad/dxf';
 import { sheetToSvg } from '../cad/svg';
 import { download } from './download';
@@ -12,22 +13,14 @@ import { Icon } from './Icon';
 import { BrandMark } from '../../components/Icon';
 import { ModuleSwitch } from '../../shared/ModuleSwitch';
 
-/** Dựng toàn bộ các tờ bản vẽ của một ga. */
+/** Dựng toàn bộ các tờ bản vẽ của một ga: bộ 5 tờ theo bản mẫu VHGpro (tờ 4 có thể nhiều trang) và tờ tấm nắp BTCT nếu có. */
 export function sheetsOfGa(idx: number, scale: 'auto' | number): Sheet[] {
   const { project } = getState();
   const c = compute(project);
   const info = GA_KINDS[project.kind];
   const res = c.results[idx];
-  const sc = scale === 'auto' ? undefined : scale;
-  const cols = getState().cols === 'auto' ? undefined : (getState().cols as 2 | 3);
   const lid = buildLidSheet(res, project.config, project.catalog, info);
-  return [
-    buildViewSheet(res, project.config, project.catalog, info, 'struct', { scale: sc, cols }),
-    buildViewSheet(res, project.config, project.catalog, info, 'rebar', { scale: sc, cols }),
-    buildWallSheet(res, project.config, project.catalog, info, { scale: sc }),
-    ...(lid ? [lid] : []),
-    ...buildScheduleSheets(res, project.config),
-  ];
+  return [...buildVhgSet(res, project.config, project.catalog, info, { scale }), ...(lid ? [lid] : [])];
 }
 
 export function Header() {

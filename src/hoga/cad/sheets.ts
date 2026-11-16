@@ -13,7 +13,7 @@ import type { PipeCatalog } from '../engine/parse';
 
 export const SCALES = [5, 10, 15, 20, 25, 30, 40, 50, 75, 100];
 export const A3 = { w: 420, h: 297 };
-export type SheetKind = 'struct' | 'rebar' | 'wall' | 'lid' | 'schedule' | 'summary';
+export type SheetKind = 'struct' | 'rebar' | 'wall' | 'lid' | 'schedule' | 'summary' | 'vhg1' | 'vhg2' | 'vhg3' | 'vhg4' | 'vhg5';
 
 export interface Sheet {
   id: string;
@@ -188,7 +188,7 @@ export function shapeOf(label: string, hooks: number): BarShapeKind {
 }
 
 /** Hình thu nhỏ của thanh trong ô `w × h` (mm giấy) có góc dưới trái tại (x, y). */
-function drawShape(b: Builder, k: BarShapeKind, x: number, y: number, w: number, h: number): void {
+export function drawShape(b: Builder, k: BarShapeKind, x: number, y: number, w: number, h: number): void {
   const L = (x1: number, y1: number, x2: number, y2: number) => b.line('THEP', x1, y1, x2, y2);
   const px = x + 3;
   const qx = x + w - 3;

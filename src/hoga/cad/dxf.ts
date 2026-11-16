@@ -4,7 +4,8 @@
  *    cho nốt thép, TEXT; mỗi tỷ lệ bản vẽ có một DIMSTYLE riêng. Đã mở và AUDIT bằng AutoCAD (accoreconsole) khi phát triển.
  *  - `R12` (AC1009): LINE, CIRCLE, POLYLINE, TEXT – HATCH/DIMENSION được khai triển thành đoạn thẳng, để tương thích bản cũ.
  */
-import { expandEnts, LAYERS, translate, type DimEnt, type Ent, type HatchEnt } from './ents';
+import { DXF_LAYERS, dxfLayerOf, expandEnts, LAYERS, translate, type DimEnt, type Ent, type HatchEnt } from './ents';
+import { PATTERNS } from './patterns';
 import type { Sheet } from './sheets';
 
 export interface Placed {
@@ -73,6 +74,12 @@ export function toDXF(placed: Placed[], version: DxfVersion = 'R2000'): string {
 function toDXF12(placed: Placed[]): string {
   const L: string[] = [];
   const g = (code: number, v: string | number) => L.push(String(code), String(v));
+  /** lớp của thực thể (tên theo VHGpro); lớp dùng chung mà khác màu thì ghi thêm màu riêng */
+  const gl = (layer: string) => {
+    const m = dxfLayerOf(layer as never);
+    g(8, m.layer);
+    if (m.aci !== undefined) g(62, m.aci);
+  };
   const ents: Ent[] = expandEnts(placed.flatMap((p) => translate(p.sheet.ents, p.ox, p.oy)));
   const { x0, y0, x1, y1 } = extents(placed);
   const refScale = placed.length ? placed[0].sheet.scale : 20;
@@ -128,10 +135,10 @@ function toDXF12(placed: Placed[]): string {
   g(0, 'ENDTAB');
   g(0, 'TABLE');
   g(2, 'LAYER');
-  g(70, LAYERS.length);
-  for (const l of LAYERS) {
+  g(70, DXF_LAYERS.length);
+  for (const l of DXF_LAYERS) {
     g(0, 'LAYER');
-    g(2, l.name);
+    g(2, l.dxf);
     g(70, 0);
     g(62, l.aci);
     g(6, l.linetype);
@@ -159,7 +166,7 @@ function toDXF12(placed: Placed[]): string {
     switch (e.t) {
       case 'line':
         g(0, 'LINE');
-        g(8, e.layer);
+        gl(e.layer);
         g(10, f(e.x1));
         g(20, f(e.y1));
         g(30, 0);
@@ -171,24 +178,24 @@ function toDXF12(placed: Placed[]): string {
         if (e.fill) {
           // vòng tròn đặc: polyline kín 2 đỉnh, bulge = 1, bề rộng = bán kính
           g(0, 'POLYLINE');
-          g(8, e.layer);
+          gl(e.layer);
           g(66, 1);
           g(70, 1);
           g(40, f(e.r));
           g(41, f(e.r));
           for (const sx of [-1, 1]) {
             g(0, 'VERTEX');
-            g(8, e.layer);
+            gl(e.layer);
             g(10, f(e.cx + (sx * e.r) / 2));
             g(20, f(e.cy));
             g(30, 0);
             g(42, 1);
           }
           g(0, 'SEQEND');
-          g(8, e.layer);
+          gl(e.layer);
         } else {
           g(0, 'CIRCLE');
-          g(8, e.layer);
+          gl(e.layer);
           g(10, f(e.cx));
           g(20, f(e.cy));
           g(30, 0);
@@ -197,22 +204,22 @@ function toDXF12(placed: Placed[]): string {
         break;
       case 'poly':
         g(0, 'POLYLINE');
-        g(8, e.layer);
+        gl(e.layer);
         g(66, 1);
         g(70, e.closed ? 1 : 0);
         for (const [x, y] of e.pts) {
           g(0, 'VERTEX');
-          g(8, e.layer);
+          gl(e.layer);
           g(10, f(x));
           g(20, f(y));
           g(30, 0);
         }
         g(0, 'SEQEND');
-        g(8, e.layer);
+        gl(e.layer);
         break;
       case 'text': {
         g(0, 'TEXT');
-        g(8, e.layer);
+        gl(e.layer);
         g(10, f(e.x));
         g(20, f(e.y));
         g(30, 0);
@@ -348,16 +355,16 @@ function toDXF2000(placed: Placed[]): string {
   ltype('CENTER', 'Center', [1.25, -0.25, 0.25, -0.25]);
   tg(0, 'ENDTAB');
 
-  table('LAYER', tblHandles.layer, LAYERS.length + 1);
+  table('LAYER', tblHandles.layer, DXF_LAYERS.length + 1);
   rec('LAYER', tblHandles.layer, 'AcDbLayerTableRecord');
   tg(2, '0');
   tg(70, 0);
   tg(62, 7);
   tg(6, 'CONTINUOUS');
   tg(390, placeholder);
-  for (const l of LAYERS) {
+  for (const l of DXF_LAYERS) {
     rec('LAYER', tblHandles.layer, 'AcDbLayerTableRecord');
-    tg(2, l.name);
+    tg(2, l.dxf);
     tg(70, 0);
     tg(62, l.aci);
     tg(6, l.linetype);
@@ -481,7 +488,10 @@ function toDXF2000(placed: Placed[]): string {
     out.g(5, w.handle());
     out.g(330, owner);
     out.g(100, 'AcDbEntity');
-    out.g(8, layer);
+    const known = LAYERS.some((l) => l.name === layer);
+    const m = known ? dxfLayerOf(layer as never) : { layer, aci: undefined };
+    out.g(8, m.layer);
+    if (m.aci !== undefined) out.g(62, m.aci);
     out.g(100, sub);
   };
   block('*Model_Space', msRec, false, () => undefined);
@@ -530,6 +540,49 @@ function toDXF2000(placed: Placed[]): string {
     }
     out.g(100, 'AcDbText');
     out.g(73, 0);
+  };
+  /** HATCH dùng mẫu chuẩn (ANSI32, AR-CONC …): ghi cả định nghĩa mẫu đã nhân tỷ lệ như AutoCAD (đối chiếu từ bản vẽ mẫu VHGpro). */
+  const writePatternHatch = (out: Writer2000, h: HatchEnt): void => {
+    const sc = h.pscale ?? 1;
+    entity(out, 'HATCH', msRec, h.layer, 'AcDbHatch');
+    out.g(10, 0);
+    out.g(20, 0);
+    out.g(30, 0);
+    out.g(210, 0);
+    out.g(220, 0);
+    out.g(230, 1);
+    out.g(2, h.pattern!);
+    out.g(70, 0);
+    out.g(71, 0);
+    out.g(91, h.loops.length);
+    for (const loop of h.loops) {
+      out.g(92, 3);
+      out.g(72, 0);
+      out.g(73, 1);
+      out.g(93, loop.length);
+      for (const [x, y] of loop) {
+        out.g(10, f(x));
+        out.g(20, f(y));
+      }
+      out.g(97, 0);
+    }
+    out.g(75, 0);
+    out.g(76, 1);
+    out.g(52, 0);
+    out.g(41, f(sc));
+    out.g(77, 0);
+    const fam = PATTERNS[h.pattern!];
+    out.g(78, fam.length);
+    for (const [ang, bx, by, ox, oy, dashes] of fam) {
+      out.g(53, f(ang));
+      out.g(43, f(bx * sc));
+      out.g(44, f(by * sc));
+      out.g(45, f(ox * sc));
+      out.g(46, f(oy * sc));
+      out.g(79, dashes.length);
+      for (const v of dashes) out.g(49, f(v * sc));
+    }
+    out.g(98, 0);
   };
   for (const d of dimBlocks) {
     block(d.name, d.recHandle, true, () => {
@@ -594,6 +647,10 @@ function toDXF2000(placed: Placed[]): string {
         break;
       case 'hatch': {
         const h = e as HatchEnt;
+        if (h.pattern) {
+          writePatternHatch(en, h);
+          break;
+        }
         // mẫu tô một họ đường song song: góc h.angle, khoảng cách vuông góc = h.gap (mm mô hình) – nhúng sẵn trong thực thể
         const ang = (h.angle * Math.PI) / 180;
         entity(en, 'HATCH', msRec, h.layer, 'AcDbHatch');

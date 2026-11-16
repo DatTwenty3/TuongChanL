@@ -4,6 +4,7 @@ import { defaultProject } from '../../src/hoga/engine/defaults';
 import { computeAll } from '../../src/hoga/engine/summary';
 import { summarize } from '../../src/hoga/engine/summary';
 import { buildViewSheet, buildLidSheet } from '../../src/hoga/cad/sheets';
+import { buildVhgSet } from '../../src/hoga/cad/vhgSheets';
 import { CONFIG_GROUPS, getPath, setPath, type Field } from '../../src/hoga/components/configSchema';
 import { GA_KINDS, GA_KIND_ORDER, type GaKind, type HoGaProject } from '../../src/hoga/engine/types';
 
@@ -18,6 +19,7 @@ function signature(p: HoGaProject): string {
     for (const k of ['struct', 'rebar'] as const) parts.push(buildViewSheet(r, p.config, p.catalog, info, k, { scale: 20 }).ents);
     const lid = buildLidSheet(r, p.config, p.catalog, info);
     parts.push(lid ? lid.ents : null);
+    parts.push(buildVhgSet(r, p.config, p.catalog, info, { scale: 20 }).map((x) => x.ents));
   }
   return JSON.stringify(parts);
 }

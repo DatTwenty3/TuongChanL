@@ -3,7 +3,8 @@ import { describe, expect, it } from 'vitest';
 import { defaultProject } from '../../../src/hoga/engine/defaults';
 import { GA_KINDS, GA_KIND_ORDER } from '../../../src/hoga/engine/types';
 import { layoutSheets } from '../../../src/hoga/cad/dxf';
-import { buildLidSheet, buildScheduleSheets, buildSummarySheets, buildViewSheet, buildWallSheet } from '../../../src/hoga/cad/sheets';
+import { buildSummarySheets } from '../../../src/hoga/cad/sheets';
+import { buildVhgSet } from '../../../src/hoga/cad/vhgSheets';
 import { computeAll, summarize } from '../../../src/hoga/engine/summary';
 
 /** Hai tờ bị coi là đè nhau khi phần chung của hai khung chữ nhật có diện tích dương. */
@@ -19,16 +20,7 @@ describe('DXF nhiều ga: bố cục các tờ', () => {
       const p = defaultProject(kind);
       const res = computeAll(p);
       const info = GA_KINDS[kind];
-      const groups = res.map((r) => {
-        const lid = buildLidSheet(r, p.config, p.catalog, info);
-        return [
-          buildViewSheet(r, p.config, p.catalog, info, 'struct'),
-          buildViewSheet(r, p.config, p.catalog, info, 'rebar'),
-          buildWallSheet(r, p.config, p.catalog, info),
-          ...(lid ? [lid] : []),
-          ...buildScheduleSheets(r, p.config),
-        ];
-      });
+      const groups = res.map((r) => buildVhgSet(r, p.config, p.catalog, info));
       groups.push(buildSummarySheets(p, summarize(p, res)));
       const placed = layoutSheets(groups);
       expect(placed.length).toBe(groups.reduce((n, g) => n + g.length, 0));

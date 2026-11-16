@@ -78,7 +78,8 @@ describe('Giao diện LEDAT Hố Ga', () => {
     expect($$('.catalogview table')).toHaveLength(4);
     await click($('#tab_draw'));
     const tabs = $$('#tabs button');
-    expect(tabs).toHaveLength(6);
+    // bộ bản vẽ theo mẫu VHGpro: 5 tờ + tấm nắp + tổng hợp
+    expect(tabs.map((t) => t.textContent)).toEqual(['Tờ 1', 'Tờ 2', 'Tờ 3', 'Tờ 4', 'Tờ 5', 'Tấm nắp', 'Tổng hợp khối lượng']);
     for (const t of tabs) {
       await click(t);
       expect($('#stage')).not.toBeNull();
@@ -89,21 +90,25 @@ describe('Giao diện LEDAT Hố Ga', () => {
     expect($('#sinfo')!.textContent).toContain('TỔNG HỢP');
   });
 
-  it('tờ tấm nắp và lưới thép tường có bản vẽ với ga không cổ', async () => {
+  it('tờ tấm nắp và các tờ thép có bản vẽ với ga không cổ', async () => {
     await setInput($<HTMLSelectElement>('#selKind')!, 'khongCo');
     await click($$('#tabs button').find((t) => t.textContent === 'Tấm nắp')!);
     expect($('#stage svg')).not.toBeNull();
     expect($('#sinfo')!.textContent).toContain('Tấm nắp');
-    await click($$('#tabs button').find((t) => t.textContent === 'Lưới thép tường')!);
-    expect($('#stage svg')).not.toBeNull();
-    expect($('#sinfo')!.textContent).toContain('Lưới thép tường');
+    for (const n of ['Tờ 2', 'Tờ 3', 'Tờ 4', 'Tờ 5']) {
+      await click($$('#tabs button').find((t) => t.textContent === n)!);
+      expect($('#stage svg')).not.toBeNull();
+      expect($('#sinfo')!.textContent).toContain(n);
+      expect($('#sinfo')!.textContent).not.toContain('NaN');
+    }
   });
 
-  it('đổi bố cục 2 cột / 3 cột', async () => {
-    await click($$('#tabs button').find((t) => t.textContent === 'Cốt thép')!);
+  it('đổi tỷ lệ bản vẽ dựng lại tờ với đúng tỷ lệ chọn', async () => {
+    await click($$('#tabs button').find((t) => t.textContent === 'Tờ 1')!);
     const before = $('#stage')!.innerHTML;
-    await setInput($<HTMLSelectElement>('#selCols')!, '2');
-    expect(getState().cols).toBe(2);
+    await setInput($<HTMLSelectElement>('#selScale')!, '50');
+    expect(getState().scale).toBe(50);
+    expect($('#sinfo')!.textContent).toContain('tỷ lệ 1/50');
     expect($('#stage')!.innerHTML).not.toBe(before);
   });
 

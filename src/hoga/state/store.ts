@@ -5,7 +5,7 @@ import { parseProject } from '../export/projectIo';
 import { readTheme, writeTheme } from '../../shared/theme';
 
 export type Tab = 'draw' | 'qty' | 'steel' | 'config' | 'catalog';
-export type SheetTab = 'struct' | 'rebar' | 'wall' | 'lid' | 'schedule' | 'summary';
+export type SheetTab = 'vhg1' | 'vhg2' | 'vhg3' | 'vhg4' | 'vhg5' | 'lid' | 'summary';
 export type Theme = 'light' | 'dark';
 
 export interface Toast {
@@ -56,7 +56,7 @@ let state: UiState = {
   project: defaultProject('lienKhoi'),
   sel: 0,
   tab: 'draw',
-  sheet: 'struct',
+  sheet: 'vhg1',
   theme: initialTheme(),
   toast: null,
   dirty: false,
@@ -146,7 +146,7 @@ export const actions = {
   markClean: () => set({ dirty: false }),
   /** Đặt lại toàn bộ trạng thái làm việc (dùng khi khởi động lại và trong kiểm thử). */
   reset(kind: GaKind = 'lienKhoi') {
-    state = { ...state, project: defaultProject(kind), sel: 0, tab: 'draw', sheet: 'struct', scale: 'auto', cols: 'auto', toast: null, dirty: false, past: [], future: [], draftOffered: false };
+    state = { ...state, project: defaultProject(kind), sel: 0, tab: 'draw', sheet: 'vhg1', scale: 'auto', cols: 'auto', toast: null, dirty: false, past: [], future: [], draftOffered: false };
     emit();
   },
   updateRow(i: number, patch: (r: GaRow) => GaRow, coalesce = true) {

@@ -83,17 +83,36 @@ Các quy tắc còn lại (ứng dụng tự đặt):
 
 ## 5. Bản vẽ
 
-* Hình: mặt bằng thân ga, mặt bằng trần / tấm nắp (chốt thép, nắp gang theo block, vát nắp), mặt cắt A-A / B-B (vữa đệm, vành đỡ nắp, thang thép, chốt, cao trình đáy cống, ghi chú vật liệu, tiền tố `Htb=`, `Ctb=`),
-  cốt thép mặt cắt, mặt bằng cốt thép đáy/trần, **lưới thép từng tường (ngoài/trong) với thanh đứng, thanh ngang, thép buộc, lỗ cống và chú thích `T1-Ø10, L=2450`**, tờ tấm nắp (mặt bằng + 2 mặt cắt), bảng thống kê có hình dạng thanh.
-* Tô vật liệu: HATCH song song 45°/135° cắt đa giác có lỗ; trên web hiển thị bằng nét song song cùng khoảng cách.
-* Tỷ lệ tự động: nhỏ nhất trong `[5,10,15,20,25,30,40,50,75,100]` sao cho mọi hình lọt ô lưới A3; cho phép chọn 2 hoặc 3 cột.
-* Nốt thép: đường kính = `cover.notch` (đúng ý "tỷ lệ nốt thép" của HDSD).
-* DXF R2000: handle duy nhất, chủ sở hữu hợp lệ, `DIMSTYLE HG<tỷ lệ>`, khối ẩn `*Dn`, khối `NOT`, từ điển `ACAD_PLOTSTYLENAME`; kiểm bằng `scripts/validate-dxf-autocad.ps1`.
+**Bố cục theo bản vẽ mẫu VHGpro** (Bước 52). Nguồn đối chiếu: 5 bản vẽ `.dwg` mẫu mở bằng AutoCAD (`DXFOUT`) rồi đọc bằng `ezdxf` — chỉ đọc dữ liệu hình (lớp, màu, mẫu tô,
+kích thước, vị trí), không đọc / không chạy bất kỳ phần cấp phép nào và không sao chép khối thư viện (khối nắp gang, `Gach`, …). Bộ 5 tờ A3 cho mỗi ga, **cùng một tỷ lệ**
+(tự chọn, hoặc chọn ở ô "Tỷ lệ"); khung đơn lề trái 20 mm / các lề khác 5 mm (lớp `VHG-140`), không có khung tên; mỗi hình có tên màu xanh lá 3 mm và dòng `Tỷ lệ 1:n` 2 mm:
+
+| Tờ | Nội dung (3 cột × 2 hàng, tâm cột 79,8 / 216,15 / 352,5 mm; hàng cách nhau 139,3 mm) |
+|---|---|
+| 1 | Mặt bằng hố ga (nhìn từ trên, nét khuất xanh dương, ký hiệu mặt cắt tròn có mũi tên) · mặt cắt B-B · mặt cắt cốt thép A-A / mặt cắt A-A · mặt bằng lưới thép tường · cốt thép mặt cắt B-B |
+| 2 | Bản đáy lớp trên · tường T1 ngoài · T2 ngoài / bản đáy lớp dưới · T1 trong · T2 trong |
+| 3 | Tường T3 ngoài · T4 ngoài · trần lớp trên / T3 trong · T4 trong · trần lớp dưới |
+| 4 | Mặt bằng thép cổ ga + mặt cắt A-A, B-B của cổ (cột trái) · bảng thống kê cốt thép hai cột bảng (nhiều trang nếu dài) · khối "Tổng (kg)" |
+| 5 | Hình dạng thanh theo nhóm (đáy, T1…T4, trần, cổ ga + thang): "Mã-Ø, L=…" và hình thu nhỏ |
+
+Lưu ý khớp với bản mẫu: **A-A là mặt cắt ngang (theo bề rộng B), B-B là mặt cắt dọc (theo chiều dài L)** — ngược với id trục nội bộ (`section(c, s, 'A')` = dọc); các tên hình đã hoán đổi cho đúng bản mẫu.
+Mã thanh vẫn là mã duy nhất toàn ga (D1…, T1…, N1…, C1…) để bảng thống kê không trùng; bản mẫu đánh lại mã theo từng lớp.
+
+Phong cách (đối chiếu từ bản mẫu): lớp DXF `VHG-BT` (bê tông, ACI 4), `VHG-Thep` (đỏ 1) / `VHG-Thep2` (vàng 2, thép buộc dấu X) / `VHG-Thep3` (tím nét đứt) / `VHG-Thep4` (xám nét đứt),
+`VHG-Dim` (kích thước + đường dẫn, 140), `VHG-150` (cống), `VHG-Dashed` (đường khuất, xanh dương), `VHG-VL` (tô vật liệu, 251), `VHG-Center` (tim), `VHG-Text`, `VHG-140` (khung).
+Mẫu tô chuẩn: bê tông = `ANSI32` × 4·tỷ lệ + `AR-CONC` × 0,4·tỷ lệ; bê tông lót / đệm = `AR-CONC`; vữa trát = `ANSI37` × 4·tỷ lệ (định nghĩa mẫu theo inch của AutoCAD trong `cad/patterns.ts`, sinh từ `ezdxf`;
+DXF R2000 ghi HATCH thật kèm định nghĩa đã nhân hệ số, giống bản mẫu; SVG và DXF R12 khai triển thành đoạn thẳng / chấm).
+
+* Mã nguồn: `cad/vhgSheets.ts` (bố cục + chọn tỷ lệ), `cad/viewsVhg.ts` (mặt bằng ga, lưới thép tường, ký hiệu mặt cắt, chú thích có đường dẫn), `cad/viewsPanels.ts` (lớp thép đáy / trần / tường, chuỗi kích thước `12x146.4=1757`),
+  `cad/viewsNeck.ts`, `cad/vhgTables.ts` (bảng thống kê, hình dạng thanh), `cad/vhgFrame.ts`; các hình mặt cắt dùng chung `cad/views.ts`. Bộ tờ cũ (`buildViewSheet`, `buildWallSheet`, `buildScheduleSheets`) còn trong `cad/sheets.ts` cho test đối chiếu.
+* Nốt thép: đường kính = `cover.notch` (đúng ý "tỷ lệ nốt thép" của HDSD). Tấm nắp BTCT vẫn có tờ riêng (`buildLidSheet`, tab "Tấm nắp").
+* DXF R2000: handle duy nhất, chủ sở hữu hợp lệ, `DIMSTYLE HG<tỷ lệ>`, khối ẩn `*Dn`, khối `NOT`, từ điển `ACAD_PLOTSTYLENAME`; kiểm bằng `scripts/validate-dxf-autocad.ps1` (bộ 5 loại ga: AUDIT 0 lỗi).
+* Test: `tests/hoga/engine/vhgSheets.test.ts` (đủ tờ / hình / tên, không NaN, tên lớp & mẫu tô trong DXF, `patternSegments`), `layout.test.ts` (20 ga × bộ tờ + tổng hợp không đè nhau).
 
 ## 6. Giới hạn đã biết
 
-* Chưa có chú thích riêng từng thanh trên mặt cắt (chỉ trên lưới tường và ký hiệu lớp), chưa có tờ hình dạng thanh dạng bản vẽ (có hình thu nhỏ trong bảng thống kê).
+* Hình chưa giống bản mẫu 100 %: chưa có chuỗi kích thước độ cao hai bên mặt cắt theo từng lỗ cống, chưa có nắp gang thật (dùng ký hiệu tự vẽ, không chèn khối thư viện), chưa có hình khối nắp trên mặt cắt như bản mẫu,
+  số hiệu thanh trong bản vẽ là mã duy nhất toàn ga (bản mẫu đánh lại theo lớp), bảng thống kê chưa có hình dạng kèm kích thước từng đoạn.
 * Mặt cắt chỉ cắt qua tim ga; lỗ cống lệch tim không nằm trên mặt cắt thì không hiện.
 * Cửa thu chỉ vẽ trong mặt bằng và mặt cắt đi qua nó; chi tiết cốt thép cửa thu chỉ có trong bảng chiết tính.
-* Hatch dùng một họ đường (không dùng mẫu `AR-CONC`, `ANSI32` của AutoCAD); nắp gang không chèn block thư viện.
 * Số liệu thép chưa khớp 100 % VHGpro (xem §4).
