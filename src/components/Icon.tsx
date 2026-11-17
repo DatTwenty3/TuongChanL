@@ -29,6 +29,7 @@ const PATHS: Record<string, string> = {
   moon: 'M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z',
   wall: 'M9 3h5v12h7v5H3v-5h6z',
   manhole: 'M4 4h16v16H4z M8 8h8v8H8z M12 12m-1.6 0a1.6 1.6 0 1 0 3.2 0a1.6 1.6 0 1 0 -3.2 0',
+  road: 'M6 20L9 4 M18 20L15 4 M12 5v3 M12 11v3 M12 17v3',
   sliders: 'M4 6h10 M18 6h2 M4 12h4 M12 12h8 M4 18h12 M20 18h0 M14 4v4 M8 10v4 M16 16v4',
 };
 

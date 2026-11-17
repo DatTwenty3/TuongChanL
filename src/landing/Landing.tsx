@@ -69,11 +69,11 @@ function hogaResume(): string | null {
 }
 
 interface CardDef {
-  id: 'walls' | 'culvert' | 'hoga';
+  id: 'walls' | 'culvert' | 'hoga' | 'pavement';
   path: string;
   title: string;
   tag: string;
-  icon: 'wall' | 'calc' | 'manhole';
+  icon: 'wall' | 'calc' | 'manhole' | 'road';
   /** Mô tả một dòng (giữ ngắn — trang chủ chỉ để chọn phân hệ). */
   desc: string;
   resume: string | null;
@@ -140,6 +140,15 @@ export const Landing: React.FC = () => {
         desc: 'Vẽ A3, bóc khối lượng, chiết tính thép hố ga',
         resume: hogaResume(),
       },
+      {
+        id: 'pavement',
+        path: 'mat-duong/',
+        title: 'Kết cấu mặt đường',
+        tag: 'TCCS 37 · 38 · 39 / TCĐBVN',
+        icon: 'road',
+        desc: 'Mặt đường cứng BTXM, mềm đa lớp & chỉ số SN',
+        resume: null,
+      },
     ],
     [],
   );
@@ -203,7 +212,7 @@ export const Landing: React.FC = () => {
         </section>
 
         <p className="lp-note">
-          Ba phân hệ chạy ngay trên trình duyệt, tính theo <b>TCVN 11823:2017</b>. Dữ liệu nằm trên máy của bạn — lưu
+          Bốn phân hệ chạy ngay trên trình duyệt, tính theo <b>TCVN 11823:2017</b> &amp; <b>TCCS 37/38/39</b>. Dữ liệu nằm trên máy của bạn — lưu
           và mở lại bằng tệp dự án.
         </p>
       </main>

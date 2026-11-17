@@ -26,7 +26,8 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "tesseract.js": "^5.1.1",
-    "three": "^0.170.0"
+    "three": "^0.170.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/proj4": "^2.5.6",

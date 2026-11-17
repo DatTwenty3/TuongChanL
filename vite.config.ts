@@ -8,7 +8,7 @@ const page = (rel: string) => fileURLToPath(new URL(rel, import.meta.url));
 type Connect = { use: (fn: (req: { url?: string }, res: any, next: () => void) => void) => void };
 const culvertSlash = () => {
   const mw: Parameters<Connect['use']>[0] = (req, res, next) => {
-    const m = req.url ? /^\/(cau-cong|tuong-chan|ho-ga)(\?.*)?$/.exec(req.url) : null;
+    const m = req.url ? /^\/(cau-cong|tuong-chan|ho-ga|mat-duong)(\?.*)?$/.exec(req.url) : null;
     if (req.url && m) {
       res.statusCode = 302;
       res.setHeader('Location', req.url.replace('/' + m[1], '/' + m[1] + '/'));
@@ -35,14 +35,15 @@ export default defineConfig({
     format: 'es',
   },
   build: {
-    // Một site, bốn trang: `/` (trang chủ), `/tuong-chan/` (tường chắn BTCT), `/cau-cong/` (bảng tính cầu cống), `/ho-ga/` (hố ga BTCT).
-    // Mỗi trang có tài liệu HTML riêng nên id, class `body.*` và listener toàn cục của hai ứng dụng không đụng nhau.
+    // Một site, năm trang: `/` (trang chủ), `/tuong-chan/`, `/cau-cong/`, `/ho-ga/`, `/mat-duong/`.
+    // Mỗi trang có tài liệu HTML riêng nên id, class `body.*` và listener toàn cục của các ứng dụng không đụng nhau.
     rollupOptions: {
       input: {
         landing: page('./index.html'),
         walls: page('./tuong-chan/index.html'),
         culvert: page('./cau-cong/index.html'),
         hoga: page('./ho-ga/index.html'),
+        pavement: page('./mat-duong/index.html'),
       },
     },
     chunkSizeWarningLimit: 6000,

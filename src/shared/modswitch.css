@@ -77,6 +77,18 @@
   padding: 5px 8px;
 }
 
+@media (max-width: 640px) {
+  .modsw {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .modsw a,
+  .modsw a.modsw-home {
+    padding: 4px 6px;
+  }
+}
+
 /* ==========================================================================
    Chữ thương hiệu kiểu LEDAT-GIS: "LEDAT-" navy + "BIM" gradient chạy chậm. Dùng ở mọi tiêu đề trang.
    ========================================================================== */
