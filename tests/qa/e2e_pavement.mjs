@@ -163,6 +163,19 @@ try {
   await page.locator('#f_vehtbody').scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(SHOT_DIR, '2_tccs38_veh_dark.png') });
   await page.evaluate(() => window.scrollTo(0, 0));
+  await page.locator('#f_echLookup > summary').click();
+  await page.screenshot({ path: path.join(SHOT_DIR, '2_tccs38_ech_lookup_dark.png') });
+  await page.click('#f_echModeManual');
+  await page.fill('#f_echManual', '225');
+  await page.screenshot({ path: path.join(SHOT_DIR, '2_tccs38_ech_manual_dark.png') });
+  const tc1Manual = await page.locator('#f_tc1out').textContent();
+  if (!tc1Manual?.includes('225,000') || !tc1Manual?.includes('ĐẠT')) {
+    throw new Error(`Manual Ech override failed: ${tc1Manual}`);
+  }
+  await page.click('#f_echModeAuto');
+  const tc1Restored = await page.locator('#f_echVal').textContent();
+  if (tc1Restored !== '198,5') throw new Error(`Failed to reset Ech to (E.1): ${tc1Restored}`);
+  await page.locator('#f_echLookup > summary').click();
   await page.screenshot({ path: path.join(SHOT_DIR, '2_tccs38_dark.png') });
 
   await page.click('.stdbtn[data-std="37"]');

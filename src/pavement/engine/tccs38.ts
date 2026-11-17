@@ -369,6 +369,7 @@ export interface FlexResolvedInput {
   capDuong: FlexRoadClass;
   dotincay: FlexReliability;
   traf: FlexTrafficResult;
+  echManual?: number | null;
   shearManual: Record<string, number>;
 }
 
@@ -388,6 +389,7 @@ export function resolveFlexInput(state: FlexFormState): FlexResolvedInput {
     capDuong: state.capduong,
     dotincay: state.dotincay,
     traf,
+    echManual: state.echManual ?? null,
     shearManual: state.shearManual,
   };
 }
@@ -395,6 +397,8 @@ export function resolveFlexInput(state: FlexFormState): FlexResolvedInput {
 export interface FlexTC1Result {
   red: EtbDCResult;
   Ech: number;
+  EchAuto: number;
+  isEchManual: boolean;
   EycTab: number;
   EycMin: number;
   Eyc: number;
@@ -406,13 +410,16 @@ export interface FlexTC1Result {
 export function calcTC1(I: FlexResolvedInput): FlexTC1Result {
   const bottomUp = [...I.layers].reverse().map((l) => ({ E: l.Ev, h: l.h, name: l.name }));
   const red = EtbDCfx(bottomUp, I.D);
-  const Ech = EchAnalyticFx(I.E0v, red.Etbc, red.H, I.D);
+  const EchAuto = EchAnalyticFx(I.E0v, red.Etbc, red.H, I.D);
+  const manual = I.echManual;
+  const isEchManual = typeof manual === 'number' && Number.isFinite(manual) && manual > 0;
+  const Ech = isEchManual ? manual : EchAuto;
   const EycTab = bang9Interp(I.traf.Ntt, I.traf.Ptt, I.loaiMat);
   const EycMin = bang10Min(I.capDuong, I.loaiMat);
   const Eyc = Math.max(EycTab, EycMin);
   const Kdv = BANG8[I.dotincay].dv;
   const req = Kdv * Eyc;
-  return { red, Ech, EycTab, EycMin, Eyc, Kdv, req, pass: Ech >= req };
+  return { red, Ech, EchAuto, isEchManual, EycTab, EycMin, Eyc, Kdv, req, pass: Ech >= req };
 }
 
 export interface FlexTC2Row {

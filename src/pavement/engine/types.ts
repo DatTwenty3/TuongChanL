@@ -201,6 +201,7 @@ export interface FlexFormState {
   fL: number;
   q: number;
   t: number;
+  echManual?: number | null;
   shearManual: Record<string, number>;
 }
 
@@ -373,6 +374,7 @@ export function createDefaultFlexState(): FlexFormState {
     fL: 0.55,
     q: 6,
     t: 15,
+    echManual: null,
     shearManual: {},
   };
 }

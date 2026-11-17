@@ -40,6 +40,17 @@ describe('Pavement Exporters (XLSX with formulas, Word .doc, JSON)', () => {
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     const parsed = XLSX.read(buf, { type: 'buffer' });
     expect(parsed.SheetNames).toEqual(wb.SheetNames);
+
+    const stManual = { ...createDefaultFlexState(), echManual: 225 };
+    const resManual = resolveFlexInput(stManual);
+    const tc1Manual = calcTC1(resManual);
+    const wbManual = buildFlexWorkbook(stManual, resManual, tc1Manual, calcTC2(resManual), calcTC3(resManual));
+    const calcRows = XLSX.utils.sheet_to_json<unknown[]>(wbManual.Sheets['Tính toán'], { header: 1 });
+    const echRow = calcRows.find((r) => String(r[1] ?? '').includes('nhập tay'));
+    expect(echRow?.[2]).toBe(225);
+    const wordManual = buildFlexWordDoc(resManual, tc1Manual, calcTC2(resManual), calcTC3(resManual));
+    expect(wordManual).toContain('tra toán đồ Hình 2 do người dùng nhập');
+    expect(wordManual).toContain('225,00');
   });
 
   it('builds valid TCCS 38 workbook with Odemark chains and traffic links', () => {
@@ -54,6 +65,17 @@ describe('Pavement Exporters (XLSX with formulas, Word .doc, JSON)', () => {
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     const parsed = XLSX.read(buf, { type: 'buffer' });
     expect(parsed.SheetNames).toEqual(wb.SheetNames);
+
+    const stManual = { ...createDefaultFlexState(), echManual: 225 };
+    const resManual = resolveFlexInput(stManual);
+    const tc1Manual = calcTC1(resManual);
+    const wbManual = buildFlexWorkbook(stManual, resManual, tc1Manual, calcTC2(resManual), calcTC3(resManual));
+    const calcRows = XLSX.utils.sheet_to_json<unknown[]>(wbManual.Sheets['Tính toán'], { header: 1 });
+    const echRow = calcRows.find((r) => String(r[1] ?? '').includes('nhập tay'));
+    expect(echRow?.[2]).toBe(225);
+    const wordManual = buildFlexWordDoc(resManual, tc1Manual, calcTC2(resManual), calcTC3(resManual));
+    expect(wordManual).toContain('tra toán đồ Hình 2 do người dùng nhập');
+    expect(wordManual).toContain('225,00');
   });
 
   it('builds valid TCCS 37 workbook with NORM.S.INV and Goal Seek check formulas', () => {
@@ -66,6 +88,17 @@ describe('Pavement Exporters (XLSX with formulas, Word .doc, JSON)', () => {
     const buf = XLSX.write(wb, { type: 'buffer', bookType: 'xlsx' });
     const parsed = XLSX.read(buf, { type: 'buffer' });
     expect(parsed.SheetNames).toEqual(wb.SheetNames);
+
+    const stManual = { ...createDefaultFlexState(), echManual: 225 };
+    const resManual = resolveFlexInput(stManual);
+    const tc1Manual = calcTC1(resManual);
+    const wbManual = buildFlexWorkbook(stManual, resManual, tc1Manual, calcTC2(resManual), calcTC3(resManual));
+    const calcRows = XLSX.utils.sheet_to_json<unknown[]>(wbManual.Sheets['Tính toán'], { header: 1 });
+    const echRow = calcRows.find((r) => String(r[1] ?? '').includes('nhập tay'));
+    expect(echRow?.[2]).toBe(225);
+    const wordManual = buildFlexWordDoc(resManual, tc1Manual, calcTC2(resManual), calcTC3(resManual));
+    expect(wordManual).toContain('tra toán đồ Hình 2 do người dùng nhập');
+    expect(wordManual).toContain('225,00');
   });
 
   it('generates Word .doc HTML strings for all 3 standards', () => {

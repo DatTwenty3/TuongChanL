@@ -1,6 +1,7 @@
-import { Fragment, useMemo } from 'react';
+import { Fragment, useMemo, useRef, useState } from 'react';
 import {
   CAP_DUONG_38_OPTIONS,
+  EchAnalyticFx,
   FLEX_FORMULAS,
   F_TYPES,
   LOAI_MAT_38_OPTIONS,
@@ -32,7 +33,30 @@ interface FlexModuleProps {
   onChange: (next: FlexFormState) => void;
 }
 
+const HINH2_HD_TICKS = [0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 2.5, 3.0] as const;
+const HINH2_RATIO_TICKS = [0.02, 0.05, 0.1, 0.2, 0.3, 0.5, 0.8] as const;
+
+function nearestTick(ticks: ReadonlyArray<number>, target: number): number {
+  let best = ticks[0];
+  let bestDist = Math.abs(ticks[0] - target);
+  for (const t of ticks) {
+    const d = Math.abs(t - target);
+    if (d < bestDist) {
+      bestDist = d;
+      best = t;
+    }
+  }
+  return best;
+}
+
 export function FlexModule({ visible, state, resolved, tc1, tc2, tc3, onChange }: FlexModuleProps) {
+  const [echDraft, setEchDraft] = useState<string>(() => (state.echManual != null ? String(state.echManual) : ''));
+  const [echEditing, setEchEditing] = useState<boolean>(() => state.echManual != null && state.echManual > 0);
+  const echInputRef = useRef<HTMLInputElement>(null);
+  const showEchInput = tc1.isEchManual || echEditing;
+  const curRatio = tc1.red.Etbc > 0 ? resolved.E0v / tc1.red.Etbc : 0;
+  const nearestHd = nearestTick(HINH2_HD_TICKS, tc1.red.HD);
+  const nearestRatio = nearestTick(HINH2_RATIO_TICKS, curRatio);
   const sectionLayers: SectionLayerItem[] = useMemo(
     () =>
       resolved.layers.map((l) => {
@@ -708,11 +732,87 @@ export function FlexModule({ visible, state, resolved, tc1, tc2, tc3, onChange }
                   </tr>
                   <tr className="hl">
                     <td>
-                      E<sub>ch</sub> (công thức E.1, tham khảo Hình 2)
+                      <div className="ech-label-row">
+                        <span>
+                          E<sub>ch</sub>{' '}
+                          {tc1.isEchManual ? '(tra toán đồ Hình 2 – nhập tay)' : '(công thức E.1, tham khảo Hình 2)'}
+                        </span>
+                        <div className="ech-seg" role="group" aria-label="Chế độ xác định Ech">
+                          <button
+                            type="button"
+                            id="f_echModeAuto"
+                            className={`ech-seg-btn${!showEchInput ? ' active' : ''}`}
+                            onClick={() => {
+                              setEchEditing(false);
+                              setEchDraft('');
+                              onChange({ ...state, echManual: null });
+                            }}
+                          >
+                            Tự tính (E.1)
+                          </button>
+                          <button
+                            type="button"
+                            id="f_echModeManual"
+                            className={`ech-seg-btn${showEchInput ? ' active' : ''}`}
+                            onClick={() => {
+                              setEchEditing(true);
+                              if (state.echManual != null) setEchDraft(String(state.echManual));
+                              requestAnimationFrame(() => echInputRef.current?.focus());
+                            }}
+                          >
+                            Nhập Hình 2
+                          </button>
+                        </div>
+                      </div>
+                      <div className="hint" style={{ fontSize: '11px', marginTop: '3px', fontStyle: 'normal' }}>
+                        Thông số tra Hình 2: H/D = <b>{fmt(tc1.red.HD, 3)}</b> ; E<sub>0</sub>/E&apos;<sub>tb</sub> ={' '}
+                        <b>{tc1.red.Etbc > 0 ? fmt(curRatio, 4) : '–'}</b>
+                        {tc1.isEchManual && (
+                          <>
+                            {' '}· Tính theo (E.1): <b>{fmt(tc1.EchAuto, 1)}</b> MPa
+                          </>
+                        )}
+                      </div>
                     </td>
-                    <td className="v">{fmt(tc1.Ech, 1)}</td>
+                    <td className="v">
+                      {showEchInput ? (
+                        <input
+                          ref={echInputRef}
+                          id="f_echManual"
+                          className="nomo ech-inline-input"
+                          type="number"
+                          step="0.1"
+                          min="0"
+                          aria-label="Nhập E_ch tra toán đồ Hình 2 (MPa)"
+                          placeholder={fmt(tc1.EchAuto, 1)}
+                          value={echDraft}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            setEchDraft(raw);
+                            if (raw.trim() === '') {
+                              onChange({ ...state, echManual: null });
+                              return;
+                            }
+                            const parsed = parseFloat(raw);
+                            if (Number.isFinite(parsed) && parsed > 0) {
+                              onChange({ ...state, echManual: parsed });
+                            } else {
+                              onChange({ ...state, echManual: null });
+                            }
+                          }}
+                          onBlur={() => {
+                            if (echDraft.trim() === '') {
+                              setEchEditing(false);
+                              onChange({ ...state, echManual: null });
+                            }
+                          }}
+                        />
+                      ) : (
+                        <span id="f_echVal">{fmt(tc1.Ech, 1)}</span>
+                      )}
+                    </td>
                     <td className="u">MPa</td>
-                    <td className="eq">(E.1)</td>
+                    <td className="eq">{tc1.isEchManual ? 'Hình 2' : '(E.1)'}</td>
                   </tr>
                   <tr>
                     <td>
@@ -743,6 +843,71 @@ export function FlexModule({ visible, state, resolved, tc1, tc2, tc3, onChange }
                   </tr>
                 </tbody>
               </table>
+              <details className="nomo-lookup" id="f_echLookup">
+                <summary>
+                  Tra bảng toán đồ Hình 2 (TCCS 38) · H/D = {fmt(tc1.red.HD, 3)}, E₀/E&apos;<sub>tb</sub> ={' '}
+                  {tc1.red.Etbc > 0 ? fmt(curRatio, 4) : '–'}
+                </summary>
+                <div className="nomo-lookup-body">
+                  <div className="hint" style={{ marginBottom: '6px' }}>
+                    Bảng trị số E<sub>ch</sub> (MPa) ứng với E&apos;<sub>tb</sub> = <b>{fmt(tc1.red.Etbc, 1)} MPa</b>{' '}
+                    (theo quan hệ Hình 2 / công thức (E.1)). Ô viền xanh gần thông số hiện tại nhất; bấm vào ô bất kỳ để điền nhanh vào TC1:
+                  </div>
+                  <div className="nomo-scroll">
+                    <table className="calc nomo-tbl">
+                      <thead>
+                        <tr>
+                          <th>
+                            E<sub>0</sub>/E&apos;<sub>tb</sub> \ H/D
+                          </th>
+                          {HINH2_HD_TICKS.map((hd) => (
+                            <th
+                              key={hd}
+                              className={hd === nearestHd ? 'near-axis' : undefined}
+                              style={{ textAlign: 'right' }}
+                            >
+                              {fmt(hd, 2)}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {HINH2_RATIO_TICKS.map((rE) => (
+                          <tr key={rE}>
+                            <th className={rE === nearestRatio ? 'near-axis' : undefined}>{fmt(rE, 2)}</th>
+                            {HINH2_HD_TICKS.map((hd) => {
+                              const echCell = EchAnalyticFx(
+                                rE * tc1.red.Etbc,
+                                tc1.red.Etbc,
+                                hd * resolved.D,
+                                resolved.D,
+                              );
+                              const val = Math.round(echCell * 10) / 10;
+                              const isNear = hd === nearestHd && rE === nearestRatio;
+                              return (
+                                <td key={hd} className="v">
+                                  <button
+                                    type="button"
+                                    className={`nomo-pick${isNear ? ' near' : ''}`}
+                                    title={`Ech/E'tb = ${tc1.red.Etbc > 0 ? fmt(echCell / tc1.red.Etbc, 3) : '–'} → ${fmt(val, 1)} MPa`}
+                                    onClick={() => {
+                                      setEchEditing(true);
+                                      setEchDraft(String(val));
+                                      onChange({ ...state, echManual: val });
+                                    }}
+                                  >
+                                    {fmt(val, 1)}
+                                  </button>
+                                </td>
+                              );
+                            })}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </details>
               <div className="vgrid">
                 {vcard('TC1 · Độ võng đàn hồi', 'E_ch ≥ K_cd^dv · E_yc  (4)', tc1.Ech, '≥', tc1.req, tc1.pass)}
               </div>

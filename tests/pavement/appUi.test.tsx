@@ -72,6 +72,23 @@ describe('Phân hệ Mặt đường (TCCS 37/38/39) trong site LEDAT-BIM', () =
     expect(container.querySelector('#mod-flex')?.hasAttribute('hidden')).toBe(false);
     expect((container.querySelector('#subTabs') as HTMLElement).style.display).toBe('none');
     expect(container.querySelectorAll('.shearTaxp').length).toBe(2);
+    expect(container.querySelector('#f_echVal')?.textContent).toBe('198,5');
+    expect(container.querySelector('#f_echManual')).toBeNull();
+    expect(container.querySelector('#f_echModeAuto')?.classList.contains('active')).toBe(true);
+
+    // Pick a value from Hình 2 nomogram lookup table & reset back to (E.1)
+    const highPick = [...container.querySelectorAll<HTMLButtonElement>('#f_echLookup .nomo-pick')].find(
+      (btn) => parseFloat((btn.textContent ?? '').replace(',', '.')) >= 225,
+    );
+    expect(highPick).toBeTruthy();
+    await act(async () => highPick!.click());
+    expect(container.querySelector('#f_echManual')).not.toBeNull();
+    expect(container.querySelector('#f_echModeManual')?.classList.contains('active')).toBe(true);
+    expect(container.querySelector('#f_tc1out .vcard')?.classList.contains('pass')).toBe(true);
+
+    await act(async () => (container.querySelector('#f_echModeAuto') as HTMLButtonElement).click());
+    expect(container.querySelector('#f_echVal')?.textContent).toBe('198,5');
+    expect(container.querySelector('#f_echManual')).toBeNull();
 
     await act(async () => (container.querySelector('.stdbtn[data-std="37"]') as HTMLButtonElement).click());
     expect(container.querySelector('#mod-sn37')?.hasAttribute('hidden')).toBe(false);

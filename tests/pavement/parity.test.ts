@@ -313,7 +313,16 @@ describe('Pavement Engine Baseline Sanity (standalone CI safe)', () => {
     const flex = resolveFlexInput(createDefaultFlexState());
     const tc1 = calcTC1(flex);
     expect(tc1.Ech).toBeGreaterThan(190);
+    expect(tc1.isEchManual).toBe(false);
+    expect(tc1.Ech).toBeCloseTo(tc1.EchAuto, 10);
     expect(tc1.pass).toBe(false);
+
+    const flexManual = resolveFlexInput({ ...createDefaultFlexState(), echManual: 225 });
+    const tc1Manual = calcTC1(flexManual);
+    expect(tc1Manual.isEchManual).toBe(true);
+    expect(tc1Manual.Ech).toBe(225);
+    expect(tc1Manual.EchAuto).toBeCloseTo(tc1.EchAuto, 10);
+    expect(tc1Manual.pass).toBe(true);
     const snNew = computeSN37New(createDefaultSn37NewInput());
     expect(snNew.SN).toBeGreaterThan(4.4);
   });

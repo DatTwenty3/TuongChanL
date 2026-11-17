@@ -789,8 +789,14 @@ export function buildFlexTinhToanSheet(
   set('C' + r, cell(undefined, `MIN(C${rBeta}*${chain.Etbref},MAX(F${LR0}:F${LRend}))`));
   const rEtbc = r;
   r++;
-  S('B' + r, 'Ech (công thức E.1, tham khảo Hình 2)');
-  set('C' + r, cell(undefined, echFormula(`C${rE0v}`, `C${rEtbc}`, `C${rH}`, '$C$7')));
+  if (tc1.isEchManual) {
+    S('B' + r, 'Ech (tra toán đồ Hình 2 – nhập tay)');
+    set('C' + r, cell(tc1.Ech));
+    S('D' + r, `(E.1) = ${fmt(tc1.EchAuto, 1)} MPa`);
+  } else {
+    S('B' + r, 'Ech (công thức E.1, tham khảo Hình 2)');
+    set('C' + r, cell(undefined, echFormula(`C${rE0v}`, `C${rEtbc}`, `C${rH}`, '$C$7')));
+  }
   const rEch = r;
   r++;
   S('B' + r, 'Eyc tra Bảng 9 (nhập từ ứng dụng)');
@@ -1161,7 +1167,11 @@ export function buildFlexThuyetMinhSheet(
   aoa.push(['']);
   aoa.push(['c/ Kiểm tra cường độ chung theo tiêu chuẩn độ võng đàn hồi (TC1) – biểu thức (4): Ech ≥ Kcd_dv·Eyc']);
   aoa.push([`Ta có: H/D = ${fmt(tc1.red.HD, 4)} ; E0/Etb_dc = ${fmtI(I.E0v)}/${fmt(tc1.red.Etbc, 2)} = ${fmt(I.E0v / tc1.red.Etbc, 4)}.`]);
-  aoa.push([`Áp dụng biểu thức giải tích gần đúng (E.1), Phụ lục E, thay cho việc đọc thủ công toán đồ Hình 2 ⇒ Ech = ${fmt(tc1.Ech, 2)} MPa.`]);
+  aoa.push([
+    tc1.isEchManual
+      ? `Lấy giá trị tra toán đồ Hình 2 do người dùng nhập ⇒ Ech = ${fmt(tc1.Ech, 2)} MPa (tính theo công thức (E.1): ${fmt(tc1.EchAuto, 2)} MPa).`
+      : `Áp dụng biểu thức giải tích gần đúng (E.1), Phụ lục E, thay cho việc đọc thủ công toán đồ Hình 2 ⇒ Ech = ${fmt(tc1.Ech, 2)} MPa.`,
+  ]);
   aoa.push([`Kcd_dv × Eyc = ${fmt(tc1.Kdv, 3)} × ${fmt(tc1.Eyc, 0)} = ${fmt(tc1.req, 2)} MPa.`]);
   aoa.push([`Kết quả nghiệm toán: Ech = ${fmt(tc1.Ech, 2)}${tc1.pass ? ' ≥ ' : ' < '}${fmt(tc1.req, 2)} MPa ⇒ KẾT LUẬN: ${tc1.pass ? 'ĐẠT' : 'KHÔNG ĐẠT'}`]);
   aoa.push(['']);

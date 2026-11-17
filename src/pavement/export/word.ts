@@ -189,7 +189,11 @@ export function buildFlexWordDoc(
   const tc1Block = `<p>Công thức kiểm tra — biểu thức (4), Điều 9.2.1:</p>
    <p class=fx>E<sub>ch</sub> ≥ K<sub>cd</sub><sup>dv</sup>·E<sub>yc</sub></p>
    <p class=fx>Ta có: H/D = ${P(tc1.red.HD, 4)} ; E₀/Etb<sup>dc</sup> = ${fmtI(I.E0v)}/${P(tc1.red.Etbc, 2)} = ${P(I.E0v / tc1.red.Etbc, 4)}.</p>
-   <p>Áp dụng biểu thức giải tích gần đúng (E.1), Phụ lục E, thay cho việc đọc thủ công toán đồ Hình 2:</p>
+   <p>${
+    tc1.isEchManual
+      ? `Lấy giá trị tra toán đồ Hình 2 do người dùng nhập (giá trị tính gần đúng theo biểu thức (E.1): ${P(tc1.EchAuto, 2)} MPa):`
+      : 'Áp dụng biểu thức giải tích gần đúng (E.1), Phụ lục E, thay cho việc đọc thủ công toán đồ Hình 2:'
+  }</p>
    <p class=fx>⇒ E<sub>ch</sub> = <span class=res>${P(tc1.Ech, 2)}</span> MPa.</p>
    <p class=fx>K<sub>cd</sub><sup>dv</sup> × E<sub>yc</sub> = ${P(tc1.Kdv, 3)} × ${P(tc1.Eyc, 0)} = ${P(tc1.req, 2)} MPa.</p>
    <p class=fx><b>Kết quả nghiệm toán:</b>&nbsp; E<sub>ch</sub> = ${P(tc1.Ech, 2)} ${tc1.pass ? '≥' : '&lt;'} ${P(tc1.req, 2)} MPa &nbsp;⇒&nbsp; <b style="color:${tc1.pass ? '#1c7a45' : '#c0392b'}">KẾT LUẬN: ${tc1.pass ? 'ĐẠT' : 'KHÔNG ĐẠT'}</b></p>`;
