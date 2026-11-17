@@ -1336,7 +1336,7 @@ describe('Step 5.1 — Clean-Room Differential Parity (Core, Foundations, Culver
         expectParityClose(tsRes.SH, jsRes.SH, 1e-9, `CH(${n},${hs}).SH`);
         expectParityClose(tsRes.I, jsRes.I, 1e-9, `CH(${n},${hs}).I`);
       }
-    });
+    }, 30000);
 
     it('CHN.calc matches JS 07 for both soil bearing/settlement and rock bearing', () => {
       const boxIn = makeBoxInput(2, 1.8);

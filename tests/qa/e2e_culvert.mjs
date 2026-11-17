@@ -10,6 +10,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import JSZip from 'jszip';
 import { PDFDocument } from 'pdf-lib';
 import { chromium } from 'playwright-core';
 
@@ -251,6 +252,20 @@ async function run() {
       assert.equal(xb.subarray(0, 2).toString(), 'PK');
       const names = zipNames(xb);
       assert.ok(names.includes('xl/workbook.xml') && names.filter((n) => n.startsWith('xl/worksheets/sheet')).length >= 3, 'cấu trúc xlsx');
+      // công thức Excel nối ô: các ô kết quả của bảng tính là công thức (=…) tham chiếu ô nhập / ô trung gian
+      const zip = await JSZip.loadAsync(xb);
+      let nF = 0;
+      let nCached = 0;
+      for (const [name, f] of Object.entries(zip.files)) {
+        if (!/^xl\/worksheets\/sheet\d+\.xml$/.test(name)) continue;
+        const xml = await f.async('string');
+        nF += (xml.match(/<f>/g) || []).length;
+        nCached += (xml.match(/<f>[^<]*<\/f><v>/g) || []).length;
+      }
+      assert.ok(nF >= 30, 'số ô công thức: ' + nF);
+      assert.ok(nCached >= nF * 0.8, 'ô công thức có giá trị lưu sẵn: ' + nCached + '/' + nF);
+      const wbXml = await zip.file('xl/workbook.xml').async('string');
+      assert.ok(/fullCalcOnLoad/.test(wbXml), 'thiếu fullCalcOnLoad');
       const dl2 = page.waitForEvent('download', { timeout: 120000 });
       await page.click('#btnP');
       const d2 = await dl2;
@@ -260,7 +275,7 @@ async function run() {
       assert.equal(pb.subarray(0, 5).toString(), '%PDF-');
       const pdf = await PDFDocument.load(pb);
       assert.ok(pdf.getPageCount() >= 1);
-      return `xlsx ${xb.length} B (${names.length} phần), pdf ${pb.length} B (${pdf.getPageCount()} trang)`;
+      return `xlsx ${xb.length} B (${names.length} phần, ${nF} ô công thức), pdf ${pb.length} B (${pdf.getPageCount()} trang)`;
     });
 
     await step('C-7 Lưu / mở số liệu (.json): khứ hồi giữ nguyên dữ liệu nhập', async () => {

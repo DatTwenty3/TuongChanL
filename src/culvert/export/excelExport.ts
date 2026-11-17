@@ -15,6 +15,7 @@ import {
 } from '../graphics/plots3d.ts';
 import { eqPng, eqSize, svgPng, type MathRasterizer } from '../graphics/texMath.ts';
 import { normalizeAppMode, resolveOpenTabInfo } from './projectIo.ts';
+import { evalExcelString, evaluate, normSym, parseEquation, symbolsOf, toExcel } from './texFormula.ts';
 
 type ExcelWorkbookCtor = typeof Workbook;
 
@@ -125,6 +126,8 @@ export interface BuildWorkbookResult {
   wb: Workbook;
   metas: WorkbookMeta[];
   buffer: Uint8Array;
+  /** Số ô kết quả được xuất dưới dạng công thức Excel nối với các ô khác / tổng số ô có công thức hiển thị. */
+  formulas: { linked: number; candidates: number; skipped: Record<string, number> };
 }
 
 const DEFAULT_MG: WorkbookMargins = {
@@ -520,6 +523,14 @@ export async function buildWB(options: BuildWorkbookOptions = {}): Promise<Build
 
   const wb = new WorkbookCtor();
   wb.creator = '';
+  const FORMULA_STATS: { linked: number; candidates: number; skipped: Record<string, number> } = {
+    linked: 0,
+    candidates: 0,
+    skipped: {},
+  };
+  const skip = (why: string) => {
+    FORMULA_STATS.skipped[why] = (FORMULA_STATS.skipped[why] ?? 0) + 1;
+  };
   const METAS: WorkbookMeta[] = [];
   const usedSheetNames = new Set<string>();
 
@@ -1092,6 +1103,68 @@ export async function buildWB(options: BuildWorkbookOptions = {}): Promise<Build
       ws.getRow(row).height = Math.max(ws.getRow(row).height || 15, 15 * nl);
     };
 
+    // ---- công thức Excel nối ô: ký hiệu → ô giá trị (cột J) và các dòng có công thức TeX hiển thị ----
+    const symCells = new Map<string, Array<{ row: number; v: number }>>();
+    const eqPending: Array<{ row: number; tex: string; shown: number; dec: number }> = [];
+
+    const applyFormulas = () => {
+      for (const q of eqPending) {
+        FORMULA_STATS.candidates += 1;
+        try {
+          const eq = parseEquation(q.tex);
+          const keys = [...symbolsOf(eq.ast)];
+          if (!keys.length) {
+            skip('chỉ có hằng số');
+            continue; // không có gì để nối
+          }
+          const vals = new Map<string, { row: number; v: number }>();
+          let missing = false;
+          for (const k of keys) {
+            const list = symCells.get(k);
+            // ô giá trị gần nhất Ở TRÊN dòng công thức (không bao giờ tham chiếu xuống dưới → không thể có vòng lặp)
+            const hit = list ? [...list].reverse().find((e) => e.row < q.row) : undefined;
+            if (!hit) {
+              missing = true;
+              skip('thiếu ' + k);
+              break;
+            }
+            vals.set(k, hit);
+          }
+          if (missing) continue;
+          const tol = Math.max(0.6 * Math.pow(10, -q.dec), 1e-3 * Math.abs(q.shown));
+          let linkedHere = false;
+          for (const deg of [false, true]) {
+            let calc = evaluate(eq.ast, (k) => vals.get(k)!.v, { deg });
+            if (eq.clamp) calc = Math.max(eq.clamp[0], Math.min(eq.clamp[1], calc));
+            if (!Number.isFinite(calc) || Math.abs(calc - q.shown) > tol) continue;
+            let f = toExcel(eq.ast, (k) => `${colLetter(10)}${vals.get(k)!.row}`, { deg });
+            if (eq.clamp) f = `MAX(${eq.clamp[0]},MIN(${eq.clamp[1]},${f}))`;
+            // kiểm tra CHUỖI Excel (quy ước Excel: -a^b, ^ kết hợp trái) bằng bộ tính riêng, không chỉ cây cú pháp
+            const addrVal = new Map<string, number>();
+            vals.forEach((e) => addrVal.set(`${colLetter(10)}${e.row}`, e.v));
+            const chk = evalExcelString(f, (a) => {
+              const x = addrVal.get(a);
+              if (x === undefined) throw new Error('ô không biết ' + a);
+              return x;
+            });
+            if (!Number.isFinite(chk) || Math.abs(chk - calc) > 1e-9 * Math.max(1, Math.abs(calc))) {
+              skip('chuỗi Excel lệch cây cú pháp');
+              continue;
+            }
+            const c = ws.getCell(q.row, 10);
+            c.value = { formula: f, result: q.shown };
+            FORMULA_STATS.linked += 1;
+            linkedHere = true;
+            break;
+          }
+          if (!linkedHere) skip('kết quả tính lại không khớp số hiển thị');
+        } catch (e) {
+          skip('TeX: ' + (e as Error).message.slice(0, 40));
+          // công thức TeX chưa hỗ trợ / không khớp số hiển thị: giữ giá trị tĩnh
+        }
+      }
+    };
+
     const writeRow = (sp: Element[]) => {
       const T = (i: number) => (sp[i] && !sp[i].classList.contains('noprint') ? cellText(sp[i]) : '');
       const no = T(0);
@@ -1125,6 +1198,15 @@ export async function buildWB(options: BuildWorkbookOptions = {}): Promise<Build
       if (val) {
         const isIn = !!(sp[3] && sp[3].querySelector('input:not([readonly])'));
         put(r, 10, val, { input: isIn, border: isIn, h: 'right' });
+        const nv = asNum(val);
+        if (nv && sym) {
+          const key = normSym(sym);
+          const list = symCells.get(key) ?? [];
+          list.push({ row: r, v: nv.v });
+          symCells.set(key, list);
+          const tex = !isIn ? sp[1]?.querySelector('.m')?.getAttribute('data-tex') : null;
+          if (tex) eqPending.push({ row: r, tex, shown: nv.v, dec: nv.fmt.includes('.') ? nv.fmt.split('.')[1].length : 0 });
+        }
       }
       if (unit) put(r, 11, unit, { text: true });
       if (note) {
@@ -1539,6 +1621,8 @@ export async function buildWB(options: BuildWorkbookOptions = {}): Promise<Build
       }
     }
 
+    applyFormulas();
+
     for (const q of EQQ) {
       try {
         const b64 = await eqPng(q.svg, q.W, q.H, { rasterize: options.eqRasterizer });
@@ -1657,9 +1741,12 @@ export async function buildWB(options: BuildWorkbookOptions = {}): Promise<Build
     }
   }
 
+  // Excel tính lại toàn bộ công thức khi mở (kể cả ô có kết quả bằng 0 mà ExcelJS không ghi giá trị lưu sẵn)
+  wb.calcProperties = { ...(wb.calcProperties ?? {}), fullCalcOnLoad: true };
+
   const rawBuf = await wb.xlsx.writeBuffer();
   const buffer = rawBuf instanceof Uint8Array ? rawBuf : new Uint8Array(rawBuf);
-  return { wb, metas: METAS, buffer };
+  return { wb, metas: METAS, buffer, formulas: FORMULA_STATS };
 }
 
 /**
