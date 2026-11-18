@@ -110,7 +110,7 @@ describe('ToanDo-Web UI & State Integration', () => {
     click(toolsTab ?? null);
 
     const td31Btn = Array.from(host.querySelectorAll('.adm-rib-large-btn')).find((b) =>
-      b.textContent?.includes('Toán đồ 3-1'),
+      b.textContent?.includes('Toán đồ Hình 2'),
     );
     click(td31Btn ?? null);
     expect(host.querySelector('[data-testid="tab-toando-3-1"]')).not.toBeNull();

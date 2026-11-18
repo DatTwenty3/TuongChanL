@@ -45,12 +45,12 @@ export const MAIN_TABS: MainTabMeta[] = [
   { key: 'vong', label: 'Độ võng đàn hồi', icon: TREE_ICONS.curveChart },
   { key: 'truot', label: 'Cắt trượt', icon: TREE_ICONS.curveChart },
   { key: 'keo-uon', label: 'Kéo uốn', icon: TREE_ICONS.curveChart },
-  { key: 'td-31', label: 'Toán đồ 3-1 (Hình 2)', icon: TREE_ICONS.nomogramChart },
-  { key: 'td-32', label: 'Toán đồ 3-2 (Hình 4)', icon: TREE_ICONS.nomogramChart },
-  { key: 'td-33', label: 'Toán đồ 3-3 (Hình 5)', icon: TREE_ICONS.nomogramChart },
-  { key: 'td-34', label: 'Toán đồ 3-4 (Hình 6)', icon: TREE_ICONS.nomogramChart },
-  { key: 'td-35', label: 'Toán đồ 3-5 (Hình 7)', icon: TREE_ICONS.nomogramChart },
-  { key: 'td-36', label: 'Toán đồ 3-6 (Hình 8)', icon: TREE_ICONS.nomogramChart },
+  { key: 'td-31', label: 'Toán đồ Hình 2', icon: TREE_ICONS.nomogramChart },
+  { key: 'td-32', label: 'Toán đồ Hình 4', icon: TREE_ICONS.nomogramChart },
+  { key: 'td-33', label: 'Toán đồ Hình 5', icon: TREE_ICONS.nomogramChart },
+  { key: 'td-34', label: 'Toán đồ Hình 6', icon: TREE_ICONS.nomogramChart },
+  { key: 'td-35', label: 'Toán đồ Hình 7', icon: TREE_ICONS.nomogramChart },
+  { key: 'td-36', label: 'Toán đồ Hình 8', icon: TREE_ICONS.nomogramChart },
   { key: 'sua-vat-lieu', label: 'Sửa database vật liệu mẫu (File VatLieu.dat)', icon: TREE_ICONS.gridAdd },
 ];
 

@@ -310,20 +310,30 @@ async function run() {
     await page.waitForSelector('[data-testid="tab-verify-vong"]');
     record('T-3 Sample Projects (D.1 & Ch.10) + Reports + Equation Images', 'D.1 + Ch.10 (TreeNav) + Vong/Truot/KeoUon equation imgs ok');
 
-    // T-4: Toán đồ 3-1..3-6 Images & Trace + Material DB
+    // T-4: Toán đồ Hình 2, 4..8 Images & Trace + Material DB
     await page.locator('.adm-ribbon-tab:has-text("CÔNG CỤ")').click();
     const tdOutputs = [];
-    for (const id of ['3-1', '3-2', '3-3', '3-4', '3-5', '3-6']) {
-      await page.locator(`.adm-rib-large-btn:has-text("Toán đồ ${id}")`).click();
+    const tdMap = [
+      ['3-1', 'Toán đồ Hình 2'],
+      ['3-2', 'Toán đồ Hình 4'],
+      ['3-3', 'Toán đồ Hình 5'],
+      ['3-4', 'Toán đồ Hình 6'],
+      ['3-5', 'Toán đồ Hình 7'],
+      ['3-6', 'Toán đồ Hình 8'],
+    ];
+    for (const [id, label] of tdMap) {
+      await page.locator(`.adm-rib-large-btn:has-text("${label}")`).click();
       await page.waitForSelector(`[data-testid="tab-toando-${id}"]`);
-      await assertAllImagesLoaded(page, `Toán đồ ${id}`);
+      const activeTabLabel = ((await page.locator('[role="tab"]').textContent()) ?? '').trim();
+      assert.equal(activeTabLabel, label, `Expected active tab "${label}", got "${activeTabLabel}"`);
+      await assertAllImagesLoaded(page, label);
       const imgW = await page.locator(`[data-testid="tab-toando-${id}"] img`).evaluate((im) => im.naturalWidth);
-      assert.ok(imgW > 0, `Toán đồ ${id} image naturalWidth <= 0`);
+      assert.ok(imgW > 0, `${label} image naturalWidth <= 0`);
       const lines = await page.locator(`[data-testid="tab-toando-${id}"] svg line`).count();
-      assert.ok(lines >= 2, `Toán đồ ${id} expected >=2 trace lines, got ${lines}`);
+      assert.ok(lines >= 2, `${label} expected >=2 trace lines, got ${lines}`);
       const outVal = await page.locator(`#td-${id}-out`).inputValue();
-      assert.notEqual(outVal, '#N/A', `Toán đồ ${id} yielded #N/A`);
-      tdOutputs.push(`${id}:${outVal}`);
+      assert.notEqual(outVal, '#N/A', `${label} yielded #N/A`);
+      tdOutputs.push(`${label}:${outVal}`);
     }
 
     await page.locator('.adm-rib-large-btn:has-text("Load database vật liệu")').click();

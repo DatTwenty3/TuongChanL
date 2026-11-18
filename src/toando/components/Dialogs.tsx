@@ -442,9 +442,9 @@ export function StandardInfoModal({
             <li>
               <strong>Chương 9 &amp; Bảng 9–12, Hình 2–8, Phụ lục E</strong>:
               <ul style={{ paddingLeft: 16, marginTop: 3 }}>
-                <li><em>Độ võng đàn hồi (§9.2)</em>: Đổi 2 lớp từ dưới lên, hiệu chỉnh <code>β</code> (<code>Bảng 11</code>, kẹp trần <code>max(Ei)</code>), tra <code>Hình 2</code> (Toán đồ 3-1) hoặc <code>Công thức (E.1)</code> khi <code>H/D &gt; 2,0</code>, kiểm tra <code>Ech &ge; Kcđ^đv · max(Eyc, Emin)</code> (<code>Bảng 9, 10</code>).</li>
-                <li><em>Cắt trượt (§9.3)</em>: Cho tầng mặt <code>A1, A2</code> (miễn <code>B1, B2</code>). Tra <code>Hình 4 / Hình 5</code> (Toán đồ 3-2/3-3, <code>τax/p</code>) và <code>Hình 6</code> (Toán đồ 3-4, <code>τav</code>), hệ số <code>K2</code> bậc thang (<code>Bảng 12</code>), kiểm tra <code>τax + τav &le; Ctt / Kcđ^tr</code>.</li>
-                <li><em>Kéo uốn (§9.4)</em>: Cho lớp liền khối (miễn <code>B1, B2</code>). Tra <code>Hình 7</code> (Toán đồ 3-5) / <code>Hình 8</code> (Toán đồ 3-6) hoặc <code>(E.2)–(E.4)</code>, kiểm tra <code>σku &le; Rtt^ku / Kcđ^ku</code>.</li>
+                <li><em>Độ võng đàn hồi (§9.2)</em>: Đổi 2 lớp từ dưới lên, hiệu chỉnh <code>β</code> (<code>Bảng 11</code>, kẹp trần <code>max(Ei)</code>), tra <code>Hình 2</code> hoặc <code>Công thức (E.1)</code> khi <code>H/D &gt; 2,0</code>, kiểm tra <code>Ech &ge; Kcđ^đv · max(Eyc, Emin)</code> (<code>Bảng 9, 10</code>).</li>
+                <li><em>Cắt trượt (§9.3)</em>: Cho tầng mặt <code>A1, A2</code> (miễn <code>B1, B2</code>). Tra <code>Hình 4 / Hình 5</code> (<code>τax/p</code>) và <code>Hình 6</code> (<code>τav</code>), hệ số <code>K2</code> bậc thang (<code>Bảng 12</code>), kiểm tra <code>τax + τav &le; Ctt / Kcđ^tr</code>.</li>
+                <li><em>Kéo uốn (§9.4)</em>: Cho lớp liền khối (miễn <code>B1, B2</code>). Tra <code>Hình 7</code> / <code>Hình 8</code> hoặc <code>(E.2)–(E.4)</code>, kiểm tra <code>σku &le; Rtt^ku / Kcđ^ku</code>.</li>
               </ul>
             </li>
             <li>

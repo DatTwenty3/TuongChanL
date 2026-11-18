@@ -589,12 +589,12 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
                 <div className="adm-rib-group-body">
                   {(
                     [
-                      ['td-31', 'Toán đồ 3-1 (Hình 2)', UI_ICONS.td31Large],
-                      ['td-32', 'Toán đồ 3-2 (Hình 4)', UI_ICONS.td32Large],
-                      ['td-33', 'Toán đồ 3-3 (Hình 5)', UI_ICONS.td33Large],
-                      ['td-34', 'Toán đồ 3-4 (Hình 6)', UI_ICONS.td34Large],
-                      ['td-35', 'Toán đồ 3-5 (Hình 7)', UI_ICONS.td35Large],
-                      ['td-36', 'Toán đồ 3-6 (Hình 8)', UI_ICONS.td36Large],
+                      ['td-31', 'Toán đồ Hình 2', UI_ICONS.td31Large],
+                      ['td-32', 'Toán đồ Hình 4', UI_ICONS.td32Large],
+                      ['td-33', 'Toán đồ Hình 5', UI_ICONS.td33Large],
+                      ['td-34', 'Toán đồ Hình 6', UI_ICONS.td34Large],
+                      ['td-35', 'Toán đồ Hình 7', UI_ICONS.td35Large],
+                      ['td-36', 'Toán đồ Hình 8', UI_ICONS.td36Large],
                     ] as const
                   ).map(([tabKey, caption, icon]) => (
                     <button

@@ -59,7 +59,7 @@ export const MODULES: readonly ModuleDef[] = [
     label: 'Kiểm toán áo đường',
     short: 'Áo đường',
     path: 'toan-do/',
-    hint: 'Thiết kế & kiểm toán áo đường mềm (22TCN 211-06 / TCCS 38:2022), cải tạo Ch.10 & tra toán đồ 3-1..3-6',
+    hint: 'Thiết kế & kiểm toán áo đường mềm (22TCN 211-06 / TCCS 38:2022), cải tạo Ch.10 & tra toán đồ Hình 2, 4–8',
     icon: 'M3 20h18 M4 16c4-1 7-6 10-11 M4 12c5-1 9-4 14-7 M14 4v16',
   },
 ];

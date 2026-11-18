@@ -155,7 +155,7 @@ export const Landing: React.FC = () => {
         title: 'Kiểm toán áo đường',
         tag: '22TCN 211-06 · TCCS 38:2022',
         icon: 'layers',
-        desc: 'Kiểm toán áo đường mềm, cải tạo Ch.10 & tra toán đồ 3-1..3-6',
+        desc: 'Kiểm toán áo đường mềm, cải tạo Ch.10 & tra toán đồ Hình 2, 4–8',
         resume: null,
       },
     ],
