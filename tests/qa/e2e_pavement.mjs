@@ -62,12 +62,12 @@ try {
     if (res.status() >= 400) httpErrors.push(`${res.status()} ${res.url()}`);
   });
 
-  // P-0: Landing page has 4 modules linking to tuong-chan/, cau-cong/, ho-ga/, mat-duong/
+  // P-0: Landing page has 5 modules linking to tuong-chan/, cau-cong/, ho-ga/, mat-duong/, toan-do/
   await page.goto(`${BASE_URL}/`, { waitUntil: 'networkidle' });
   await page.waitForSelector('.lp-card');
   await page.waitForTimeout(2200);
   const cards = await page.$$eval('.lp-card', (els) => els.map((e) => ({ mod: e.dataset.mod, href: e.getAttribute('href') })));
-  if (cards.length !== 4 || !cards[3].href?.endsWith('mat-duong/')) {
+  if (cards.length !== 5 || !cards[3].href?.endsWith('mat-duong/') || !cards[4].href?.endsWith('toan-do/')) {
     throw new Error(`Unexpected landing cards: ${JSON.stringify(cards)}`);
   }
   await page.screenshot({ path: path.join(SHOT_DIR, '0_landing.png') });

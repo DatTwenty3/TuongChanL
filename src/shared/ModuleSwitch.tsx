@@ -7,7 +7,7 @@ import React from 'react';
  * id, class `body.*` và listener toàn cục của hai ứng dụng không bao giờ cùng tồn tại trong một tài liệu.
  * Màu lấy từ token của trang chủ (`--acc`, `--ink`, `--line`, `--glass-2`) — xem `modswitch.css`.
  */
-export type ModuleId = 'walls' | 'culvert' | 'hoga' | 'pavement';
+export type ModuleId = 'walls' | 'culvert' | 'hoga' | 'pavement' | 'toando';
 
 interface ModuleDef {
   id: ModuleId;
@@ -53,6 +53,14 @@ export const MODULES: readonly ModuleDef[] = [
     path: 'mat-duong/',
     hint: 'Thiết kế kết cấu mặt đường cứng BTXM & mềm theo TCCS 37, 38, 39:2022',
     icon: 'M6 20L9 4 M18 20L15 4 M12 5v3 M12 11v3 M12 17v3',
+  },
+  {
+    id: 'toando',
+    label: 'Kiểm toán áo đường',
+    short: 'Áo đường',
+    path: 'toan-do/',
+    hint: 'Thiết kế & kiểm toán áo đường mềm (22TCN 211-06 / TCCS 38:2022), cải tạo Ch.10 & tra toán đồ 3-1..3-6',
+    icon: 'M3 20h18 M4 16c4-1 7-6 10-11 M4 12c5-1 9-4 14-7 M14 4v16',
   },
 ];
 

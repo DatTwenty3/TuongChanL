@@ -99,7 +99,7 @@ body {
   min-height: 100dvh;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow-x: hidden;
 }
 
 .lp-theme {
@@ -145,7 +145,7 @@ body {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 48px 16px 24px;
+  padding: 36px 16px 18px;
   text-align: center;
 }
 
@@ -221,11 +221,11 @@ body {
   animation: lp-tagline 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) 1.85s both;
 }
 
-/* ---------------- chọn phân hệ: một thẻ, ba hàng ---------------- */
+/* ---------------- chọn phân hệ: một thẻ, năm hàng ---------------- */
 .lp-pick {
   width: 100%;
-  max-width: 640px;
-  margin-top: clamp(28px, 6vw, 60px);
+  max-width: 660px;
+  margin-top: clamp(20px, 4vw, 44px);
   padding: 8px;
   border: 1px solid var(--glass-line);
   border-radius: 28px;
@@ -235,7 +235,7 @@ body {
   box-shadow: var(--glass-shadow);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
   animation: lp-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) 2.15s both;
 }
 
@@ -243,7 +243,7 @@ body {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 12px 14px;
+  padding: 10px 14px;
   border-radius: 20px;
   border: 1px solid transparent;
   color: inherit;

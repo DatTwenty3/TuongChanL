@@ -113,11 +113,11 @@ async function run() {
 
     const theme = () => page.evaluate(() => document.documentElement.dataset.theme);
 
-    await step('C-0 Trang chủ: 4 thẻ, giao diện sáng mặc định, đổi tối và nhớ', async () => {
+    await step('C-0 Trang chủ: 5 thẻ, giao diện sáng mặc định, đổi tối và nhớ', async () => {
       await page.goto(ORIGIN + '/');
       await page.waitForSelector('.lp-card');
       const cards = await page.$$eval('.lp-card', (a) => a.map((x) => x.getAttribute('href')));
-      assert.deepEqual(cards, ['/tuong-chan/', '/cau-cong/', '/ho-ga/', '/mat-duong/']);
+      assert.deepEqual(cards, ['/tuong-chan/', '/cau-cong/', '/ho-ga/', '/mat-duong/', '/toan-do/']);
       assert.equal(await theme(), 'light');
       await page.click('#bTheme');
       assert.equal(await theme(), 'dark');

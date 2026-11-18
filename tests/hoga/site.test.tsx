@@ -27,12 +27,12 @@ afterEach(async () => {
 });
 
 describe('Phân hệ Hố ga trong site LEDAT-BIM', () => {
-  it('trang chủ có 4 thẻ phân hệ, thẻ Hố ga trỏ tới ho-ga/', async () => {
+  it('trang chủ có 5 thẻ phân hệ, thẻ Hố ga trỏ tới ho-ga/', async () => {
     await act(async () => r.render(<Landing />));
     const cards = [...host.querySelectorAll<HTMLAnchorElement>('.lp-card')];
-    expect(cards.map((c) => c.dataset.mod)).toEqual(['walls', 'culvert', 'hoga', 'pavement']);
+    expect(cards.map((c) => c.dataset.mod)).toEqual(['walls', 'culvert', 'hoga', 'pavement', 'toando']);
     expect(cards[2].getAttribute('href')).toMatch(/ho-ga\/$/);
-    expect(host.textContent).toContain('Bốn phân hệ');
+    expect(host.textContent).toContain('Năm phân hệ');
   });
 
   it('trang chủ gợi ý tiếp tục khi có bản nháp hố ga', async () => {
@@ -42,10 +42,10 @@ describe('Phân hệ Hố ga trong site LEDAT-BIM', () => {
   });
 
   it('thanh chuyển phân hệ có Hố ga và đánh dấu trang hiện tại', async () => {
-    expect(MODULES.map((m) => m.id)).toEqual(['walls', 'culvert', 'hoga', 'pavement']);
+    expect(MODULES.map((m) => m.id)).toEqual(['walls', 'culvert', 'hoga', 'pavement', 'toando']);
     await act(async () => r.render(<ModuleSwitch current="hoga" />));
     const links = [...host.querySelectorAll<HTMLAnchorElement>('.modsw a')];
-    expect(links.map((a) => a.dataset.mod)).toEqual(['home', 'walls', 'culvert', 'hoga', 'pavement']);
+    expect(links.map((a) => a.dataset.mod)).toEqual(['home', 'walls', 'culvert', 'hoga', 'pavement', 'toando']);
     expect(host.querySelector('a[data-mod="hoga"]')!.getAttribute('aria-current')).toBe('page');
     expect(host.querySelector('a[data-mod="walls"]')!.getAttribute('aria-current')).toBeNull();
   });

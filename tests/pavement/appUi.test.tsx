@@ -117,10 +117,10 @@ describe('Phân hệ Mặt đường (TCCS 37/38/39) trong site LEDAT-BIM', () =
   it('trang chủ có thẻ Mặt đường trỏ tới mat-duong/ và cấu hình MPA đã nối đủ', async () => {
     await act(async () => root.render(<Landing />));
     const cards = [...container.querySelectorAll<HTMLAnchorElement>('.lp-card')];
-    expect(cards.map((c) => c.dataset.mod)).toEqual(['walls', 'culvert', 'hoga', 'pavement']);
+    expect(cards.map((c) => c.dataset.mod)).toEqual(['walls', 'culvert', 'hoga', 'pavement', 'toando']);
     expect(cards[3].getAttribute('href')).toMatch(/mat-duong\/$/);
 
-    expect(MODULES.map((m) => m.id)).toEqual(['walls', 'culvert', 'hoga', 'pavement']);
+    expect(MODULES.map((m) => m.id)).toEqual(['walls', 'culvert', 'hoga', 'pavement', 'toando']);
     await act(async () => root.render(<ModuleSwitch current="pavement" />));
     expect(container.querySelector('a[data-mod="pavement"]')?.getAttribute('aria-current')).toBe('page');
 
