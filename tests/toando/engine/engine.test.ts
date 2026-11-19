@@ -594,3 +594,42 @@ describe('TCCS 38:2022/TCĐBVN Updates & Appendix D Verification', () => {
     expect(matRes.shearTargets[0].k2).toBe(0.8);
   });
 });
+
+describe('Ntk lưu trong file .adm so với bảng xe', () => {
+  // 6 loại xe của dự án KM28+620-KM33+620 (file ghi Ntk = 110 trong khi các dòng cộng lại 117,988)
+  const rows = [
+    ['Xe con các loại', 919, 0, 0, 0, 'DON', 0],
+    ['Xe buýt loại nhỏ', 293, 26.4, 45.2, 1, 'DOI', 0],
+    ['Xe buýt loại lớn', 38, 56, 95.8, 1, 'DOI', 0],
+    ['Xe tải loại nhẹ', 125, 18, 56, 1, 'DOI', 0],
+    ['Xe tải loại vừa', 43, 25.8, 69.6, 1, 'DOI', 0],
+    ['Xe tải loại nặng', 27, 48.2, 100, 1, 'DOI', 0],
+  ] as const;
+  const vehicles = rows.map(([tenXe, q, pt, ps, n, cum, kc], i) => ({
+    id: `xe-${i}`,
+    tenXe,
+    tlTrucTruoc_kN: pt,
+    tlTrucSau_kN: ps,
+    soTrucSau: n,
+    cumBanhTrucSau: cum,
+    khoangCachTrucSau_m: kc,
+    luuLuong_xeNgDem: q,
+    flag: 0,
+  }));
+  const forecast = { ...SAMPLE_VD_PROJECT.forecast, tlTrucQuyDoi_kN: 100 as const, khongCoSoLieuDieuTra: false };
+  const scale = SAMPLE_VD_PROJECT.roadScale;
+
+  it('Ntk = tổng các dòng quy đổi (117,988) và bỏ qua giá trị 110 lệch hẳn ghi trong file', () => {
+    const noStored = computeTrafficSummary(vehicles, forecast, scale);
+    expect(noStored.Ntk_trucNgDem).toBeCloseTo(117.988, 3);
+    const stale = computeTrafficSummary(vehicles, forecast, scale, 110);
+    expect(stale.Ntk_trucNgDem).toBeCloseTo(117.988, 3);
+    const sum = stale.conversions.reduce((a, c) => a + c.Ni_tong, 0);
+    expect(stale.Ntk_trucNgDem).toBeCloseTo(sum, 3);
+  });
+
+  it('vẫn dùng giá trị lưu khi chỉ lệch làm tròn (≤ 0,5)', () => {
+    expect(computeTrafficSummary(vehicles, forecast, scale, 118).Ntk_trucNgDem).toBe(118);
+    expect(computeTrafficSummary(vehicles, forecast, scale, 117.988).Ntk_trucNgDem).toBe(117.988);
+  });
+});

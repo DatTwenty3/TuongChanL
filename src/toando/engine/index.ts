@@ -14,6 +14,7 @@ export {
   computeC1,
   computeRearC2,
   computeTrafficSummary,
+  STORED_NTK_TOLERANCE,
 } from './traffic';
 
 export { resolveSubgradeByMoisture, resolveSubgrade, computeE0FromCbr } from './subgrade';

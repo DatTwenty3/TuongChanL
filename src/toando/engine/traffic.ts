@@ -53,6 +53,9 @@ export function computeRearC2(cumBanh: VehicleRow['cumBanhTrucSau']): number {
 
 const AXLE_CUTOFF_KN = 25.0;
 
+/** Sai lệch tối đa (trục/ngày.đêm) giữa Ntk lưu trong file và tổng bảng xe để còn tin giá trị lưu. */
+export const STORED_NTK_TOLERANCE = 0.5;
+
 /**
  * Converts vehicle composition to equivalent standard axles Ntk, lane daily Ntt,
  * and cumulative standard axles Ne over the design period (ADMv2.exe Class_Xe exact rounding):
@@ -109,10 +112,15 @@ export function computeTrafficSummary(
     conversions.reduce((acc, r) => acc + r.Ni_tong, 0),
     -3,
   );
+  // Giá trị Ntk lưu trong file .adm chỉ được dùng khi KHỚP với bảng xe (sai khác ≤ 0,5 trục/ngày.đêm, tức
+  // chênh lệch làm tròn). Nếu file ghi một con số khác hẳn tổng các dòng quy đổi (file cũ/đã sửa tay) thì lấy
+  // theo bảng xe, để tổng hiển thị luôn bằng tổng các dòng đang thấy.
+  const storedMatchesRows =
+    storedNtkOverride !== undefined && Math.abs(storedNtkOverride - computedNtk) <= STORED_NTK_TOLERANCE;
   const Ntk_trucNgDem = forecast.khongCoSoLieuDieuTra
     ? Math.max(0, forecast.llNamTTDirect_trucNgDem)
-    : storedNtkOverride !== undefined
-      ? storedNtkOverride
+    : storedMatchesRows
+      ? (storedNtkOverride as number)
       : computedNtk;
 
   const fL =

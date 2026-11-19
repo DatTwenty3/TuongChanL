@@ -18,6 +18,7 @@ import {
   parseProjectJson,
   parseVatLieuDat,
   resolveRehabilitationEchCu,
+  STORED_NTK_TOLERANCE,
   resolveSubgrade,
   runFullVerification,
   runRigidVerification,
@@ -473,7 +474,16 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }): R
       setSelectedShearTargetId(null);
       setSelectedFlexuralLayerId(null);
       setActivePageTab('thong-tin');
-      setStatusMessage(`Đã mở dự án: ${file.name}`);
+      const fromRows = computeTrafficSummary(loaded.vehicles, loaded.forecast, loaded.roadScale).Ntk_trucNgDem;
+      const staleNtk =
+        !loaded.forecast.khongCoSoLieuDieuTra &&
+        loaded.storedNtk !== undefined &&
+        Math.abs(loaded.storedNtk - fromRows) > STORED_NTK_TOLERANCE;
+      setStatusMessage(
+        staleNtk
+          ? `Đã mở dự án: ${file.name} — file ghi Ntk = ${loaded.storedNtk!.toFixed(3)} nhưng bảng xe tính ra ${fromRows.toFixed(3)}; dùng giá trị tính từ bảng xe.`
+          : `Đã mở dự án: ${file.name}`,
+      );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setStatusMessage(`Lỗi mở file: ${msg}`);
