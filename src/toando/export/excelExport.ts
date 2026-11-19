@@ -93,7 +93,7 @@ function distressSeverityLabel(sev: DistressSeverity): string {
   }
 }
 
-function sanitizeSheetName(raw: string, used: Set<string>): string {
+export function sanitizeSheetName(raw: string, used: Set<string>): string {
   const cleaned = raw.replace(/[\\/?*[\]:]/g, '_').trim() || 'PhuongAn';
   const base = cleaned.slice(0, 31);
   if (!used.has(base)) {
@@ -119,7 +119,7 @@ function sanitizeSheetName(raw: string, used: Set<string>): string {
  * Dòng "Kết luận: … KHÔNG đảm bảo …" đổi màu theo kết quả tính lại trong Excel:
  * có chữ "KHÔNG" → đỏ, ngược lại → xanh (định dạng có điều kiện, không phụ thuộc màu lưu sẵn).
  */
-function addConclusionColorRule(ws: ExcelJS.Worksheet, row: number): void {
+export function addConclusionColorRule(ws: ExcelJS.Worksheet, row: number): void {
   const ref = `B${row}`;
   const failTest = `ISNUMBER(SEARCH("KHÔNG",$B$${row}))`;
   ws.addConditionalFormatting({
@@ -147,7 +147,7 @@ interface SourceLayerRef {
   kHh?: number;
 }
 
-class SheetCursor {
+export class SheetCursor {
   private row = 0;
   constructor(private readonly ws: ExcelJS.Worksheet) {}
 

@@ -3,6 +3,34 @@
  * for Áo đường mềm (ToanDo-Web).
  */
 
+import type { JointInput, RigidInput, RigidTrafficInputs } from '../../pavement/engine/types';
+
+/** Loại mặt đường: mềm (TCCS 38:2022) hoặc cứng BTXM thông thường (TCCS 39:2022). Vắng mặt = mềm. */
+export type PavementKind = 'MEM' | 'CUNG';
+/** Cấp hạng đường theo Bảng 9 (γr) và Điều 8.3.1 (kc) của TCCS 39:2022/TCĐBVN. */
+export type RigidRoadClass = 'CAO_TOC' | 'CAP_I_II' | 'CAP_III' | 'CAP_IV';
+/** Vùng khí hậu cho gradien nhiệt Tg (Điều 8.2.8). */
+export type RigidRegion = 'BAC' | 'TRUNG' | 'NAM';
+/** Loại đá cốt liệu thô cho αc (Bảng 10). */
+export type RigidAggregate = 'SILIC' | 'SA_THACH' | 'CUOI_SOI' | 'GRANIT' | 'DA_VOI';
+/** Kết cấu lề cho hệ số kr (Điều 8.3.1). */
+export type RigidShoulder = 'BTXM_BANG' | 'BTXM_MONG' | 'MEM';
+
+/** Dữ liệu mặt đường cứng (m, kN, MPa). Vắng mặt trong dự án = chưa dùng. */
+export interface RigidProjectData {
+  roadClass: RigidRoadClass;
+  region: RigidRegion;
+  aggregate: RigidAggregate;
+  shoulder: RigidShoulder;
+  input: RigidInput;
+  traffic: RigidTrafficInputs;
+  /** true: Ne tính từ phổ tải trọng trục (Phụ lục A); false: dùng input.Ne nhập tay. */
+  neAuto: boolean;
+  /** true: E0 lấy từ mục Đất nền; false: dùng input.E0 nhập tay. */
+  e0FromSubgrade: boolean;
+  joint: JointInput;
+}
+
 export type DesignObjectType = 'KCAD' | 'LGC';
 export type DesignKindType = 'TK_MOI' | 'CAI_TAO';
 export type RoadType = 'DUONG_O_TO' | 'DUONG_DO_THI';
@@ -20,6 +48,8 @@ export interface ProjectInfo {
   kySuThietKe: string;
   doiTuongTK: DesignObjectType;
   loaiTK: DesignKindType;
+  /** Mặc định 'MEM' khi vắng mặt (file cũ). */
+  loaiMatDuong?: PavementKind;
 }
 
 export interface RoadScale {
@@ -259,6 +289,8 @@ export interface ProjectState {
   storedNtk?: number;
   /** Chapter 10 rehabilitation configuration when projectInfo.loaiTK === 'CAI_TAO'. */
   rehabilitation?: RehabilitationConfig;
+  /** Mặt đường cứng BTXM (TCCS 39:2022) khi projectInfo.loaiMatDuong === 'CUNG'. */
+  rigid?: RigidProjectData;
 }
 
 export interface NomogramBBoxPx {

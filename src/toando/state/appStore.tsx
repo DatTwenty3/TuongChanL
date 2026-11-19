@@ -5,11 +5,14 @@ import {
   SAMPLE_TCCS38_CH10_MILL,
   SAMPLE_TCCS38_EX1,
 } from '../data/sampleVd';
+import { createRigidSampleProject } from '../data/sampleRigid';
 import { DEFAULT_MATERIALS } from '../data/vatlieu';
 import {
   computeDesignModulus,
   computeTrafficSummary,
   createDefaultRehabilitationConfig,
+  ensureRigidState,
+  isRigidProject,
   lookupToanDo,
   parseAdmProject,
   parseProjectJson,
@@ -17,10 +20,12 @@ import {
   resolveRehabilitationEchCu,
   resolveSubgrade,
   runFullVerification,
+  runRigidVerification,
   serializeAdmProject,
+  serializeProjectJson,
   serializeVatLieuDat,
 } from '../engine';
-import { downloadVerificationExcel } from '../export';
+import { downloadRigidExcel, downloadVerificationExcel } from '../export';
 import type {
   DesignParams,
   ExistingPavementLayer,
@@ -36,6 +41,7 @@ import type {
   ToanDoLookupResult,
   TrafficSummary,
 } from '../types/project';
+import type { RigidVerification } from '../engine';
 import type { MainTabKey, RibbonTabKey } from './navigation';
 
 export type { ToanDoInputStrings };
@@ -80,12 +86,12 @@ const DEFAULT_TOANDO_INPUTS: Record<ToanDoId, ToanDoInputStrings> = {
 
 function ensureRehabState(proj: ProjectState): ProjectState {
   if (proj.projectInfo.loaiTK === 'CAI_TAO' && !proj.rehabilitation) {
-    return {
+    return ensureRigidState({
       ...proj,
       rehabilitation: createDefaultRehabilitationConfig(),
-    };
+    });
   }
-  return proj;
+  return ensureRigidState(proj);
 }
 
 export interface AppStoreValue {
@@ -97,6 +103,8 @@ export interface AppStoreValue {
   activeAlternative: PavementAlternative;
   materials: MaterialRecord[];
   verification: FullVerificationResult | null;
+  /** Kết quả kiểm toán tấm BTXM (TCCS 39) — null khi dự án là mặt đường mềm. */
+  rigidVerification: RigidVerification | null;
   fileName: string | null;
   dirty: boolean;
   activeRibbonTab: RibbonTabKey;
@@ -126,10 +134,12 @@ export interface AppStoreValue {
   closeProject: () => void;
   loadSampleProject: () => void;
   loadSampleRehabProject: (variant?: 'overlay' | 'mill') => void;
+  loadSampleRigidProject: (variant?: 'B1' | 'B2') => void;
   openProjectFromFile: (file: File) => Promise<void>;
   saveProject: (forcePromptName?: boolean) => void;
   runVerification: () => void;
   exportExcelForAlternatives: (selectedIds: string[]) => Promise<void>;
+  exportRigidExcel: () => Promise<void>;
   setMaterials: (next: MaterialRecord[]) => void;
   resetMaterialsDefault: () => void;
   loadVatLieuFromFile: (file: File) => Promise<void>;
@@ -221,6 +231,11 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }): R
     );
   }, [project.alternatives, project.activeAlternativeId]);
 
+  const rigidVerification = useMemo<RigidVerification | null>(
+    () => (isRigidProject(syncedProject) ? runRigidVerification(syncedProject) : null),
+    [syncedProject],
+  );
+
   const toanDoResults = useMemo(() => {
     const ids: ToanDoId[] = ['3-1', '3-2', '3-3', '3-4', '3-5', '3-6'];
     const out = {} as Record<ToanDoId, ToanDoLookupResult>;
@@ -237,16 +252,28 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }): R
   const updateProject = useCallback(
     (updater: (prev: ProjectState) => ProjectState, invalidateVerification = true) => {
       let switchedToTkMoi = false;
+      let nextKind: 'MEM' | 'CUNG' = 'MEM';
       setProject((prev) => {
         const next = ensureRehabState(updater(prev));
         if (next.projectInfo.loaiTK !== 'CAI_TAO') {
           switchedToTkMoi = true;
         }
+        nextKind = next.projectInfo.loaiMatDuong === 'CUNG' ? 'CUNG' : 'MEM';
         return next;
       });
       if (switchedToTkMoi) {
         setActivePageTab((cur) => (cur === 'ao-duong-cu' ? 'thong-tin' : cur));
       }
+      setActivePageTab((cur) => {
+        if (nextKind === 'CUNG') {
+          const flexOnly: MainTabKey[] = [
+            'luu-luong', 'ao-duong-cu', 'thong-so', 'ket-cau', 'vong', 'truot', 'keo-uon',
+            'td-31', 'td-32', 'td-33', 'td-34', 'td-35', 'td-36',
+          ];
+          return flexOnly.includes(cur) ? 'thong-tin' : cur;
+        }
+        return cur.startsWith('cung-') ? 'thong-tin' : cur;
+      });
       setDirty(true);
       if (invalidateVerification) {
         setVerification(null);
@@ -416,6 +443,21 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }): R
     );
   }, []);
 
+  const loadSampleRigidProject = useCallback((variant: 'B1' | 'B2' = 'B1') => {
+    const cloned = createRigidSampleProject(variant);
+    setProject(cloned);
+    setFileName(`ViDu${variant}_PhuLucB_TCCS39_2022.json`);
+    setDirty(false);
+    setVerification(null);
+    setSelectedShearTargetId(null);
+    setSelectedFlexuralLayerId(null);
+    setActivePageTab('cung-kiem-toan');
+    setProgress(100);
+    setStatusMessage(
+      `Đã nạp ví dụ ${variant === 'B2' ? 'B.2' : 'B.1'} (Phụ lục B, TCCS 39:2022/TCĐBVN) và hoàn tất kiểm toán tấm BTXM.`,
+    );
+  }, []);
+
   const openProjectFromFile = useCallback(async (file: File) => {
     try {
       const buf = new Uint8Array(await file.arrayBuffer());
@@ -441,16 +483,22 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }): R
 
   const saveProject = useCallback(
     (forcePromptName = false) => {
-      let targetName = fileName || 'DuAnAoDuong.adm';
-      if (forcePromptName) {
-        const entered = window.prompt('Nhập tên file dự án (.adm):', targetName);
-        if (!entered) return;
-        targetName = entered.toLowerCase().endsWith('.adm') ? entered : `${entered}.adm`;
-      } else if (!targetName.toLowerCase().endsWith('.adm')) {
-        targetName = `${targetName}.adm`;
+      // Mặt đường cứng chỉ lưu được ở định dạng .json (file .adm không có chỗ chứa dữ liệu BTXM).
+      const ext = isRigidProject(syncedProject) ? '.json' : '.adm';
+      let targetName = fileName || `DuAnAoDuong${ext}`;
+      if (!targetName.toLowerCase().endsWith(ext)) {
+        targetName = `${targetName.replace(/\.(adm|json)$/i, '')}${ext}`;
       }
-      const bytes = serializeAdmProject(syncedProject);
-      triggerDownloadBytes(bytes, targetName);
+      if (forcePromptName) {
+        const entered = window.prompt(`Nhập tên file dự án (${ext}):`, targetName);
+        if (!entered) return;
+        targetName = entered.toLowerCase().endsWith(ext) ? entered : `${entered}${ext}`;
+      }
+      const bytes =
+        ext === '.json'
+          ? new TextEncoder().encode(serializeProjectJson(syncedProject))
+          : serializeAdmProject(syncedProject);
+      triggerDownloadBytes(bytes, targetName, ext === '.json' ? 'application/json' : undefined);
       setFileName(targetName);
       setDirty(false);
       setStatusMessage(`Đã lưu dự án xuống file ${targetName}.`);
@@ -459,6 +507,15 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }): R
   );
 
   const runVerification = useCallback(() => {
+    if (isRigidProject(syncedProject)) {
+      const rv = runRigidVerification(syncedProject);
+      setProgress(100);
+      setActivePageTab('cung-kiem-toan');
+      setStatusMessage(
+        `Kiểm toán tấm BTXM hoàn tất — ${rv.allPassed ? 'ĐẠT tất cả điều kiện' : 'KHÔNG ĐẠT một số điều kiện'}`,
+      );
+      return;
+    }
     setIsRunning(true);
     setProgress(35);
     setStatusMessage('Đang chạy kiểm toán các phương án kết cấu áo đường...');
@@ -486,6 +543,14 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }): R
       setStatusMessage(`Lỗi kiểm toán: ${msg}`);
     }
   }, [syncedProject, activePageTab]);
+
+  const exportRigidExcel = useCallback(async () => {
+    const base = (syncedProject.projectInfo.congTrinh || 'KetQuaMatDuongCung')
+      .replace(/[\\/:*?"<>|]+/g, '_')
+      .slice(0, 60);
+    await downloadRigidExcel(syncedProject, `${base}.xlsx`);
+    setStatusMessage('Đã xuất kết quả Excel kiểm toán mặt đường cứng BTXM.');
+  }, [syncedProject]);
 
   const exportExcelForAlternatives = useCallback(
     async (selectedIds: string[]) => {
@@ -559,6 +624,7 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }): R
     activeAlternative,
     materials,
     verification,
+    rigidVerification,
     fileName,
     dirty,
     activeRibbonTab,
@@ -588,10 +654,12 @@ export function AppStoreProvider({ children }: { children: React.ReactNode }): R
     closeProject,
     loadSampleProject,
     loadSampleRehabProject,
+    loadSampleRigidProject,
     openProjectFromFile,
     saveProject,
     runVerification,
     exportExcelForAlternatives,
+    exportRigidExcel,
     setMaterials,
     resetMaterialsDefault,
     loadVatLieuFromFile,

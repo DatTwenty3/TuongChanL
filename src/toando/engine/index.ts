@@ -75,3 +75,26 @@ export {
   type ExistingLayersEchCuResult,
   type ResolvedRehabEchCu,
 } from './rehabilitation';
+
+export {
+  ALPHA_C_BY_AGGREGATE,
+  EC_BY_FR_TABLE,
+  FR_BY_CLASS,
+  GAMMA_R_BY_CLASS,
+  KC_BY_CLASS,
+  KR_BY_SHOULDER,
+  RIGID_AGGREGATE_OPTIONS,
+  RIGID_REGION_OPTIONS,
+  RIGID_ROAD_CLASS_OPTIONS,
+  RIGID_SHOULDER_OPTIONS,
+  TG_BY_REGION,
+  createDefaultRigidProjectData,
+  ecFromFr,
+  ensureRigidState,
+  isRigidProject,
+  resolveRigidInput,
+  runRigidVerification,
+  suggestGammaR,
+  type RigidCheckItem,
+  type RigidVerification,
+} from './rigid';

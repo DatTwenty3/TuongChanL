@@ -14,16 +14,22 @@ import { TabMaterialDb } from './components/TabMaterialDb';
 import { TabNomogram } from './components/TabNomogram';
 import { TabPavementStructure } from './components/TabPavementStructure';
 import { TabProjectInfo } from './components/TabProjectInfo';
+import {
+  TabRigidJoint,
+  TabRigidResult,
+  TabRigidStructure,
+  TabRigidTraffic,
+} from './components/TabRigid';
 import { TabRoadScale } from './components/TabRoadScale';
 import { TabSubgrade } from './components/TabSubgrade';
 import { TabTraffic } from './components/TabTraffic';
 import { TabVerificationResult } from './components/TabVerificationResult';
 import { TreeNav } from './components/TreeNav';
-import { createDefaultRehabilitationConfig } from './engine';
+import { createDefaultRehabilitationConfig, createDefaultRigidProjectData, resolveSubgrade } from './engine';
 import { computeLaneFactor } from './engine/traffic';
 import { AppStoreProvider, useAppStore } from './state/appStore';
 import { getVisibleMainTabs, type MainTabKey } from './state/navigation';
-import type { SurfaceGrade, ToanDoId } from './types/project';
+import type { ProjectInfo, RigidProjectData, SurfaceGrade, ToanDoId } from './types/project';
 
 function MainWorkspace(): React.ReactElement {
   const store = useAppStore();
@@ -115,7 +121,32 @@ function MainWorkspace(): React.ReactElement {
     store.verification?.alternatives[store.activeAlternative.id] ?? null;
 
   const loaiTK = store.project.projectInfo.loaiTK;
-  const visibleTabs = getVisibleMainTabs(loaiTK);
+  const loaiMat = store.project.projectInfo.loaiMatDuong ?? 'MEM';
+  const visibleTabs = getVisibleMainTabs(loaiTK, loaiMat);
+
+  const handleProjectInfoChange = (patch: Partial<ProjectInfo>) =>
+    store.updateProject((prev) => {
+      const nextInfo = { ...prev.projectInfo, ...patch };
+      if (patch.loaiMatDuong === 'CUNG') {
+        nextInfo.loaiTK = 'TK_MOI';
+        nextInfo.doiTuongTK = 'KCAD';
+      }
+      const nextFl =
+        patch.doiTuongTK !== undefined || patch.loaiMatDuong === 'CUNG'
+          ? computeLaneFactor(prev.roadScale.soLanXe, prev.roadScale.gpcGiua, nextInfo.doiTuongTK)
+          : prev.roadScale.heSoLan_fL;
+      return {
+        ...prev,
+        projectInfo: nextInfo,
+        roadScale: { ...prev.roadScale, heSoLan_fL: nextFl },
+      };
+    });
+
+  const updateRigid = (fn: (prev: RigidProjectData) => RigidProjectData) =>
+    store.updateProject((prev) => ({
+      ...prev,
+      rigid: fn(prev.rigid ?? createDefaultRigidProjectData()),
+    }));
 
   const renderPageContent = () => {
     switch (store.activePageTab) {
@@ -125,24 +156,7 @@ function MainWorkspace(): React.ReactElement {
             info={store.project.projectInfo}
             rehabStrategy={store.project.rehabilitation?.strategy}
             onGoToExistingPavement={() => store.setActivePageTab('ao-duong-cu')}
-            onChange={(patch) =>
-              store.updateProject((prev) => {
-                const nextInfo = { ...prev.projectInfo, ...patch };
-                const nextFl =
-                  patch.doiTuongTK !== undefined
-                    ? computeLaneFactor(
-                        prev.roadScale.soLanXe,
-                        prev.roadScale.gpcGiua,
-                        nextInfo.doiTuongTK,
-                      )
-                    : prev.roadScale.heSoLan_fL;
-                return {
-                  ...prev,
-                  projectInfo: nextInfo,
-                  roadScale: { ...prev.roadScale, heSoLan_fL: nextFl },
-                };
-              })
-            }
+            onChange={handleProjectInfoChange}
           />
         );
       case 'quy-mo':
@@ -266,6 +280,34 @@ function MainWorkspace(): React.ReactElement {
           />
         );
       }
+      case 'cung-giao-thong':
+        return store.project.rigid ? (
+          <TabRigidTraffic rigid={store.project.rigid} onChange={updateRigid} />
+        ) : null;
+      case 'cung-ket-cau':
+        return store.project.rigid ? (
+          <TabRigidStructure
+            rigid={store.project.rigid}
+            subgradeE0={resolveSubgrade(store.project.subgrade).E0_MPa}
+            onChange={updateRigid}
+          />
+        ) : null;
+      case 'cung-khe-noi':
+        return store.project.rigid && store.rigidVerification ? (
+          <TabRigidJoint
+            rigid={store.project.rigid}
+            verification={store.rigidVerification}
+            onChange={updateRigid}
+          />
+        ) : null;
+      case 'cung-kiem-toan':
+        return store.rigidVerification ? (
+          <TabRigidResult
+            project={store.syncedProject}
+            verification={store.rigidVerification}
+            onRun={store.runVerification}
+          />
+        ) : null;
       case 'sua-vat-lieu':
         return (
           <TabMaterialDb
@@ -311,6 +353,7 @@ function MainWorkspace(): React.ReactElement {
         fileName={store.fileName}
         dirty={store.dirty}
         loaiTK={loaiTK}
+        loaiMat={loaiMat}
         activeRibbonTab={store.activeRibbonTab}
         activePageTab={store.activePageTab}
         alternatives={store.project.alternatives}
@@ -328,6 +371,8 @@ function MainWorkspace(): React.ReactElement {
         onCloseProject={store.closeProject}
         onLoadSampleProject={store.loadSampleProject}
         onLoadSampleRehabProject={store.loadSampleRehabProject}
+        onLoadSampleRigidProject={store.loadSampleRigidProject}
+        onChangePavementKind={(kind) => handleProjectInfoChange({ loaiMatDuong: kind })}
         onAddAlternative={() => setModal({ type: 'add-alt' })}
         onRenameAlternative={() => setModal({ type: 'rename-alt' })}
         onDeleteAlternative={() => {
@@ -340,7 +385,9 @@ function MainWorkspace(): React.ReactElement {
         }}
         onSelectAlternative={store.setActiveAlternativeId}
         onRunVerification={store.runVerification}
-        onOpenExportExcel={() => setModal({ type: 'xuat-excel' })}
+        onOpenExportExcel={() =>
+          loaiMat === 'CUNG' ? void store.exportRigidExcel() : setModal({ type: 'xuat-excel' })
+        }
         onOpenMaterialDbTab={() => handleSelectPageTab('sua-vat-lieu')}
         onLoadVatLieuFile={() => openVatLieuInputRef.current?.click()}
         onSaveVatLieuFile={store.saveVatLieuFile}
@@ -360,6 +407,8 @@ function MainWorkspace(): React.ReactElement {
         <TreeNav
           widthPx={treeWidth}
           loaiTK={loaiTK}
+          loaiMat={loaiMat}
+          rigidPassed={store.rigidVerification?.allPassed}
           activePageTab={store.activePageTab}
           alternatives={store.project.alternatives}
           activeAlternativeId={store.activeAlternative.id}

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { DesignObjectType, ProjectInfo, RehabStrategy } from '../types/project';
+import type { DesignObjectType, PavementKind, ProjectInfo, RehabStrategy } from '../types/project';
 
 export interface TabProjectInfoProps {
   info: ProjectInfo;
@@ -56,6 +56,27 @@ export function TabProjectInfo({
           <span />
         </div>
 
+        <fieldset className="adm-groupbox" style={{ marginTop: 18 }} data-testid="group-loai-mat">
+          <legend>Loại mặt đường</legend>
+          {(
+            [
+              ['MEM', 'Mặt đường mềm — kiểm toán theo TCCS 38:2022/TCĐBVN', 'radio-mat-mem'],
+              ['CUNG', 'Mặt đường cứng BTXM thông thường — kiểm toán theo TCCS 39:2022/TCĐBVN', 'radio-mat-cung'],
+            ] as Array<[PavementKind, string, string]>
+          ).map(([val, label, tid]) => (
+            <label key={val} className="adm-radio-row">
+              <input
+                type="radio"
+                name="loaiMatDuong"
+                data-testid={tid}
+                checked={(info.loaiMatDuong ?? 'MEM') === val}
+                onChange={() => onChange({ loaiMatDuong: val })}
+              />
+              <span>{label}</span>
+            </label>
+          ))}
+        </fieldset>
+
         <div className="adm-grid-2col" style={{ marginTop: 18 }}>
           <fieldset className="adm-groupbox">
             <legend>Đối tượng thiết kế</legend>
@@ -69,6 +90,7 @@ export function TabProjectInfo({
                 <input
                   type="radio"
                   name="doiTuongTK"
+                  disabled={(info.loaiMatDuong ?? 'MEM') === 'CUNG'}
                   checked={info.doiTuongTK === val}
                   onChange={() => onChange({ doiTuongTK: val })}
                 />
@@ -83,6 +105,7 @@ export function TabProjectInfo({
               <input
                 type="radio"
                 name="loaiTK"
+                disabled={(info.loaiMatDuong ?? 'MEM') === 'CUNG'}
                 data-testid="radio-loai-tk-moi"
                 checked={info.loaiTK === 'TK_MOI'}
                 onChange={() => onChange({ loaiTK: 'TK_MOI' })}
@@ -93,6 +116,7 @@ export function TabProjectInfo({
               <input
                 type="radio"
                 name="loaiTK"
+                disabled={(info.loaiMatDuong ?? 'MEM') === 'CUNG'}
                 data-testid="radio-loai-cai-tao"
                 checked={info.loaiTK === 'CAI_TAO'}
                 onChange={() => onChange({ loaiTK: 'CAI_TAO' })}

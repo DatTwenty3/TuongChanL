@@ -6,11 +6,16 @@ import type {
   DesignKindType,
   FullVerificationResult,
   PavementAlternative,
+  PavementKind,
 } from '../types/project';
 
 export interface TreeNavProps {
   widthPx: number;
   loaiTK?: DesignKindType;
+  /** 'CUNG' → cây điều hướng mặt đường cứng BTXM (TCCS 39:2022). */
+  loaiMat?: PavementKind;
+  /** Kết quả tổng hợp kiểm toán tấm BTXM (undefined = chưa có). */
+  rigidPassed?: boolean;
   activePageTab: MainTabKey;
   alternatives: PavementAlternative[];
   activeAlternativeId: string;
@@ -35,6 +40,8 @@ function statusIcon(passed: boolean | undefined, fallback: string): string {
 export function TreeNav({
   widthPx,
   loaiTK = 'TK_MOI',
+  loaiMat = 'MEM',
+  rigidPassed,
   activePageTab,
   alternatives,
   activeAlternativeId,
@@ -75,6 +82,75 @@ export function TreeNav({
       : []),
     { key: 'thong-so', label: 'Thông số thiết kế áo đường', icon: TREE_ICONS.curveChart },
   ];
+
+  if (loaiMat === 'CUNG') {
+    const rigidInputs: Array<{ key: MainTabKey; label: string; icon: string }> = [
+      { key: 'thong-tin', label: 'Thông tin dự án', icon: TREE_ICONS.docInfo },
+      { key: 'quy-mo', label: 'Quy mô thiết kế', icon: TREE_ICONS.docInfo },
+      { key: 'dat-nen', label: 'Đất nền', icon: TREE_ICONS.pavementLayers },
+      { key: 'cung-giao-thong', label: 'Tải trọng trục và Ne', icon: TREE_ICONS.trafficCal },
+      { key: 'cung-ket-cau', label: 'Kết cấu tấm BTXM', icon: TREE_ICONS.gridAdd },
+      { key: 'cung-khe-noi', label: 'Khe nối', icon: TREE_ICONS.pavementLayers },
+    ];
+    return (
+      <aside
+        className={`adm-tree-pane ${mobileOpen ? 'open' : ''}`}
+        style={{ width: `${widthPx}px` }}
+        aria-label="Cây điều hướng dự án"
+        data-testid="tree-rigid"
+      >
+        <div className="adm-tree-head">
+          <span>Cây điều hướng — Mặt đường cứng</span>
+          {onCloseMobile && (
+            <button
+              type="button"
+              className="adm-tree-close"
+              aria-label="Đóng cây điều hướng"
+              onClick={onCloseMobile}
+            >
+              ✕
+            </button>
+          )}
+        </div>
+        <div className="adm-tree-scroll" role="tree">
+          {rigidInputs.map((n) => (
+            <div
+              key={n.key}
+              role="treeitem"
+              aria-selected={activePageTab === n.key}
+              className={`adm-tree-node ${activePageTab === n.key ? 'selected' : ''}`}
+              onClick={() => {
+                onSelectInputTab(n.key);
+                onCloseMobile?.();
+              }}
+            >
+              <span className="adm-tree-toggle-spacer" />
+              <img className="adm-tree-icon" src={n.icon} alt="" />
+              <span>{n.label}</span>
+            </div>
+          ))}
+          <div
+            role="treeitem"
+            aria-selected={activePageTab === 'cung-kiem-toan'}
+            className={`adm-tree-node ${activePageTab === 'cung-kiem-toan' ? 'selected' : ''}`}
+            data-testid="tree-rigid-result"
+            onClick={() => {
+              onSelectInputTab('cung-kiem-toan');
+              onCloseMobile?.();
+            }}
+          >
+            <span className="adm-tree-toggle-spacer" />
+            <img
+              className="adm-tree-icon"
+              src={statusIcon(rigidPassed, TREE_ICONS.curveChart)}
+              alt=""
+            />
+            <span>Kết quả kiểm toán tấm BTXM</span>
+          </div>
+        </div>
+      </aside>
+    );
+  }
 
   return (
     <aside

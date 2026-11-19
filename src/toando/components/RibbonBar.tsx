@@ -1,16 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { BrandMark, Icon } from '../../components/Icon';
 import { ModuleSwitch } from '../../shared/ModuleSwitch';
 import type { ThemeMode } from '../../shared/theme';
 import { UI_ICONS } from '../assets/iconRegistry';
 import type { MainTabKey, RibbonTabKey } from '../state/navigation';
-import type { DesignKindType, PavementAlternative } from '../types/project';
+import type { DesignKindType, PavementAlternative, PavementKind } from '../types/project';
 
 export interface RibbonBarProps {
   projectName: string;
   fileName: string | null;
   dirty: boolean;
   loaiTK?: DesignKindType;
+  /** Loại mặt đường: mềm (mặc định) hoặc cứng BTXM (TCCS 39:2022). */
+  loaiMat?: PavementKind;
   activeRibbonTab: RibbonTabKey;
   activePageTab: MainTabKey;
   alternatives: PavementAlternative[];
@@ -28,6 +31,9 @@ export interface RibbonBarProps {
   onCloseProject: () => void;
   onLoadSampleProject: () => void;
   onLoadSampleRehabProject?: (variant?: 'overlay' | 'mill') => void;
+  onLoadSampleRigidProject?: (variant?: 'B1' | 'B2') => void;
+  /** Chọn loại mặt đường ngay trên thanh tiêu đề. */
+  onChangePavementKind?: (kind: PavementKind) => void;
   onAddAlternative: () => void;
   onRenameAlternative: () => void;
   onDeleteAlternative: () => void;
@@ -41,7 +47,10 @@ export interface RibbonBarProps {
 }
 
 export function RibbonBar(props: RibbonBarProps): React.ReactElement {
+  const rigid = props.loaiMat === 'CUNG';
   const [appMenuOpen, setAppMenuOpen] = useState(false);
+  const [kindMenuOpen, setKindMenuOpen] = useState(false);
+  const titleRef = useRef<HTMLDivElement>(null);
   const [saveMenuPos, setSaveMenuPos] = useState<{ left: number; top: number } | null>(null);
   const [vlMenuPos, setVlMenuPos] = useState<{ left: number; top: number } | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -61,8 +70,10 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
 
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+      const insideTitleMenu = (e.target as Element | null)?.closest?.('.adm-title-menu');
+      if (rootRef.current && !rootRef.current.contains(e.target as Node) && !insideTitleMenu) {
         setAppMenuOpen(false);
+        setKindMenuOpen(false);
         setSaveMenuPos(null);
         setVlMenuPos(null);
       }
@@ -70,6 +81,7 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
         setAppMenuOpen(false);
+        setKindMenuOpen(false);
         setSaveMenuPos(null);
         setVlMenuPos(null);
       }
@@ -102,7 +114,7 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
     : props.fileName
       ? ` *** ${props.fileName}`
       : '';
-  const windowCaption = `Áo đường mềm (TCCS 38:2022/TCĐBVN)${titleSuffix}${props.dirty ? ' *' : ''}`;
+  const windowCaption = `${rigid ? 'Mặt đường cứng BTXM (TCCS 39:2022/TCĐBVN)' : 'Áo đường mềm (TCCS 38:2022/TCĐBVN)'}${titleSuffix}${props.dirty ? ' *' : ''}`;
   const theme = props.theme ?? 'light';
 
   return (
@@ -124,12 +136,95 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
         <ModuleSwitch current="toando" />
 
         <div className="adm-hdr-meta">
-          <div className="adm-window-title" data-testid="window-title" title={windowCaption}>
-            {windowCaption}
+          <div className="adm-window-title-wrap">
+            <div
+              ref={titleRef}
+              className={`adm-window-title ${props.onChangePavementKind ? 'adm-window-title-pick' : ''}`}
+              data-testid="window-title"
+              title={props.onChangePavementKind ? `${windowCaption} — bấm để đổi loại mặt đường` : windowCaption}
+              role={props.onChangePavementKind ? 'button' : undefined}
+              tabIndex={props.onChangePavementKind ? 0 : undefined}
+              aria-haspopup={props.onChangePavementKind ? 'menu' : undefined}
+              aria-expanded={props.onChangePavementKind ? kindMenuOpen : undefined}
+              onClick={() => props.onChangePavementKind && setKindMenuOpen((v) => !v)}
+              onKeyDown={(e) => {
+                if (props.onChangePavementKind && (e.key === 'Enter' || e.key === ' ')) {
+                  e.preventDefault();
+                  setKindMenuOpen((v) => !v);
+                }
+              }}
+            >
+              {windowCaption}
+            </div>
+            {kindMenuOpen &&
+              props.onChangePavementKind &&
+              titleRef.current &&
+              createPortal(
+              <div
+                className="adm-title-menu"
+                role="menu"
+                data-testid="title-kind-menu"
+                style={(() => {
+                  const r = titleRef.current?.getBoundingClientRect();
+                  return r
+                    ? {
+                        left: Math.max(8, Math.min(r.left, window.innerWidth - 360)),
+                        top: r.bottom + 4,
+                      }
+                    : undefined;
+                })()}
+              >
+                {(
+                  [
+                    ['MEM', 'Áo đường mềm (TCCS 38:2022/TCĐBVN)'],
+                    ['CUNG', 'Mặt đường cứng BTXM (TCCS 39:2022/TCĐBVN)'],
+                  ] as Array<[PavementKind, string]>
+                ).map(([kind, label]) => (
+                  <button
+                    key={kind}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={(props.loaiMat ?? 'MEM') === kind}
+                    data-testid={`title-kind-${kind === 'MEM' ? 'mem' : 'cung'}`}
+                    className={`adm-title-menu-item ${(props.loaiMat ?? 'MEM') === kind ? 'active' : ''}`}
+                    onClick={() => {
+                      setKindMenuOpen(false);
+                      if ((props.loaiMat ?? 'MEM') !== kind) props.onChangePavementKind?.(kind);
+                    }}
+                  >
+                    <span className="adm-title-menu-check">{(props.loaiMat ?? 'MEM') === kind ? '✓' : ''}</span>
+                    <span>{label}</span>
+                  </button>
+                ))}
+              </div>,
+              titleRef.current.closest('.adm-shell') ?? document.body,
+            )}
           </div>
         </div>
 
         <div className="adm-titlebar-actions">
+          {rigid && props.onLoadSampleRigidProject ? (
+            <>
+              <button
+                type="button"
+                className="adm-sample-pill"
+                data-testid="btn-load-sample-b1"
+                title="Nạp nhanh ví dụ B.1 Phụ lục B (TCCS 39:2022/TCĐBVN): tấm 23 cm trên móng CPĐD, đường cấp IV"
+                onClick={() => props.onLoadSampleRigidProject?.('B1')}
+              >
+                Nạp ví dụ B.1 (TCCS 39)
+              </button>
+              <button
+                type="button"
+                className="adm-sample-pill adm-sample-pill-ch10"
+                data-testid="btn-load-sample-b2"
+                title="Nạp nhanh ví dụ B.2 Phụ lục B (TCCS 39:2022/TCĐBVN): tấm 26 cm trên móng CPĐD gia cố xi măng, đường cấp III"
+                onClick={() => props.onLoadSampleRigidProject?.('B2')}
+              >
+                Nạp ví dụ B.2 (TCCS 39)
+              </button>
+            </>
+          ) : (
           <button
             type="button"
             className="adm-sample-pill"
@@ -139,7 +234,8 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
           >
             Nạp ví dụ mẫu (TCCS 38:2022)
           </button>
-          {props.onLoadSampleRehabProject && (
+          )}
+          {!rigid && props.onLoadSampleRehabProject && (
             <button
               type="button"
               className="adm-sample-pill adm-sample-pill-ch10"
@@ -326,6 +422,27 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
                 <span>Nạp ví dụ cải tạo (Ch.10)</span>
               </button>
             )}
+            {props.onLoadSampleRigidProject &&
+              (
+                [
+                  ['B1', 'menu-sample-rigid', 'Nạp ví dụ B.1 mặt đường cứng (TCCS 39:2022)'],
+                  ['B2', 'menu-sample-rigid-b2', 'Nạp ví dụ B.2 mặt đường cứng (TCCS 39:2022)'],
+                ] as const
+              ).map(([variant, tid, label]) => (
+                <button
+                  key={variant}
+                  type="button"
+                  className="adm-appmenu-item"
+                  data-testid={tid}
+                  onClick={() => {
+                    setAppMenuOpen(false);
+                    props.onLoadSampleRigidProject?.(variant);
+                  }}
+                >
+                  <img src={UI_ICONS.kcadLarge} alt="" />
+                  <span>{label}</span>
+                </button>
+              ))}
             <div className="adm-appmenu-sep" />
             <button
               type="button"
@@ -456,14 +573,16 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
                     <img src={UI_ICONS.quymoLarge} alt="" />
                     <span>Quy mô thiết kế</span>
                   </button>
-                  <button
-                    type="button"
-                    className={`adm-rib-large-btn ${props.activePageTab === 'luu-luong' ? 'active' : ''}`}
-                    onClick={() => props.onSelectPageTab('luu-luong')}
-                  >
-                    <img src={UI_ICONS.xeLarge} alt="" />
-                    <span>Thành phần xe</span>
-                  </button>
+                  {!rigid && (
+                    <button
+                      type="button"
+                      className={`adm-rib-large-btn ${props.activePageTab === 'luu-luong' ? 'active' : ''}`}
+                      onClick={() => props.onSelectPageTab('luu-luong')}
+                    >
+                      <img src={UI_ICONS.xeLarge} alt="" />
+                      <span>Thành phần xe</span>
+                    </button>
+                  )}
                   <button
                     type="button"
                     className={`adm-rib-large-btn ${props.activePageTab === 'dat-nen' ? 'active' : ''}`}
@@ -472,7 +591,7 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
                     <img src={UI_ICONS.datNenLarge} alt="" />
                     <span>Đất nền</span>
                   </button>
-                  {props.loaiTK === 'CAI_TAO' && (
+                  {!rigid && props.loaiTK === 'CAI_TAO' && (
                     <button
                       type="button"
                       data-testid="rib-btn-ao-duong-cu"
@@ -483,19 +602,41 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
                       <span>Áo đường cũ</span>
                     </button>
                   )}
-                  <button
-                    type="button"
-                    className={`adm-rib-large-btn ${props.activePageTab === 'thong-so' ? 'active' : ''}`}
-                    onClick={() => props.onSelectPageTab('thong-so')}
-                  >
-                    <img src={UI_ICONS.kcadLarge} alt="" />
-                    <span>Chọn kết cấu</span>
-                  </button>
+                  {!rigid && (
+                    <button
+                      type="button"
+                      className={`adm-rib-large-btn ${props.activePageTab === 'thong-so' ? 'active' : ''}`}
+                      onClick={() => props.onSelectPageTab('thong-so')}
+                    >
+                      <img src={UI_ICONS.kcadLarge} alt="" />
+                      <span>Chọn kết cấu</span>
+                    </button>
+                  )}
+                  {rigid &&
+                    (
+                      [
+                        ['cung-giao-thong', 'Tải trọng trục', UI_ICONS.xeLarge],
+                        ['cung-ket-cau', 'Kết cấu tấm BTXM', UI_ICONS.kcadLarge],
+                        ['cung-khe-noi', 'Khe nối', UI_ICONS.kcadLarge],
+                      ] as const
+                    ).map(([tabKey, caption, icon]) => (
+                      <button
+                        key={tabKey}
+                        type="button"
+                        data-testid={`rib-btn-${tabKey}`}
+                        className={`adm-rib-large-btn ${props.activePageTab === tabKey ? 'active' : ''}`}
+                        onClick={() => props.onSelectPageTab(tabKey)}
+                      >
+                        <img src={icon} alt="" />
+                        <span>{caption}</span>
+                      </button>
+                    ))}
                 </div>
                 <div className="adm-rib-group-label">Nhập dữ liệu</div>
               </div>
 
-              {/* Group: Phương án áo đường */}
+              {/* Group: Phương án áo đường (chỉ mặt đường mềm) */}
+              {!rigid && (
               <div className="adm-rib-group">
                 <div className="adm-rib-group-body">
                   <button
@@ -545,6 +686,7 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
                 </div>
                 <div className="adm-rib-group-label">Phương án áo đường</div>
               </div>
+              )}
 
               {/* Group: Kiểm toán */}
               <div className="adm-rib-group">
@@ -585,6 +727,7 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
 
           {props.activeRibbonTab === 'TOOLS' && (
             <>
+              {!rigid && (
               <div className="adm-rib-group">
                 <div className="adm-rib-group-body">
                   {(
@@ -610,6 +753,7 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
                 </div>
                 <div className="adm-rib-group-label">Tra toán đồ</div>
               </div>
+              )}
 
               <div className="adm-rib-group">
                 <div className="adm-rib-group-body">
