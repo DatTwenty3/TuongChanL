@@ -128,6 +128,30 @@ describe('ToanDo-Web — mặt đường cứng BTXM (TCCS 39:2022)', () => {
     expect(host.querySelector('[data-testid="window-title"]')?.textContent).toContain('Ví dụ B.2');
   });
 
+  it('tab Thoát nước: bật kiểm toán, đổi kiểu, kết quả vào kết luận chung và báo cáo', () => {
+    click(host.querySelector('[data-testid="radio-mat-cung"]'));
+    click(host.querySelector('[data-testid="rib-btn-cung-thoat-nuoc"]'));
+    expect(host.querySelector('[data-testid="rigid-drain-table"]')).toBeNull();
+    click(host.querySelector('[data-testid="chk-drain-on"]'));
+    expect(host.querySelector('[data-testid="rigid-drain-table"]')).not.toBeNull();
+    expect(host.querySelector('[data-testid="rigid-drain-required"]')).not.toBeNull();
+    // mặc định (móng thoát nước, t > 2 h) → không đạt
+    expect(host.querySelector('[data-testid="rigid-drain-overall"]')?.getAttribute('data-passed')).toBe('false');
+    // đổi sang ống thoát nước dọc biên: đạt
+    changeInput(host.querySelector('#rg_dtype') as HTMLSelectElement, 'KHONG_THAM');
+    expect(host.querySelector('[data-testid="rigid-drain-overall"]')?.getAttribute('data-passed')).toBe('true');
+    // báo cáo có mục VI
+    click(host.querySelector('[data-testid="tree-rigid-result"]'));
+    const report = host.querySelector('[data-testid="rv-rigid-report"]');
+    expect(report?.textContent).toContain('VI. Kiểm toán thoát nước kết cấu áo đường (Điều 7)');
+    expect(report?.textContent).toContain('Công thức (1) — Điều 7.1.4');
+    // tắt kiểm toán: mục biến mất
+    click(host.querySelector('[data-testid="rib-btn-cung-thoat-nuoc"]'));
+    click(host.querySelector('[data-testid="chk-drain-on"]'));
+    click(host.querySelector('[data-testid="tree-rigid-result"]'));
+    expect(host.querySelector('[data-testid="rv-rigid-drain"]')).toBeNull();
+  });
+
   it('bật Ne tự tính và E0 từ Đất nền cập nhật kết quả', () => {
     click(host.querySelector('[data-testid="radio-mat-cung"]'));
     click(host.querySelector('[data-testid="rib-btn-cung-giao-thong"]'));

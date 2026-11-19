@@ -16,6 +16,47 @@ export type RigidAggregate = 'SILIC' | 'SA_THACH' | 'CUOI_SOI' | 'GRANIT' | 'DA_
 /** Kết cấu lề cho hệ số kr (Điều 8.3.1). */
 export type RigidShoulder = 'BTXM_BANG' | 'BTXM_MONG' | 'MEM';
 
+/** Kiểu hệ thống thoát nước theo Điều 7.1.1: lớp móng trên không thấm (7.2) hoặc móng thoát nước (7.3). */
+export type RigidDrainType = 'KHONG_THAM' | 'THAM';
+/** Quy mô giao thông cho điều kiện bắt buộc bố trí thoát nước (Điều 7.1.2). */
+export type RigidTrafficScale = 'THUONG' | 'NANG' | 'RAT_NANG';
+/** Loại đất nền trên cùng cho điều kiện bắt buộc bố trí thoát nước (Điều 7.1.2). */
+export type RigidSubgradeSoil = 'HAT_MIN' | 'SET' | 'KHAC';
+
+/** Kiểm toán thoát nước kết cấu áo đường BTXM (TCCS 39, Điều 7). Vắng mặt = không kiểm toán. */
+export interface RigidDrainData {
+  type: RigidDrainType;
+  /** Suất nước thấm theo khe Ic (m³/ngày.m), mặc định 0,36. */
+  Ic: number;
+  /** Số làn xe trong phạm vi B (nz = N + 1). */
+  N: number;
+  /** Số khe ngang và khe nứt trong phạm vi L. */
+  nh: number;
+  /** Chiều rộng mặt đường và móng cùng độ dốc ngang B (m). */
+  B: number;
+  /** Độ dốc dọc / ngang của lớp móng (%). */
+  id: number;
+  in_: number;
+  /** Hệ số thấm vật liệu móng thoát nước kb (m/ngày) và độ rỗng hữu hiệu ne. */
+  kb: number;
+  ne: number;
+  /** Chiều dày lớp móng thoát nước hbt (m). */
+  hbt: number;
+  /** Giới hạn thời gian thấm (h) và chiều dài đường thấm (m) — Điều 7.1.3. */
+  tLimit: number;
+  lsLimit: number;
+  /** Ống thoát nước (kiểu 7.2): đường kính (mm), độ dốc ống dọc / ngang (%), khoảng cách ống ngang (m). */
+  pipeDia: number;
+  pipeSlopeLong: number;
+  pipeSlopeCross: number;
+  pipeSpacing: number;
+  /** Điều kiện bắt buộc bố trí thoát nước (Điều 7.1.2). */
+  trafficScale: RigidTrafficScale;
+  rain: number;
+  subgradeSoil: RigidSubgradeSoil;
+  subgradeK: number;
+}
+
 /** Dữ liệu mặt đường cứng (m, kN, MPa). Vắng mặt trong dự án = chưa dùng. */
 export interface RigidProjectData {
   roadClass: RigidRoadClass;
@@ -29,6 +70,8 @@ export interface RigidProjectData {
   /** true: E0 lấy từ mục Đất nền; false: dùng input.E0 nhập tay. */
   e0FromSubgrade: boolean;
   joint: JointInput;
+  /** Kiểm toán thoát nước (Điều 7); vắng mặt = không kiểm toán. */
+  drain?: RigidDrainData;
 }
 
 export type DesignObjectType = 'KCAD' | 'LGC';

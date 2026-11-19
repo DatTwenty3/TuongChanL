@@ -1,7 +1,11 @@
 import ExcelJS from 'exceljs';
 import { describe, expect, it } from 'vitest';
 import { createRigidSampleProject } from '../../../src/toando/data/sampleRigid';
-import { createDefaultRigidProjectData, runRigidVerification } from '../../../src/toando/engine';
+import {
+  createDefaultRigidDrainData,
+  createDefaultRigidProjectData,
+  runRigidVerification,
+} from '../../../src/toando/engine';
 import { exportRigidToXlsxBuffer } from '../../../src/toando/export';
 import type { ProjectState } from '../../../src/toando/types/project';
 
@@ -63,6 +67,8 @@ function makeEvaluator(cells: Cells) {
   };
 
   const fns: Record<string, (...a: unknown[]) => unknown> = {
+    AND: (...a) => a.every(Boolean),
+    SQRT: (x) => Math.sqrt(x as number),
     SUM: (...a) => (a.flat() as number[]).reduce((x, y) => x + y, 0),
     MAX: (...a) => Math.max(...(a.flat() as number[])),
     IF: (c, t, f) => (c ? t : f),
@@ -82,7 +88,7 @@ function makeEvaluator(cells: Cells) {
     js = js.replace(/(?<![A-Za-z"])\$?([A-Z]{1,2})\$?(\d+)(?![\d(])/g, (_m, c, r) => `CELL("${c}${r}")`);
     js = js.replace(/\^/g, '**').replace(/<>/g, '!==');
     js = js.replace(/(?<![<>!=])=(?!=)/g, '===');
-    js = js.replace(/\b(SUM|MAX|IF|EXP|LN|SINH|COSH|SIN|COS)\(/g, 'FN.$1(');
+    js = js.replace(/\b(SUM|MAX|IF|AND|SQRT|EXP|LN|SINH|COSH|SIN|COS)\(/g, 'FN.$1(');
     // toán tử ** có độ ưu tiên cao hơn một ngôi trong JS => cần ngoặc cho "-x**y"; công thức đã dùng ngoặc rõ ràng.
     const fn = new Function('CELL', 'RNG', 'FN', `return (${js});`);
     return fn(getCell, (a: string, b: string) => range(a, b), fns) as number | string;
@@ -212,6 +218,45 @@ describe('Excel kiểm toán mặt đường cứng (TCCS 39:2022)', () => {
     expect(text).toContain('Công thức (26) — Điều 8.4.2');
     expect(text).toContain('Kết luận: Lớp móng trên');
     expect(v.res.c1).toBeGreaterThan(0);
+  });
+
+  it.each(['THAM', 'KHONG_THAM'] as const)('kiểm toán thoát nước (%s): công thức Excel khớp kết quả lưu sẵn', async (type) => {
+    const p = createRigidSampleProject();
+    p.rigid!.drain = { ...createDefaultRigidDrainData(), type };
+    const ws = await loadSheet(p);
+    const cells = sheetCells(ws);
+    const ev = makeEvaluator(cells);
+    let n = 0;
+    for (const [addr, raw] of cells) {
+      if (raw && typeof raw === 'object' && 'formula' in raw && raw.formula) {
+        const got = ev.evalFormula(String(raw.formula));
+        const want = raw.result as number | string | boolean;
+        if (typeof want === 'number') {
+          expect(Number(got) / (want || 1), `${addr}: =${raw.formula}`).toBeCloseTo(want ? 1 : 0, 6);
+        } else {
+          expect(got, `${addr}: =${raw.formula}`).toBe(want);
+        }
+        n += 1;
+      }
+    }
+    expect(n).toBeGreaterThan(30);
+    const text = textOf(ws);
+    expect(text).toContain('VI. KIỂM TOÁN THOÁT NƯỚC KẾT CẤU ÁO ĐƯỜNG (Điều 7):');
+    expect(text).toContain('Công thức (1) — Điều 7.1.4');
+    expect(text).toContain('Công thức (3) — Điều 7.3.4');
+    expect(text).toMatch(/Kết luận: Hệ thống thoát nước (KHÔNG )?đảm bảo/);
+    if (type === 'THAM') {
+      expect(text).toContain('Công thức (2) — Điều 7.3.4');
+      expect(text).toContain('Công thức (4) — Điều 7.3.4');
+      expect(text).toContain('Công thức (5) — Điều 7.4.2');
+    } else {
+      expect(text).toContain('Điều 7.2.2');
+    }
+  });
+
+  it('không bật thoát nước thì không có mục thoát nước', async () => {
+    const ws = await loadSheet(createRigidSampleProject());
+    expect(textOf(ws)).not.toContain('KIỂM TOÁN THOÁT NƯỚC');
   });
 
   it('kết luận KHÔNG đạt có định dạng có điều kiện màu đỏ', async () => {

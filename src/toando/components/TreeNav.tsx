@@ -91,6 +91,7 @@ export function TreeNav({
       { key: 'cung-giao-thong', label: 'Tải trọng trục và Ne', icon: TREE_ICONS.trafficCal },
       { key: 'cung-ket-cau', label: 'Kết cấu tấm BTXM', icon: TREE_ICONS.gridAdd },
       { key: 'cung-khe-noi', label: 'Khe nối', icon: TREE_ICONS.pavementLayers },
+      { key: 'cung-thoat-nuoc', label: 'Thoát nước', icon: TREE_ICONS.pavementLayers },
     ];
     return (
       <aside

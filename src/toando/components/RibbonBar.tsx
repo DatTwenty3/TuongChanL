@@ -618,6 +618,7 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
                         ['cung-giao-thong', 'Tải trọng trục', UI_ICONS.xeLarge],
                         ['cung-ket-cau', 'Kết cấu tấm BTXM', UI_ICONS.kcadLarge],
                         ['cung-khe-noi', 'Khe nối', UI_ICONS.kcadLarge],
+                        ['cung-thoat-nuoc', 'Thoát nước', UI_ICONS.datNenLarge],
                       ] as const
                     ).map(([tabKey, caption, icon]) => (
                       <button

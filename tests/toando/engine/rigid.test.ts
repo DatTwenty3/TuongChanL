@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createBlankProject } from '../../../src/toando/data/sampleVd';
 import {
+  createDefaultRigidDrainData,
   createDefaultRigidProjectData,
+  drainRequirement,
   ecFromFr,
   ensureRigidState,
   resolveRigidInput,
@@ -92,6 +94,69 @@ describe('TCCS 39:2022 — kiểm toán mặt đường cứng (toan-do)', () =>
     expect(v.allPassed).toBe(true);
     // sách nêu: móng gia cố xi măng không cần kiểm tra (8) → fbr = 0 nên điều kiện (8) không áp dụng
     expect(v.checks[2].applicable).toBe(false);
+  });
+
+  it('thoát nước Điều 7 — móng thoát nước: công thức (1)–(5) tính tay', () => {
+    const p = exampleB1();
+    // Ic 0,36; N 2; nh 1; B 7,5; id 0,5 %; in 2 %; kb 300; ne 0,15; hbt 0,15
+    p.rigid!.drain = { ...createDefaultRigidDrainData(), type: 'THAM' };
+    const v = runRigidVerification(p);
+    const d = v.drain!;
+    const L = 4.5; // chiều dài tấm của ví dụ B.1
+    const Qi = 0.36 * (3 + (1 * 7.5) / L); // (1)
+    const Ls = 7.5 * Math.sqrt(1 + 0.5 ** 2 / 2 ** 2); // (3)
+    const vs = (1 / 0.15) * (300 / 86400) * Math.sqrt(0.005 ** 2 + 0.02 ** 2); // (4), m/s
+    const t = Ls / (3600 * vs); // (2), giờ
+    const cap = 0.15 * 1.0 * (vs * 86400); // (5)
+    expect(d.calc.Qi).toBeCloseTo(Qi, 9);
+    expect(d.calc.Ls).toBeCloseTo(Ls, 9);
+    expect(d.calc.vs).toBeCloseTo(vs, 12);
+    expect(d.calc.t).toBeCloseTo(t, 6);
+    expect(d.calc.cap).toBeCloseTo(cap, 6);
+    expect(Qi).toBeCloseTo(1.68, 2);
+    expect(t).toBeGreaterThan(2); // 4,5 h > 2 h → không đạt thời gian thấm
+    const byId = Object.fromEntries(d.checks.map((c) => [c.id, c]));
+    expect(byId.ls.passed).toBe(true);
+    expect(byId.t.passed).toBe(false);
+    expect(byId.hbt.passed).toBe(true);
+    expect(d.passed).toBe(false);
+    expect(v.slabPassed).toBe(true);
+    expect(v.allPassed).toBe(false); // thoát nước không đạt kéo theo kết luận chung
+    // độ dốc lớn hơn, vật liệu thấm tốt hơn thì đạt
+    p.rigid!.drain = { ...p.rigid!.drain!, id: 3, kb: 1000 };
+    expect(runRigidVerification(p).drain!.passed).toBe(true);
+  });
+
+  it('thoát nước Điều 7.2 — ống dọc/ngang và điều kiện bắt buộc Điều 7.1.2', () => {
+    const p = exampleB1();
+    p.rigid!.drain = { ...createDefaultRigidDrainData(), type: 'KHONG_THAM' };
+    let d = runRigidVerification(p).drain!;
+    expect(d.checks.map((c) => c.id)).toEqual(['ls', 'dia', 'slopeLong', 'slopeCross', 'spacing']);
+    expect(d.passed).toBe(true);
+    p.rigid!.drain = { ...p.rigid!.drain!, pipeSlopeLong: 0.2, pipeDia: 150 };
+    d = runRigidVerification(p).drain!;
+    expect(d.checks.find((c) => c.id === 'slopeLong')!.passed).toBe(false);
+    expect(d.checks.find((c) => c.id === 'dia')!.passed).toBe(false);
+    expect(d.passed).toBe(false);
+
+    const base = createDefaultRigidDrainData();
+    // khoản 2: cấp nặng + nền sét k < 3 → bắt buộc
+    expect(drainRequirement('CAP_III', { ...base, trafficScale: 'NANG', subgradeSoil: 'SET', subgradeK: 1 }).required).toBe(true);
+    // khoản 1: cao tốc + mưa > 600 mm + nền hạt mịn k < 85 → bắt buộc
+    expect(
+      drainRequirement('CAO_TOC', { ...base, trafficScale: 'THUONG', subgradeSoil: 'HAT_MIN', subgradeK: 50, rain: 1200 }).required,
+    ).toBe(true);
+    // mưa ít hoặc nền thấm tốt → không bắt buộc
+    expect(
+      drainRequirement('CAO_TOC', { ...base, trafficScale: 'THUONG', subgradeSoil: 'HAT_MIN', subgradeK: 50, rain: 500 }).required,
+    ).toBe(false);
+    expect(drainRequirement('CAP_III', { ...base, trafficScale: 'NANG', subgradeSoil: 'SET', subgradeK: 5 }).required).toBe(false);
+  });
+
+  it('chưa bật thoát nước: kết luận chung chỉ phụ thuộc tấm (không đổi so với trước)', () => {
+    const v = runRigidVerification(exampleB1());
+    expect(v.drain).toBeNull();
+    expect(v.allPassed).toBe(v.slabPassed);
   });
 
   it('tấm mỏng thì KHÔNG đạt và tìm được chiều dày nhỏ nhất đạt', () => {

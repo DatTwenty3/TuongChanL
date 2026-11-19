@@ -7,6 +7,7 @@
  * (6), (7), (8) và khe nối (Điều 6).
  */
 import {
+  calcDrain,
   calcJoint,
   calcRigid,
   computeNe,
@@ -14,6 +15,7 @@ import {
   type NeSummary,
 } from '../../pavement/engine/tccs39';
 import type {
+  DrainResult,
   JointInput,
   JointResult,
   RigidInput,
@@ -23,6 +25,7 @@ import type {
 import type {
   ProjectState,
   RigidAggregate,
+  RigidDrainData,
   RigidProjectData,
   RigidRegion,
   RigidRoadClass,
@@ -204,6 +207,185 @@ export function createDefaultRigidProjectData(): RigidProjectData {
   };
 }
 
+export const RIGID_DRAIN_TYPE_OPTIONS: ReadonlyArray<{ value: RigidDrainData['type']; label: string }> = [
+  { value: 'KHONG_THAM', label: 'Lớp móng trên không thấm nước — ống thoát nước dọc biên (Điều 7.2)' },
+  { value: 'THAM', label: 'Có lớp móng thoát nước (Điều 7.3)' },
+];
+
+export const RIGID_TRAFFIC_SCALE_OPTIONS: ReadonlyArray<{ value: RigidDrainData['trafficScale']; label: string }> = [
+  { value: 'THUONG', label: 'Dưới cấp nặng' },
+  { value: 'NANG', label: 'Cấp nặng' },
+  { value: 'RAT_NANG', label: 'Cấp rất nặng trở lên' },
+];
+
+export const RIGID_SUBGRADE_SOIL_OPTIONS: ReadonlyArray<{ value: RigidDrainData['subgradeSoil']; label: string }> = [
+  { value: 'HAT_MIN', label: 'Vật liệu hạt mịn' },
+  { value: 'SET', label: 'Đất loại sét' },
+  { value: 'KHAC', label: 'Loại khác' },
+];
+
+/** Dữ liệu thoát nước mặc định (Điều 7.1.4: Ic = 0,36 m³/ngày.m; Điều 7.1.3: t ≤ 2 h, Ls ≤ 60 m). */
+export function createDefaultRigidDrainData(): RigidDrainData {
+  return {
+    type: 'THAM',
+    Ic: 0.36,
+    N: 2,
+    nh: 1,
+    B: 7.5,
+    id: 0.5,
+    in_: 2,
+    kb: 300,
+    ne: 0.15,
+    hbt: 0.15,
+    tLimit: 2,
+    lsLimit: 60,
+    pipeDia: 100,
+    pipeSlopeLong: 0.5,
+    pipeSlopeCross: 5,
+    pipeSpacing: 75,
+    trafficScale: 'NANG',
+    rain: 1500,
+    subgradeSoil: 'SET',
+    subgradeK: 1,
+  };
+}
+
+export interface RigidDrainCheck {
+  id: string;
+  label: string;
+  clause: string;
+  /** Giá trị tính / nhập (đơn vị ở `unit`). */
+  value: number;
+  unit: string;
+  /** Yêu cầu dạng chữ, ví dụ "≤ 2 h". */
+  requirement: string;
+  passed: boolean;
+}
+
+export interface RigidDrainResult {
+  type: RigidDrainData['type'];
+  /** Kết quả các công thức (1)–(5) của Điều 7 (calcDrain). */
+  calc: DrainResult;
+  /** Chiều dài tấm L dùng trong công thức (1) (m). */
+  L: number;
+  checks: RigidDrainCheck[];
+  passed: boolean;
+  /** Điều 7.1.2: có bắt buộc bố trí hệ thống thoát nước hay không và lý do. */
+  required: boolean;
+  requiredReasons: string[];
+}
+
+/** Điều 7.1.2 — điều kiện bắt buộc bố trí hệ thống thoát nước. */
+export function drainRequirement(
+  roadClass: RigidRoadClass,
+  d: RigidDrainData,
+): { required: boolean; reasons: string[] } {
+  const reasons: string[] = [];
+  const highClass = roadClass === 'CAO_TOC' || roadClass === 'CAP_I_II' || d.trafficScale === 'RAT_NANG';
+  const heavy = d.trafficScale === 'NANG' || d.trafficScale === 'RAT_NANG';
+  if (highClass && d.rain > 600 && d.subgradeSoil === 'HAT_MIN' && d.subgradeK < 85) {
+    reasons.push(
+      `Khoản 1: đường cao tốc, cấp I, II hoặc quy mô rất nặng trở lên; lượng mưa trung bình năm ${d.rain} mm > 600 mm; nền hạt mịn có hệ số thấm ${d.subgradeK} m/ngày < 85 m/ngày.`,
+    );
+  }
+  if (heavy && d.subgradeSoil === 'SET' && d.subgradeK < 3) {
+    reasons.push(
+      `Khoản 2: quy mô giao thông cấp nặng trở lên; nền trên cùng là đất sét có hệ số thấm ${d.subgradeK} m/ngày < 3 m/ngày.`,
+    );
+  }
+  return { required: reasons.length > 0, reasons };
+}
+
+/** Kiểm toán thoát nước theo Điều 7 (công thức (1)–(5)); null khi dự án chưa bật. */
+export function runRigidDrain(proj: ProjectState, slabL: number): RigidDrainResult | null {
+  const data = proj.rigid;
+  const d = data?.drain;
+  if (!data || !d) return null;
+  const calc = calcDrain({ Ic: d.Ic, N: d.N, nh: d.nh, B: d.B, L: slabL, id: d.id, in_: d.in_, kb: d.kb, ne: d.ne, hbt: d.hbt });
+  const checks: RigidDrainCheck[] = [
+    {
+      id: 'ls',
+      label: 'Chiều dài đường thấm ra khỏi kết cấu',
+      clause: 'Công thức (3) — Điều 7.1.3 và 7.3.4',
+      value: calc.Ls,
+      unit: 'm',
+      requirement: `≤ ${d.lsLimit} m`,
+      passed: calc.Ls <= d.lsLimit,
+    },
+  ];
+  if (d.type === 'THAM') {
+    checks.push(
+      {
+        id: 't',
+        label: 'Thời gian thấm nước ra khỏi lớp móng thoát nước',
+        clause: 'Công thức (2) — Điều 7.1.3 và 7.3.4',
+        value: calc.t,
+        unit: 'h',
+        requirement: `≤ ${d.tLimit} h`,
+        passed: calc.t <= d.tLimit,
+      },
+      {
+        id: 'hbt',
+        label: 'Khả năng thoát nước của lớp móng thoát nước (hbt·1,0·vs ≥ Qi)',
+        clause: 'Công thức (5) — Điều 7.4.2',
+        value: calc.cap,
+        unit: 'm³/ngày.m',
+        requirement: `≥ Qi = ${calc.Qi.toFixed(3)} m³/ngày.m`,
+        passed: calc.cap >= calc.Qi,
+      },
+    );
+  } else {
+    checks.push(
+      {
+        id: 'dia',
+        label: 'Đường kính ống thoát nước dọc',
+        clause: 'Điều 7.2.2',
+        value: d.pipeDia,
+        unit: 'mm',
+        requirement: '80–100 mm',
+        passed: d.pipeDia >= 80 && d.pipeDia <= 100,
+      },
+      {
+        id: 'slopeLong',
+        label: 'Độ dốc dọc của ống thoát nước dọc',
+        clause: 'Điều 7.2.2',
+        value: d.pipeSlopeLong,
+        unit: '%',
+        requirement: '≥ 0,3 %',
+        passed: d.pipeSlopeLong >= 0.3,
+      },
+      {
+        id: 'slopeCross',
+        label: 'Độ dốc dọc của ống thoát nước ngang',
+        clause: 'Điều 7.2.3',
+        value: d.pipeSlopeCross,
+        unit: '%',
+        requirement: '≥ 5 %',
+        passed: d.pipeSlopeCross >= 5,
+      },
+      {
+        id: 'spacing',
+        label: 'Khoảng cách ống thoát nước ngang',
+        clause: 'Điều 7.2.3',
+        value: d.pipeSpacing,
+        unit: 'm',
+        requirement: '50–100 m',
+        passed: d.pipeSpacing >= 50 && d.pipeSpacing <= 100,
+      },
+    );
+  }
+  const req = drainRequirement(data.roadClass, d);
+  return {
+    type: d.type,
+    calc,
+    L: slabL,
+    checks,
+    passed: checks.every((c) => c.passed),
+    required: req.required,
+    requiredReasons: req.reasons,
+  };
+}
+
 /** Bảo đảm dự án mặt đường cứng có dữ liệu (không đổi khi đã có). */
 export function ensureRigidState(proj: ProjectState): ProjectState {
   if (proj.projectInfo.loaiMatDuong === 'CUNG' && !proj.rigid) {
@@ -237,7 +419,12 @@ export interface RigidVerification {
   res: RigidResult;
   joint: JointResult;
   checks: RigidCheckItem[];
+  /** Kết luận chung: tấm BTXM đạt (6), (7), (8) và — nếu đã bật — thoát nước đạt (Điều 7). */
   allPassed: boolean;
+  /** Chỉ riêng tấm BTXM (điều kiện (6), (7), (8)). */
+  slabPassed: boolean;
+  /** Kiểm toán thoát nước (Điều 7); null khi chưa bật. */
+  drain: RigidDrainResult | null;
   /** Chiều dày tấm nhỏ nhất (m) thoả cả 3 điều kiện, tìm theo bước 5 mm; null nếu không có. */
   minHc: number | null;
   warnings: string[];
@@ -315,13 +502,17 @@ export function runRigidVerification(proj: ProjectState): RigidVerification {
     warnings.push('Trục đơn nặng nhất Pmax nên không nhỏ hơn trục tính mỏi Ps.');
   }
   const found = findMinHc(input);
+  const drain = runRigidDrain(proj, input.L);
+  const slabPassed = checks.every((c) => !c.applicable || c.passed);
   return {
     input,
     ne,
     res,
     joint,
     checks,
-    allPassed: checks.every((c) => !c.applicable || c.passed),
+    allPassed: slabPassed && (drain ? drain.passed : true),
+    slabPassed,
+    drain,
     minHc: found ? found.hc : null,
     warnings,
   };

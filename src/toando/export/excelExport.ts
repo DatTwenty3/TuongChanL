@@ -119,9 +119,9 @@ export function sanitizeSheetName(raw: string, used: Set<string>): string {
  * Dòng "Kết luận: … KHÔNG đảm bảo …" đổi màu theo kết quả tính lại trong Excel:
  * có chữ "KHÔNG" → đỏ, ngược lại → xanh (định dạng có điều kiện, không phụ thuộc màu lưu sẵn).
  */
-export function addConclusionColorRule(ws: ExcelJS.Worksheet, row: number): void {
-  const ref = `B${row}`;
-  const failTest = `ISNUMBER(SEARCH("KHÔNG",$B$${row}))`;
+export function addConclusionColorRule(ws: ExcelJS.Worksheet, row: number, col = 'B'): void {
+  const ref = `${col}${row}`;
+  const failTest = `ISNUMBER(SEARCH("KHÔNG",$${col}$${row}))`;
   ws.addConditionalFormatting({
     ref,
     rules: [

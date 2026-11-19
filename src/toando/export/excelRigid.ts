@@ -686,8 +686,200 @@ function populateRigidSheet(ws: ExcelJS.Worksheet, project: ProjectState): void 
   }
   cursor.blank(12.75);
 
+  if (v.drain && data.drain) {
+    const dr = v.drain;
+    const dd = data.drain;
+    const dc = dr.calc;
+    cursor.sectionHeading('VI. KIỂM TOÁN THOÁT NƯỚC KẾT CẤU ÁO ĐƯỜNG (Điều 7):', 18.75);
+    cursor.prose(
+      2,
+      dr.required
+        ? 'Theo Điều 7.1.2: phải bố trí hệ thống thoát nước.'
+        : 'Theo Điều 7.1.2: với số liệu đã nhập chưa bắt buộc bố trí hệ thống thoát nước.',
+      { italic: true }
+    );
+    textLine(
+      '- Kiểu hệ thống thoát nước (Điều 7.1.1):',
+      dd.type === 'THAM' ? 'Có lớp móng thoát nước (Điều 7.3)' : 'Lớp móng trên không thấm nước — ống thoát nước dọc biên (Điều 7.2)'
+    );
+    line('- Suất nước thấm theo khe:', 'I_{c}', { value: dd.Ic, unit: '(m³/ngày.m)', numFmt: '0.00', key: 'dIc', note: 'Điều 7.1.4' });
+    line('- Số làn xe trong phạm vi B:', 'N', { value: dd.N, numFmt: '0', key: 'dN' });
+    line('- Số khe ngang, khe nứt trong phạm vi L:', 'n_{h}', { value: dd.nh, numFmt: '0', key: 'dnh' });
+    line('- Bề rộng cùng độ dốc ngang:', 'B', { value: dd.B, unit: '(m)', numFmt: '0.00', key: 'dB' });
+    line('- Khoảng cách khe ngang (chiều dài tấm):', 'L', {
+      formula: F('L'),
+      value: dr.L,
+      unit: '(m)',
+      numFmt: '0.00',
+      key: 'dL',
+    });
+    line('- Độ dốc dọc:', 'i_{d}', { value: dd.id, unit: '(%)', numFmt: '0.00', key: 'did' });
+    line('- Độ dốc ngang:', 'i_{n}', { value: dd.in_, unit: '(%)', numFmt: '0.00', key: 'din' });
+    cursor.blank(8);
+    line('- Số khe dọc và khe nứt dọc trong phạm vi B:', 'n_{z}', {
+      eq: '= N + 1 =',
+      formula: `${F('dN')}+1`,
+      value: dc.nz,
+      numFmt: '0',
+      key: 'dnz',
+      note: 'Điều 7.1.4',
+    });
+    line('- Lượng nước thấm qua mặt đường trên mỗi mét dài:', 'Q_{i}', {
+      eq: '= I_{c}.(n_{z} + n_{h}.B/L) =',
+      formula: `${F('dIc')}*(${F('dnz')}+${F('dnh')}*${F('dB')}/${F('dL')})`,
+      value: dc.Qi,
+      unit: '(m³/ngày.m)',
+      numFmt: '0.000',
+      key: 'dQi',
+      bold: true,
+      note: 'Công thức (1) — Điều 7.1.4',
+    });
+    line('- Chiều dài đường thấm:', 'L_{s}', {
+      eq: '= B.√(1 + i_{d}²/i_{n}²) =',
+      formula: `${F('dB')}*SQRT(1+${F('did')}^2/${F('din')}^2)`,
+      value: dc.Ls,
+      unit: '(m)',
+      numFmt: '0.000',
+      key: 'dLs',
+      note: 'Công thức (3) — Điều 7.3.4',
+    });
+
+    const conds: string[] = [];
+    const dCmp = (
+      title: string,
+      lhsLabel: string,
+      lhsFormula: string,
+      lhsValue: number,
+      op: '<=' | '>=',
+      rhsLabel: string,
+      rhsFormula: string,
+      rhsValue: number,
+      passed: boolean,
+      unit: string,
+      note: string
+    ): void => {
+      cursor.prose(2, title);
+      const r = cursor.next(18.75);
+      const row = ws.getRow(r);
+      const mid = { horizontal: 'center', vertical: 'middle' } as const;
+      setCellMarkup(row.getCell(2), lhsLabel, { bold: true }, mid);
+      ws.mergeCells(r, 2, r, 3);
+      setFormulaCell(row.getCell(4), lhsFormula, lhsValue, { bold: true }, mid, '0.000');
+      setFormulaCell(row.getCell(5), `IF(D${r}${op}G${r},"${op}","${op === '<=' ? '>' : '<'}")`, passed ? op : op === '<=' ? '>' : '<', { bold: true }, mid);
+      setCellMarkup(row.getCell(6), rhsLabel, { bold: true }, mid);
+      setFormulaCell(row.getCell(7), rhsFormula, rhsValue, { bold: true }, mid, '0.000');
+      setPlainCell(row.getCell(8), unit, { bold: true }, LEFT);
+      setPlainCell(row.getCell(9), note, {}, LEFT);
+      conds.push(`D${r}${op}G${r}`);
+    };
+
+    cursor.blank(8);
+    dCmp(
+      'a. Chiều dài đường thấm:',
+      'L_{s} =',
+      F('dLs'),
+      dc.Ls,
+      '<=',
+      '[L_{s}] =',
+      String(dd.lsLimit),
+      dd.lsLimit,
+      dc.Ls <= dd.lsLimit,
+      '(m)',
+      'Điều 7.1.3'
+    );
+    if (dd.type === 'THAM') {
+      line('- Hệ số thấm của vật liệu lớp móng thoát nước:', 'k_{b}', { value: dd.kb, unit: '(m/ngày)', numFmt: '0.0', key: 'dkb', note: 'Điều 7.3.2' });
+      line('- Độ rỗng hữu hiệu:', 'n_{e}', { value: dd.ne, numFmt: '0.000', key: 'dne' });
+      line('- Chiều dày lớp móng thoát nước:', 'h_{bt}', { value: dd.hbt, unit: '(m)', numFmt: '0.000', key: 'dhbt' });
+      line('- Tốc độ thấm:', 'v_{s}', {
+        eq: '= (1/n_{e}).k_{b}.√(i_{d}² + i_{n}²) =',
+        formula: `(1/${F('dne')})*(${F('dkb')}/86400)*SQRT((${F('did')}/100)^2+(${F('din')}/100)^2)`,
+        value: dc.vs,
+        unit: '(m/s)',
+        numFmt: '0.000E+00',
+        key: 'dvs',
+        note: 'Công thức (4) — Điều 7.3.4',
+      });
+      line('- Thời gian thấm nước ra khỏi lớp móng:', 't', {
+        eq: '= L_{s}/(3600.v_{s}) =',
+        formula: `${F('dLs')}/(3600*${F('dvs')})`,
+        value: dc.t,
+        unit: '(h)',
+        numFmt: '0.000',
+        key: 'dt',
+        note: 'Công thức (2) — Điều 7.3.4',
+      });
+      line('- Khả năng thoát nước của lớp móng:', 'h_{bt}.1,0.v_{s}', {
+        eq: '=',
+        formula: `${F('dhbt')}*1*(${F('dvs')}*86400)`,
+        value: dc.cap,
+        unit: '(m³/ngày.m)',
+        numFmt: '0.000',
+        key: 'dcap',
+        note: 'Công thức (5) — Điều 7.4.2',
+      });
+      cursor.blank(8);
+      dCmp('b. Thời gian thấm nước:', 't =', F('dt'), dc.t, '<=', '[t] =', String(dd.tLimit), dd.tLimit, dc.t <= dd.tLimit, '(h)', 'Điều 7.1.3');
+      dCmp(
+        'c. Khả năng thoát nước của lớp móng thoát nước:',
+        'h_{bt}.1,0.v_{s} =',
+        F('dcap'),
+        dc.cap,
+        '>=',
+        'Q_{i} =',
+        F('dQi'),
+        dc.Qi,
+        dc.cap >= dc.Qi,
+        '(m³/ngày.m)',
+        'Công thức (5) — Điều 7.4.2'
+      );
+    } else {
+      const pipeRow = (
+        label: string,
+        sym: string,
+        key: string,
+        value: number,
+        unit: string,
+        cond: (c: string) => string,
+        ok: boolean,
+        note: string
+      ): void => {
+        const r = line(label, sym, { value, unit, numFmt: '0.0', key, note });
+        const row = ws.getRow(r);
+        setFormulaCell(
+          row.getCell(9),
+          `IF(${cond(`F${r}`)},"Đạt","KHÔNG đạt")`,
+          ok ? 'Đạt' : 'KHÔNG đạt',
+          { bold: true },
+          LEFT
+        );
+        addConclusionColorRule(ws, r, 'I');
+        conds.push(cond(`F${r}`));
+      };
+      cursor.blank(8);
+      cursor.prose(2, 'b. Cấu tạo ống thoát nước:');
+      pipeRow('- Đường kính ống thoát nước dọc (80–100 mm):', 'Ø', 'dpd', dd.pipeDia, '(mm)', (c) => `AND(${c}>=80,${c}<=100)`, dd.pipeDia >= 80 && dd.pipeDia <= 100, 'Điều 7.2.2');
+      pipeRow('- Độ dốc ống thoát nước dọc (≥ 0,3 %):', 'i_{ống dọc}', 'dpl', dd.pipeSlopeLong, '(%)', (c) => `${c}>=0.3`, dd.pipeSlopeLong >= 0.3, 'Điều 7.2.2');
+      pipeRow('- Độ dốc ống thoát nước ngang (≥ 5 %):', 'i_{ống ngang}', 'dpc', dd.pipeSlopeCross, '(%)', (c) => `${c}>=5`, dd.pipeSlopeCross >= 5, 'Điều 7.2.3');
+      pipeRow('- Khoảng cách ống thoát nước ngang (50–100 m):', 'a', 'dps', dd.pipeSpacing, '(m)', (c) => `AND(${c}>=50,${c}<=100)`, dd.pipeSpacing >= 50 && dd.pipeSpacing <= 100, 'Điều 7.2.3');
+    }
+    cursor.blank(8);
+    const rDc = cursor.next(15.75);
+    const okMsg = 'Kết luận: Hệ thống thoát nước đảm bảo các yêu cầu của Điều 7.';
+    const failMsg = 'Kết luận: Hệ thống thoát nước KHÔNG đảm bảo các yêu cầu của Điều 7.';
+    setFormulaCell(
+      ws.getRow(rDc).getCell(2),
+      `IF(AND(${conds.join(',')}),"${escFormulaStr(okMsg)}","${escFormulaStr(failMsg)}")`,
+      dr.passed ? okMsg : failMsg,
+      { bold: true, italic: true, color: dr.passed ? COLOR_PASS : COLOR_FAIL },
+      LEFT
+    );
+    addConclusionColorRule(ws, rDc);
+    cursor.blank(12.75);
+  }
+
   if (v.warnings.length > 0) {
-    cursor.sectionHeading('VI. LƯU Ý & CẢNH BÁO KỸ THUẬT:');
+    cursor.sectionHeading(`${v.drain ? 'VII' : 'VI'}. LƯU Ý & CẢNH BÁO KỸ THUẬT:`);
     for (const w of v.warnings) cursor.prose(2, `⚠ ${w}`, { italic: true });
   }
 }

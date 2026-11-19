@@ -24,6 +24,7 @@ export type MainTabKey =
   | 'cung-giao-thong'
   | 'cung-ket-cau'
   | 'cung-khe-noi'
+  | 'cung-thoat-nuoc'
   | 'cung-kiem-toan';
 
 export interface MainTabMeta {
@@ -62,6 +63,7 @@ export const MAIN_TABS: MainTabMeta[] = [
   { key: 'cung-giao-thong', label: 'Tải trọng trục và số trục tích lũy Ne', icon: TREE_ICONS.trafficCal, kind: 'CUNG' },
   { key: 'cung-ket-cau', label: 'Kết cấu tấm BTXM (TCCS 39:2022)', icon: TREE_ICONS.gridAdd, kind: 'CUNG' },
   { key: 'cung-khe-noi', label: 'Khe nối (Điều 6)', icon: TREE_ICONS.pavementLayers, kind: 'CUNG' },
+  { key: 'cung-thoat-nuoc', label: 'Thoát nước kết cấu áo đường (Điều 7)', icon: TREE_ICONS.pavementLayers, kind: 'CUNG' },
   { key: 'cung-kiem-toan', label: 'Kiểm toán tấm BTXM (Điều 8)', icon: TREE_ICONS.curveChart, kind: 'CUNG' },
 ];
 

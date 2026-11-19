@@ -342,9 +342,82 @@ export function RvRigidReport({
         <li>Số lần cắt khe: {v.joint.catlan}</li>
       </ul>
 
+      {v.drain && (
+        <>
+          <h2 style={h2}>VI. Kiểm toán thoát nước kết cấu áo đường (Điều 7)</h2>
+          <div data-testid="rv-rigid-drain">
+            {v.drain.required ? (
+              <div style={{ fontWeight: 600 }}>Theo Điều 7.1.2: phải bố trí hệ thống thoát nước.</div>
+            ) : (
+              <div style={{ fontWeight: 600 }}>
+                Theo Điều 7.1.2: với số liệu đã nhập chưa bắt buộc bố trí hệ thống thoát nước.
+              </div>
+            )}
+            <Table
+              items={[
+                { label: 'Số khe dọc trong phạm vi B', sym: <>n<sub>z</sub></>, value: String(v.drain.calc.nz), ref: 'Điều 7.1.4 (nz = N + 1)' },
+                { label: 'Lượng nước thấm trên mỗi mét dài', sym: <>Q<sub>i</sub></>, value: fmt(v.drain.calc.Qi, 3), unit: 'm³/ngày.m', ref: 'Công thức (1) — Điều 7.1.4', bold: true },
+                { label: 'Chiều dài đường thấm', sym: <>L<sub>s</sub></>, value: fmt(v.drain.calc.Ls, 3), unit: 'm', ref: 'Công thức (3) — Điều 7.3.4' },
+                ...(v.drain.type === 'THAM'
+                  ? [
+                      { label: 'Tốc độ thấm', sym: <>v<sub>s</sub></>, value: v.drain.calc.vs.toExponential(3).replace('.', ','), unit: 'm/s', ref: 'Công thức (4) — Điều 7.3.4' },
+                      { label: 'Thời gian thấm nước ra khỏi lớp móng', sym: 't', value: fmt(v.drain.calc.t, 3), unit: 'h', ref: 'Công thức (2) — Điều 7.3.4', bold: true },
+                      { label: 'Khả năng thoát nước của lớp móng', sym: <>h<sub>bt</sub>·1,0·v<sub>s</sub></>, value: fmt(v.drain.calc.cap, 3), unit: 'm³/ngày.m', ref: 'Công thức (5) — Điều 7.4.2', bold: true },
+                    ]
+                  : []),
+              ]}
+            />
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+              <thead>
+                <tr>
+                  <th style={th}>Điều kiện</th>
+                  <th style={{ ...th, width: 130 }}>Giá trị</th>
+                  <th style={{ ...th, width: 170 }}>Yêu cầu</th>
+                  <th style={{ ...th, width: 250 }}>Căn cứ</th>
+                  <th style={{ ...th, width: 90 }}>Kết quả</th>
+                </tr>
+              </thead>
+              <tbody>
+                {v.drain.checks.map((c) => (
+                  <tr key={c.id}>
+                    <td style={tdL}>{c.label}</td>
+                    <td style={tdR}>
+                      {fmt(c.value, 3)} {c.unit}
+                    </td>
+                    <td style={{ ...tdL, textAlign: 'center' }}>{c.requirement}</td>
+                    <td style={tdRef}>{c.clause}</td>
+                    <td style={{ ...tdL, textAlign: 'center', fontWeight: 700, color: c.passed ? '#14532d' : '#7f1d1d' }}>
+                      {c.passed ? '✓ Đạt' : '✗ Không đạt'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div
+              data-testid="rv-rigid-drain-conclusion"
+              data-passed={v.drain.passed ? 'true' : 'false'}
+              style={{
+                marginTop: 8,
+                display: 'inline-block',
+                padding: '6px 12px',
+                borderRadius: 6,
+                fontWeight: 700,
+                border: `1.5px solid ${v.drain.passed ? '#16a34a' : '#dc2626'}`,
+                background: v.drain.passed ? '#f0fdf4' : '#fef2f2',
+                color: v.drain.passed ? '#14532d' : '#7f1d1d',
+              }}
+            >
+              {v.drain.passed
+                ? '✓ Hệ thống thoát nước đảm bảo các yêu cầu của Điều 7.'
+                : '✗ Hệ thống thoát nước KHÔNG đảm bảo các yêu cầu của Điều 7.'}
+            </div>
+          </div>
+        </>
+      )}
+
       {v.warnings.length > 0 && (
         <>
-          <h2 style={h2}>VI. Lưu ý và cảnh báo kỹ thuật</h2>
+          <h2 style={h2}>{v.drain ? 'VII' : 'VI'}. Lưu ý và cảnh báo kỹ thuật</h2>
           <ul style={{ margin: '4px 0 0 18px', padding: 0, color: '#92400e' }}>
             {v.warnings.map((w) => (
               <li key={w}>⚠ {w}</li>

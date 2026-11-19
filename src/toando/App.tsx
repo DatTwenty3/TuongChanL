@@ -15,6 +15,7 @@ import { TabNomogram } from './components/TabNomogram';
 import { TabPavementStructure } from './components/TabPavementStructure';
 import { TabProjectInfo } from './components/TabProjectInfo';
 import {
+  TabRigidDrain,
   TabRigidJoint,
   TabRigidResult,
   TabRigidStructure,
@@ -295,6 +296,14 @@ function MainWorkspace(): React.ReactElement {
       case 'cung-khe-noi':
         return store.project.rigid && store.rigidVerification ? (
           <TabRigidJoint
+            rigid={store.project.rigid}
+            verification={store.rigidVerification}
+            onChange={updateRigid}
+          />
+        ) : null;
+      case 'cung-thoat-nuoc':
+        return store.project.rigid && store.rigidVerification ? (
+          <TabRigidDrain
             rigid={store.project.rigid}
             verification={store.rigidVerification}
             onChange={updateRigid}

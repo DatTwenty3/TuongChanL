@@ -8,9 +8,13 @@ import {
   KR_BY_SHOULDER,
   RIGID_AGGREGATE_OPTIONS,
   RIGID_REGION_OPTIONS,
+  RIGID_DRAIN_TYPE_OPTIONS,
   RIGID_ROAD_CLASS_OPTIONS,
   RIGID_SHOULDER_OPTIONS,
+  RIGID_SUBGRADE_SOIL_OPTIONS,
+  RIGID_TRAFFIC_SCALE_OPTIONS,
   TG_BY_REGION,
+  createDefaultRigidDrainData,
   ecFromFr,
   suggestGammaR,
   type RigidVerification,
@@ -19,6 +23,7 @@ import { RvRigidReport } from '../reports/rigidReports';
 import type {
   ProjectState,
   RigidAggregate,
+  RigidDrainData,
   RigidProjectData,
   RigidRegion,
   RigidRoadClass,
@@ -674,6 +679,239 @@ export function TabRigidResult({
         </button>
       </div>
       <RvRigidReport project={project} verification={verification} />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Thoát nước (Điều 7)
+// ---------------------------------------------------------------------------
+export function TabRigidDrain({
+  rigid,
+  verification,
+  onChange,
+}: {
+  rigid: RigidProjectData;
+  verification: RigidVerification;
+  onChange: RigidUpdater;
+}): React.ReactElement {
+  const d = rigid.drain;
+  const res = verification.drain;
+  const setD = (patch: Partial<RigidDrainData>) =>
+    onChange((p) => ({ ...p, drain: { ...(p.drain ?? createDefaultRigidDrainData()), ...patch } }));
+  return (
+    <div className="adm-tab-pad" data-testid="tab-cung-thoat-nuoc">
+      <fieldset className="adm-groupbox" style={{ maxWidth: 900 }}>
+        <legend>Kiểm toán thoát nước kết cấu áo đường BTXM (Điều 7, TCCS 39:2022)</legend>
+        <label className="adm-check-row" style={{ marginBottom: 10 }}>
+          <input
+            type="checkbox"
+            data-testid="chk-drain-on"
+            checked={Boolean(d)}
+            onChange={(e) =>
+              onChange((p) => {
+                if (e.target.checked) {
+                  return { ...p, drain: { ...createDefaultRigidDrainData(), B: p.input.B * 2, N: 2 } };
+                }
+                const rest = { ...p };
+                delete rest.drain;
+                return rest;
+              })
+            }
+          />
+          <span>Kiểm toán thoát nước (đưa vào báo cáo, Excel và kết luận chung)</span>
+        </label>
+
+        {d && res && (
+          <>
+            <Row label="Kiểu hệ thống thoát nước:" note="Điều 7.1.1" htmlFor="rg_dtype">
+              <select
+                id="rg_dtype"
+                className="adm-select"
+                value={d.type}
+                onChange={(e) => setD({ type: e.target.value as RigidDrainData['type'] })}
+              >
+                {RIGID_DRAIN_TYPE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </Row>
+            <Row label="Suất nước thấm theo khe Ic:" unit="(m³/ngày.m)" note="Điều 7.1.4: 0,36" htmlFor="rg_Ic">
+              <NumInput id="rg_Ic" value={d.Ic} step={0.01} onChange={(n) => setD({ Ic: n })} />
+            </Row>
+            <Row label="Số làn xe trong phạm vi B (N):" note={`nz = N + 1 = ${res.calc.nz} khe dọc`} htmlFor="rg_dN">
+              <NumInput id="rg_dN" value={d.N} onChange={(n) => setD({ N: n })} />
+            </Row>
+            <Row label="Số khe ngang, khe nứt trong phạm vi L (nh):" htmlFor="rg_dnh">
+              <NumInput id="rg_dnh" value={d.nh} onChange={(n) => setD({ nh: n })} />
+            </Row>
+            <Row label="Bề rộng cùng độ dốc ngang B:" unit="(m)" htmlFor="rg_dB">
+              <NumInput id="rg_dB" value={d.B} step={0.1} onChange={(n) => setD({ B: n })} />
+            </Row>
+            <Row
+              label="Khoảng cách khe ngang L:"
+              unit="(m)"
+              note="Lấy theo chiều dài tấm ở tab Kết cấu tấm BTXM"
+              htmlFor="rg_dL"
+            >
+              <input id="rg_dL" className="adm-input adm-input-num" readOnly value={fmtNum(res.L, 2)} />
+            </Row>
+            <Row label="Độ dốc dọc id:" unit="(%)" htmlFor="rg_did">
+              <NumInput id="rg_did" value={d.id} step={0.1} onChange={(n) => setD({ id: n })} />
+            </Row>
+            <Row label="Độ dốc ngang in:" unit="(%)" htmlFor="rg_din">
+              <NumInput id="rg_din" value={d.in_} step={0.1} onChange={(n) => setD({ in_: n })} />
+            </Row>
+            <Row label="Giới hạn chiều dài đường thấm:" unit="(m)" note="Điều 7.1.3: không nên quá 45–60 m" htmlFor="rg_dls">
+              <NumInput id="rg_dls" value={d.lsLimit} onChange={(n) => setD({ lsLimit: n })} />
+            </Row>
+
+            {d.type === 'THAM' ? (
+              <>
+                <Row label="Hệ số thấm vật liệu móng kb:" unit="(m/ngày)" note="Điều 7.3.2: > 300" htmlFor="rg_dkb">
+                  <NumInput id="rg_dkb" value={d.kb} onChange={(n) => setD({ kb: n })} />
+                </Row>
+                <Row label="Độ rỗng hữu hiệu ne:" htmlFor="rg_dne">
+                  <NumInput id="rg_dne" value={d.ne} step={0.01} onChange={(n) => setD({ ne: n })} />
+                </Row>
+                <Row label="Chiều dày lớp móng thoát nước hbt:" unit="(m)" htmlFor="rg_dhbt">
+                  <NumInput id="rg_dhbt" value={d.hbt} step={0.01} onChange={(n) => setD({ hbt: n })} />
+                </Row>
+                <Row label="Giới hạn thời gian thấm:" unit="(h)" note="Điều 7.1.3: không nên quá 2 h" htmlFor="rg_dt">
+                  <NumInput id="rg_dt" value={d.tLimit} step={0.5} onChange={(n) => setD({ tLimit: n })} />
+                </Row>
+              </>
+            ) : (
+              <>
+                <Row label="Đường kính ống thoát nước dọc:" unit="(mm)" note="Điều 7.2.2: 80–100 mm" htmlFor="rg_dpd">
+                  <NumInput id="rg_dpd" value={d.pipeDia} onChange={(n) => setD({ pipeDia: n })} />
+                </Row>
+                <Row label="Độ dốc ống thoát nước dọc:" unit="(%)" note="≥ 0,3 %" htmlFor="rg_dpl">
+                  <NumInput id="rg_dpl" value={d.pipeSlopeLong} step={0.1} onChange={(n) => setD({ pipeSlopeLong: n })} />
+                </Row>
+                <Row label="Độ dốc ống thoát nước ngang:" unit="(%)" note="Điều 7.2.3: ≥ 5 %" htmlFor="rg_dpc">
+                  <NumInput id="rg_dpc" value={d.pipeSlopeCross} step={0.5} onChange={(n) => setD({ pipeSlopeCross: n })} />
+                </Row>
+                <Row label="Khoảng cách ống thoát nước ngang:" unit="(m)" note="Điều 7.2.3: 50–100 m" htmlFor="rg_dps">
+                  <NumInput id="rg_dps" value={d.pipeSpacing} onChange={(n) => setD({ pipeSpacing: n })} />
+                </Row>
+              </>
+            )}
+          </>
+        )}
+      </fieldset>
+
+      {d && res && (
+        <>
+          <fieldset className="adm-groupbox" style={{ maxWidth: 900, marginTop: 14 }}>
+            <legend>Điều kiện bắt buộc bố trí hệ thống thoát nước (Điều 7.1.2)</legend>
+            <Row label="Quy mô giao thông:" htmlFor="rg_dscale">
+              <select
+                id="rg_dscale"
+                className="adm-select"
+                value={d.trafficScale}
+                onChange={(e) => setD({ trafficScale: e.target.value as RigidDrainData['trafficScale'] })}
+              >
+                {RIGID_TRAFFIC_SCALE_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </Row>
+            <Row label="Lượng mưa trung bình năm:" unit="(mm)" htmlFor="rg_drain">
+              <NumInput id="rg_drain" value={d.rain} step={50} onChange={(n) => setD({ rain: n })} />
+            </Row>
+            <Row label="Nền đường trên cùng:" htmlFor="rg_dsoil">
+              <select
+                id="rg_dsoil"
+                className="adm-select"
+                value={d.subgradeSoil}
+                onChange={(e) => setD({ subgradeSoil: e.target.value as RigidDrainData['subgradeSoil'] })}
+              >
+                {RIGID_SUBGRADE_SOIL_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+            </Row>
+            <Row label="Hệ số thấm của nền:" unit="(m/ngày)" htmlFor="rg_dsk">
+              <NumInput id="rg_dsk" value={d.subgradeK} step={0.5} onChange={(n) => setD({ subgradeK: n })} />
+            </Row>
+            <div
+              className="adm-alert-info"
+              data-testid="rigid-drain-required"
+              data-required={res.required ? 'true' : 'false'}
+            >
+              {res.required ? (
+                <>
+                  <strong>Phải bố trí hệ thống thoát nước.</strong>
+                  <ul style={{ margin: '4px 0 0 18px', padding: 0 }}>
+                    {res.requiredReasons.map((r) => (
+                      <li key={r}>{r}</li>
+                    ))}
+                  </ul>
+                </>
+              ) : (
+                <strong>Theo Điều 7.1.2, với các số liệu trên chưa bắt buộc bố trí hệ thống thoát nước.</strong>
+              )}
+            </div>
+          </fieldset>
+
+          <fieldset className="adm-groupbox" style={{ maxWidth: 900, marginTop: 14 }}>
+            <legend>Kết quả kiểm toán thoát nước</legend>
+            <div style={{ marginBottom: 8 }} data-testid="rigid-drain-calc">
+              nz = N + 1 = <strong>{res.calc.nz}</strong> &nbsp;|&nbsp; Q<sub>i</sub> = I<sub>c</sub>(n<sub>z</sub> + n<sub>h</sub>·B/L) ={' '}
+              <strong>{fmtNum(res.calc.Qi, 3)}</strong> m³/ngày.m (Công thức (1)) &nbsp;|&nbsp; L<sub>s</sub> ={' '}
+              <strong>{fmtNum(res.calc.Ls, 2)}</strong> m (Công thức (3))
+              {d.type === 'THAM' && (
+                <>
+                  {' '}
+                  &nbsp;|&nbsp; v<sub>s</sub> = <strong>{res.calc.vs.toExponential(3)}</strong> m/s (Công thức (4))
+                </>
+              )}
+            </div>
+            <table className="adm-table" data-testid="rigid-drain-table">
+              <thead>
+                <tr>
+                  <th>Điều kiện</th>
+                  <th style={{ width: 120 }}>Giá trị</th>
+                  <th style={{ width: 150 }}>Yêu cầu</th>
+                  <th style={{ width: 230 }}>Căn cứ</th>
+                  <th style={{ width: 80 }}>Kết quả</th>
+                </tr>
+              </thead>
+              <tbody>
+                {res.checks.map((c) => (
+                  <tr key={c.id} data-passed={c.passed ? 'true' : 'false'}>
+                    <td>{c.label}</td>
+                    <td className="num">
+                      {fmtNum(c.value, 3)} {c.unit}
+                    </td>
+                    <td className="center">{c.requirement}</td>
+                    <td>{c.clause}</td>
+                    <td className="center" style={{ fontWeight: 700, color: c.passed ? '#16a34a' : '#dc2626' }}>
+                      {c.passed ? '✓ Đạt' : '✗ Không đạt'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <div
+              data-testid="rigid-drain-overall"
+              data-passed={res.passed ? 'true' : 'false'}
+              style={{ marginTop: 10, fontWeight: 700, color: res.passed ? '#16a34a' : '#dc2626' }}
+            >
+              {res.passed
+                ? '✓ Kết luận: Hệ thống thoát nước đảm bảo các yêu cầu của Điều 7.'
+                : '✗ Kết luận: Hệ thống thoát nước KHÔNG đảm bảo các yêu cầu của Điều 7.'}
+            </div>
+          </fieldset>
+        </>
+      )}
     </div>
   );
 }
