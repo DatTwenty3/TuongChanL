@@ -115,6 +115,32 @@ function sanitizeSheetName(raw: string, used: Set<string>): string {
   return fallback;
 }
 
+/**
+ * Dòng "Kết luận: … KHÔNG đảm bảo …" đổi màu theo kết quả tính lại trong Excel:
+ * có chữ "KHÔNG" → đỏ, ngược lại → xanh (định dạng có điều kiện, không phụ thuộc màu lưu sẵn).
+ */
+function addConclusionColorRule(ws: ExcelJS.Worksheet, row: number): void {
+  const ref = `B${row}`;
+  const failTest = `ISNUMBER(SEARCH("KHÔNG",$B$${row}))`;
+  ws.addConditionalFormatting({
+    ref,
+    rules: [
+      {
+        type: 'expression',
+        priority: 1,
+        formulae: [failTest],
+        style: { font: { color: { argb: COLOR_FAIL } } },
+      },
+      {
+        type: 'expression',
+        priority: 2,
+        formulae: [`NOT(${failTest})`],
+        style: { font: { color: { argb: COLOR_PASS } } },
+      },
+    ],
+  });
+}
+
 interface SourceLayerRef {
   row: number;
   sheetTable: 'B3' | 'B3B';
@@ -363,7 +389,7 @@ function writeTwoLayerBetaBlock(
     '0.000'
   );
 
-  cursor.prose(2, 'Tra Bảng 11 (TCCS 38:2022/TCĐBVN), hệ số điều chỉnh β:');
+  cursor.prose(2, 'Tra Bảng 11, hệ số điều chỉnh β:');
 
   const rBeta = cursor.next(15.75);
   setPlainCell(ws.getRow(rBeta).getCell(3), 'β', {}, { horizontal: 'left', vertical: 'middle' });
@@ -395,8 +421,8 @@ function writeTwoLayerBetaBlock(
   cursor.prose(
     2,
     reduction.etbCapped
-      ? `Module đàn hồi trung bình điều chỉnh dùng để tính toán (kẹp trần max(Ei) = ${fmt(reduction.maxLayerE_MPa, 2)} MPa theo Bảng 11 Chú thích 2):`
-      : 'Module đàn hồi trung bình điều chỉnh dùng để tính toán:'
+      ? `Mô đun đàn hồi trung bình điều chỉnh dùng để tính toán (kẹp trần max(Ei) = ${fmt(reduction.maxLayerE_MPa, 2)} MPa theo Bảng 11 Chú thích 2):`
+      : 'Mô đun đàn hồi trung bình điều chỉnh dùng để tính toán:'
   );
 
   const rEtbDc = cursor.next(18.75);
@@ -411,6 +437,12 @@ function writeTwoLayerBetaBlock(
     '0.00'
   );
   setPlainCell(ws.getRow(rEtbDc).getCell(7), '(MPa)', {}, { horizontal: 'left', vertical: 'middle' });
+  setPlainCell(
+    ws.getRow(rEtbDc).getCell(8),
+    'Công thức (6) — Điều 9.2.4',
+    {},
+    { horizontal: 'left', vertical: 'middle' }
+  );
 
   if (options?.includeLayerSummary) {
     cursor.prose(2, 'Vậy kết cấu nhiều lớp được đưa về hệ 2 lớp, với lớp trên:');
@@ -430,7 +462,7 @@ function writeTwoLayerBetaBlock(
     const rSumE = cursor.next(18.75);
     setPlainCell(
       ws.getRow(rSumE).getCell(3),
-      '- Module đàn hồi trung bình:',
+      '- Mô đun đàn hồi trung bình:',
       {},
       { horizontal: 'left', vertical: 'middle' }
     );
@@ -513,8 +545,8 @@ function writeEquivEchBlock(
     cursor.prose(
       2,
       isRehabFoundation
-        ? "Tra toán đồ Hình 2 (TCCS 38:2022/TCĐBVN), với các thông số H/D và E'_{0}/E_{1} ở trên, ta xác định được:"
-        : 'Tra toán đồ Hình 2 (TCCS 38:2022/TCĐBVN), với các thông số H/D và E_{0}/E_{1} ở trên, ta xác định được:',
+        ? "Tra toán đồ Hình 2, với các thông số H/D và E'_{0}/E_{1} ở trên, ta xác định được:"
+        : 'Tra toán đồ Hình 2, với các thông số H/D và E_{0}/E_{1} ở trên, ta xác định được:',
       { height: 18.75 }
     );
     const rRatio = cursor.next(18.75);
@@ -528,7 +560,7 @@ function writeEquivEchBlock(
       '0.000'
     );
 
-    cursor.prose(2, 'Module đàn hồi chung của kết cấu:');
+    cursor.prose(2, 'Mô đun đàn hồi chung của kết cấu:');
     rEchm = cursor.next(18.75);
     setCellMarkup(ws.getRow(rEchm).getCell(3), 'E_{ch.m}', {}, { horizontal: 'left', vertical: 'middle' });
     setPlainCell(ws.getRow(rEchm).getCell(4), '=', {}, { horizontal: 'left', vertical: 'middle' });
@@ -544,7 +576,7 @@ function writeEquivEchBlock(
   } else {
     cursor.prose(
       2,
-      `Sử dụng Công thức (E.1) (Phụ lục E, TCCS 38:2022/TCĐBVN)${isRehabFoundation ? ` với Eo' = Ech,cũ = ${fmt(foundationModulus, 2)} MPa` : ''}:`
+      `Sử dụng Công thức (E.1) — Phụ lục E${isRehabFoundation ? ` với Eo' = Ech,cũ = ${fmt(foundationModulus, 2)} MPa` : ''}:`
     );
     rEchm = cursor.next(18.75);
     setCellMarkup(ws.getRow(rEchm).getCell(3), 'E_{ch.m}', {}, { horizontal: 'left', vertical: 'middle' });
@@ -673,7 +705,7 @@ function populateAlternativeSheet(
   const rPtt = cursor.next(30.0);
   setCellMarkup(
     ws.getRow(rPtt).getCell(2),
-    '- Tải trọng trục tính toán tiêu chuẩn P_{tt} (kN) (Bảng 6, TCCS 38:2022/TCĐBVN):',
+    '- Tải trọng trục tính toán tiêu chuẩn P_{tt} (kN) (Bảng 6):',
     {},
     { horizontal: 'left', vertical: 'middle', wrapText: true }
   );
@@ -719,13 +751,13 @@ function populateAlternativeSheet(
   const rMedian = cursor.next(15.75);
   setPlainCell(
     ws.getRow(rMedian).getCell(2),
-    '- Giải phân cách giữa:',
+    '- Dải phân cách giữa:',
     {},
     { horizontal: 'left', vertical: 'middle' }
   );
   setPlainCell(
     ws.getRow(rMedian).getCell(7),
-    roadScale.gpcGiua ? 'Có giải phân cách' : 'Không có giải phân cách',
+    roadScale.gpcGiua ? 'Có dải phân cách' : 'Không có dải phân cách',
     {},
     { horizontal: 'left', vertical: 'middle' }
   );
@@ -867,12 +899,12 @@ function populateAlternativeSheet(
     { horizontal: 'left', vertical: 'middle' }
   );
   setPlainCell(ws.getRow(rFml1).getCell(6), '(Trục/ngày.đêm)', {}, { horizontal: 'left', vertical: 'middle' });
-  setPlainCell(ws.getRow(rFml1).getCell(8), '(Điều 7.6–7.7)', {}, { horizontal: 'left', vertical: 'middle' });
+  setPlainCell(ws.getRow(rFml1).getCell(8), 'Công thức (1) — Điều 7.7', {}, { horizontal: 'left', vertical: 'middle' });
 
   const rFml2 = cursor.next(18.75);
   setPlainCell(ws.getRow(rFml2).getCell(2), 'Trong đó:', {}, { horizontal: 'left', vertical: 'middle' });
   setCellMarkup(ws.getRow(rFml2).getCell(3), 'C_{1} = 1 + 1.2(m-1)', {}, { horizontal: 'left', vertical: 'middle' });
-  setPlainCell(ws.getRow(rFml2).getCell(8), '(Phụ lục A)', {}, { horizontal: 'left', vertical: 'middle' });
+  setPlainCell(ws.getRow(rFml2).getCell(8), 'Công thức (2) — Điều 7.7', {}, { horizontal: 'left', vertical: 'middle' });
 
   cursor.prose(3, 'm: Số trục xe của 1 cụm trục');
   cursor.prose(3, 'n_{i}: Số lần tác dụng của loại tải trọng trục cần được quy đổi', { height: 18.75 });
@@ -1012,7 +1044,10 @@ function populateAlternativeSheet(
   );
   const sumNi = traffic.conversions.reduce((acc, c) => acc + c.Ni_truoc + c.Ni_sau, 0);
   const matchesVehicleSum = Math.abs(sumNi - traffic.Ntk_trucNgDem) <= 0.5;
-  const ntkFmt = Number.isInteger(Number(traffic.Ntk_trucNgDem.toFixed(3))) ? '#,##0' : '#,##0.000';
+  // N_tk làm tròn LÊN thành số nguyên (trừ khi nhập trực tiếp lưu lượng năm tính toán)
+  const ntkRaw = Number(traffic.Ntk_trucNgDem.toFixed(3));
+  const ntkShown = forecast.khongCoSoLieuDieuTra ? ntkRaw : Math.ceil(ntkRaw);
+  const ntkFmt = Number.isInteger(ntkShown) ? '#,##0' : '#,##0.000';
   if (
     traffic.conversions.length > 0 &&
     !forecast.khongCoSoLieuDieuTra &&
@@ -1020,8 +1055,8 @@ function populateAlternativeSheet(
   ) {
     setFormulaCell(
       totRow.getCell(11),
-      `SUM(K${b2FirstRow}:K${b2LastDataRow})`,
-      Number(traffic.Ntk_trucNgDem.toFixed(3)),
+      `ROUNDUP(ROUND(SUM(K${b2FirstRow}:K${b2LastDataRow}),3),0)`,
+      ntkShown,
       { bold: true },
       centerWrap,
       ntkFmt
@@ -1029,7 +1064,7 @@ function populateAlternativeSheet(
   } else {
     setPlainCell(
       totRow.getCell(11),
-      Number(traffic.Ntk_trucNgDem.toFixed(3)),
+      ntkShown,
       { bold: true },
       centerWrap,
       ntkFmt
@@ -1051,13 +1086,21 @@ function populateAlternativeSheet(
     {},
     { horizontal: 'left', vertical: 'middle' }
   );
+  if (!forecast.khongCoSoLieuDieuTra) {
+    setPlainCell(
+      ws.getRow(rNttEq).getCell(8),
+      'Công thức (3) — Điều 7.8',
+      {},
+      { horizontal: 'left', vertical: 'middle' }
+    );
+  }
 
   const rNtkLine = cursor.next(15.75);
   setCellMarkup(ws.getRow(rNtkLine).getCell(2), 'N_{tk} =', {}, { horizontal: 'right', vertical: 'middle' });
   setFormulaCell(
     ws.getRow(rNtkLine).getCell(3),
     `K${rTot}`,
-    Number(traffic.Ntk_trucNgDem.toFixed(3)),
+    ntkShown,
     {},
     { horizontal: 'center', vertical: 'middle' },
     ntkFmt
@@ -1067,6 +1110,10 @@ function populateAlternativeSheet(
   const nttDirectFmt = Number.isInteger(Number(traffic.Ntt_trucLanNgDem.toFixed(2)))
     ? '#,##0'
     : '#,##0.00';
+  // N_tt làm tròn thống nhất thành số nguyên (từ N_tk đã làm tròn lên × f_L)
+  const nttRounded = forecast.khongCoSoLieuDieuTra
+    ? Number(traffic.Ntt_trucLanNgDem.toFixed(2))
+    : Math.round(ntkShown * Number(roadScale.heSoLan_fL.toFixed(5)));
   const rNtt = cursor.next(18.75);
   setCellMarkup(ws.getRow(rNtt).getCell(2), 'N_{tt} =', {}, { horizontal: 'right', vertical: 'middle' });
   if (forecast.khongCoSoLieuDieuTra) {
@@ -1081,7 +1128,7 @@ function populateAlternativeSheet(
     setFormulaCell(
       ws.getRow(rNtt).getCell(3),
       `ROUND(K${rTot}*G${rFl},0)`,
-      Math.round(traffic.Ntt_trucLanNgDem),
+      nttRounded,
       { bold: true },
       { horizontal: 'center', vertical: 'middle' },
       '#,##0'
@@ -1179,9 +1226,7 @@ function populateAlternativeSheet(
   setFormulaCell(
     ws.getRow(rNtt2).getCell(6),
     `C${rNtt}`,
-    forecast.khongCoSoLieuDieuTra
-      ? Number(traffic.Ntt_trucLanNgDem.toFixed(2))
-      : Math.round(traffic.Ntt_trucLanNgDem),
+    nttRounded,
     {},
     { horizontal: 'left', vertical: 'middle' },
     forecast.khongCoSoLieuDieuTra ? nttDirectFmt : '#,##0'
@@ -1446,7 +1491,7 @@ function populateAlternativeSheet(
   const rE0 = cursor.next(18.75);
   setCellMarkup(
     ws.getRow(rE0).getCell(2),
-    isCaiTao ? '- Module đàn hồi nền cũ E_{o} (MPa):' : '- Module đàn hồi E_{o} (MPa):',
+    isCaiTao ? '- Mô đun đàn hồi nền cũ E_{o} (MPa):' : '- Mô đun đàn hồi E_{o} (MPa):',
     {},
     { horizontal: 'left', vertical: 'middle' }
   );
@@ -1537,11 +1582,11 @@ function populateAlternativeSheet(
     'General'
   );
 
-  // II.4 Xác định module đàn hồi yêu cầu Eyc
-  cursor.sectionHeading('II.4. Xác định module đàn hồi yêu cầu E_{yc}:', 18.75);
+  // II.4 Xác định mô đun đàn hồi yêu cầu Eyc
+  cursor.sectionHeading('II.4. Xác định mô đun đàn hồi yêu cầu E_{yc}:', 18.75);
   cursor.prose(
     2,
-    `- Tra Bảng 9 (TCCS 38:2022/TCĐBVN) với P_{tt} = ${forecast.tlTrucQuyDoi_kN} kN (Bảng 6), mặt đường ${gradeStr}, số trục xe tính toán N_{tt} = ${fmt(traffic.Ntt_trucLanNgDem, 2)}, ta được:`,
+    `- Tra Bảng 9 với P_{tt} = ${forecast.tlTrucQuyDoi_kN} kN (Bảng 6), mặt đường ${gradeStr}, số trục xe tính toán N_{tt} = ${forecast.khongCoSoLieuDieuTra ? fmt(nttRounded, 2) : nttRounded}, ta được:`,
     { height: 18.75 }
   );
 
@@ -1558,9 +1603,9 @@ function populateAlternativeSheet(
 
   cursor.prose(
     2,
-    `- Tra Bảng 10 (TCCS 38:2022/TCĐBVN) với loại đường: ${roadTypeStr}, cấp đường: ${roadScale.capDuong}, mặt đường: ${gradeStr}`
+    `- Tra Bảng 10 với loại đường: ${roadTypeStr}, cấp đường: ${roadScale.capDuong}, mặt đường: ${gradeStr}`
   );
-  cursor.prose(2, 'ta được module đàn hồi tối thiểu:');
+  cursor.prose(2, 'ta được mô đun đàn hồi tối thiểu:');
 
   const rEmin = cursor.next(18.75);
   setCellMarkup(ws.getRow(rEmin).getCell(4), 'E_{yc min} =', {}, { horizontal: 'left', vertical: 'middle' });
@@ -1573,7 +1618,7 @@ function populateAlternativeSheet(
   );
   setPlainCell(ws.getRow(rEmin).getCell(6), '(MPa)', {}, { horizontal: 'left', vertical: 'middle' });
 
-  cursor.prose(2, '- Module đàn hồi yêu cầu dùng để tính toán:');
+  cursor.prose(2, '- Mô đun đàn hồi yêu cầu dùng để tính toán:');
 
   const rEycTt = cursor.next(18.75);
   setCellMarkup(
@@ -1862,7 +1907,7 @@ function populateAlternativeSheet(
     { horizontal: 'left', vertical: 'middle' },
     '"= "0.00'
   );
-  cursor.prose(2, 'Tra Bảng 8 (TCCS 38:2022/TCĐBVN) được hệ số cường độ về độ võng:');
+  cursor.prose(2, 'Tra Bảng 8 được hệ số cường độ về độ võng:');
   const rKcdDv = cursor.next(18.75);
   setCellMarkup(ws.getRow(rKcdDv).getCell(3), 'K_{cđ}^{đv}', {}, { horizontal: 'left', vertical: 'middle' });
   setFormulaCell(
@@ -1915,6 +1960,12 @@ function populateAlternativeSheet(
     '0.00'
   );
   setPlainCell(defCmpRow.getCell(7), '(MPa)', { bold: true }, { horizontal: 'left', vertical: 'middle' });
+  setPlainCell(
+    defCmpRow.getCell(8),
+    'Công thức (4) — Điều 9.2.1',
+    {},
+    { horizontal: 'left', vertical: 'middle' }
+  );
 
   cursor.blank(12.75);
   const rDefConc = cursor.next(15.75);
@@ -1931,6 +1982,7 @@ function populateAlternativeSheet(
     { bold: true, italic: true, color: def.passed ? COLOR_PASS : COLOR_FAIL },
     { horizontal: 'left', vertical: 'middle' }
   );
+  addConclusionColorRule(ws, rDefConc);
 
   cursor.blank(12.75);
 
@@ -1960,8 +2012,8 @@ function populateAlternativeSheet(
     cursor.prose(
       2,
       isLowGradeSurface
-        ? `Không yêu cầu kiểm toán cắt trượt đối với tầng mặt cấp thấp ${grade} (theo Điều 9.1.4.3 & 9.3.1, TCCS 38:2022/TCĐBVN).`
-        : 'Không yêu cầu kiểm toán cắt trượt (theo TCCS 38:2022/TCĐBVN).'
+        ? `Không yêu cầu kiểm toán cắt trượt đối với tầng mặt cấp thấp ${grade} (theo Điều 9.1.4.3 & 9.3.1).`
+        : 'Không yêu cầu kiểm toán cắt trượt.'
     );
   } else if (altRes.shearTargets.length === 0) {
     cursor.prose(
@@ -2020,7 +2072,7 @@ function populateAlternativeSheet(
       const { rHD, rEtbDc } = writeTwoLayerBetaBlock(ws, cursor, rTop, rBot, rD, st.reductionAbove);
 
       const figShear = st.usedToanDo === '3-3' || st.H_over_D > 2.0 ? 'Hình 5' : 'Hình 4';
-      cursor.prose(2, `Sử dụng toán đồ ${figShear} (TCCS 38:2022/TCĐBVN), với các thông số sau:`);
+      cursor.prose(2, `Sử dụng toán đồ ${figShear}, với các thông số sau:`);
 
       const rHD2 = cursor.next(15.75);
       setPlainCell(ws.getRow(rHD2).getCell(3), 'H/D', {}, { horizontal: 'left', vertical: 'middle' });
@@ -2162,7 +2214,7 @@ function populateAlternativeSheet(
       );
       setPlainCell(ws.getRow(rTax).getCell(7), '(MPa)', {}, { horizontal: 'left', vertical: 'middle' });
 
-      cursor.prose(2, 'Sử dụng toán đồ Hình 6 (TCCS 38:2022/TCĐBVN), với các thông số:');
+      cursor.prose(2, 'Sử dụng toán đồ Hình 6, với các thông số:');
       const rTavIn = cursor.next(15.75);
       setPlainCell(ws.getRow(rTavIn).getCell(3), 'H =', {}, { horizontal: 'left', vertical: 'middle' });
       setFormulaCell(
@@ -2247,7 +2299,7 @@ function populateAlternativeSheet(
       setFormulaCell(
         ws.getRow(rNttSt).getCell(5),
         `$F$${rNtt2}`,
-        Math.round(traffic.Ntt_trucLanNgDem),
+        nttRounded,
         {},
         { horizontal: 'left', vertical: 'middle' },
         '#,##0'
@@ -2310,6 +2362,12 @@ function populateAlternativeSheet(
         '0.0000'
       );
       setPlainCell(ws.getRow(rCtt).getCell(7), '(MPa)', {}, { horizontal: 'left', vertical: 'middle' });
+      setPlainCell(
+        ws.getRow(rCtt).getCell(8),
+        'Công thức (8) — Điều 9.3.4',
+        {},
+        { horizontal: 'left', vertical: 'middle' }
+      );
 
       const rShRel = cursor.next(15.75);
       setPlainCell(ws.getRow(rShRel).getCell(2), 'Độ tin cậy thiết kế', {}, { horizontal: 'left', vertical: 'middle' });
@@ -2322,7 +2380,7 @@ function populateAlternativeSheet(
         '"= "0.00'
       );
 
-      cursor.prose(2, 'Tra Bảng 8 (TCCS 38:2022/TCĐBVN), ta được hệ số cường độ về cắt trượt:');
+      cursor.prose(2, 'Tra Bảng 8, ta được hệ số cường độ về cắt trượt:');
       const rKcdTr = cursor.next(18.75);
       setCellMarkup(ws.getRow(rKcdTr).getCell(3), 'K_{cđ}^{tr}', {}, { horizontal: 'left', vertical: 'middle' });
       setFormulaCell(
@@ -2389,6 +2447,12 @@ function populateAlternativeSheet(
         '0.0000'
       );
       setPlainCell(shCmpRow.getCell(7), '(MPa)', { bold: true }, { horizontal: 'left', vertical: 'middle' });
+      setPlainCell(
+        shCmpRow.getCell(8),
+        'Công thức (7) — Điều 9.3.1',
+        {},
+        { horizontal: 'left', vertical: 'middle' }
+      );
 
       cursor.blank(12.75);
       const passConc = st.isSubgrade
@@ -2410,6 +2474,7 @@ function populateAlternativeSheet(
         { bold: true, italic: true, color: st.passed ? COLOR_PASS : COLOR_FAIL },
         { horizontal: 'left', vertical: 'middle' }
       );
+      addConclusionColorRule(ws, rShConc);
       cursor.blank(12.75);
     });
   }
@@ -2423,8 +2488,8 @@ function populateAlternativeSheet(
     cursor.prose(
       2,
       isLowGradeSurface
-        ? `Không yêu cầu kiểm toán chịu kéo uốn đối với tầng mặt cấp thấp ${grade} (theo Điều 9.1.4.3 & 9.4.1, TCCS 38:2022/TCĐBVN).`
-        : 'Không có lớp vật liệu liền khối cần kiểm toán chịu kéo uốn (theo Điều 9.4.1, TCCS 38:2022/TCĐBVN).'
+        ? `Không yêu cầu kiểm toán chịu kéo uốn đối với tầng mặt cấp thấp ${grade} (theo Điều 9.1.4.3 & 9.4.1).`
+        : 'Không có lớp vật liệu liền khối cần kiểm toán chịu kéo uốn (theo Điều 9.4.1).'
     );
   } else {
     const overlayFlexLayers = alt.layers.filter(
@@ -2551,7 +2616,7 @@ function populateAlternativeSheet(
       if (fl.isSurfaceLayer) {
         cursor.prose(
           2,
-          `Tra toán đồ Hình 7 (TCCS 38:2022/TCĐBVN)${fl.usedAnalyticalFallback ? ' (dùng công thức giải tích Phụ lục E (E.2)–(E.3))' : ''} với các thông số sau:`
+          `Tra toán đồ Hình 7${fl.usedAnalyticalFallback ? ' (dùng công thức giải tích Phụ lục E (E.2)–(E.3))' : ''} với các thông số sau:`
         );
 
         const topRefs =
@@ -2633,7 +2698,7 @@ function populateAlternativeSheet(
       } else {
         cursor.prose(
           2,
-          `Tra toán đồ Hình 8 (TCCS 38:2022/TCĐBVN)${fl.usedAnalyticalFallback ? ' (dùng công thức giải tích Phụ lục E (E.4))' : ''} với các thông số sau:`
+          `Tra toán đồ Hình 8${fl.usedAnalyticalFallback ? ' (dùng công thức giải tích Phụ lục E (E.4))' : ''} với các thông số sau:`
         );
 
         const aboveRefs =
@@ -2789,6 +2854,12 @@ function populateAlternativeSheet(
         '0.000'
       );
       setPlainCell(ws.getRow(rSigKu).getCell(7), '(MPa)', {}, { horizontal: 'left', vertical: 'middle' });
+      setPlainCell(
+        ws.getRow(rSigKu).getCell(8),
+        'Công thức (10) — Điều 9.4.2',
+        {},
+        { horizontal: 'left', vertical: 'middle' }
+      );
 
       const eqCode = forecast.namTinhToan === 'NAM_DAU' ? '(A.2)' : '(A.3)';
       cursor.prose(
@@ -2839,6 +2910,16 @@ function populateAlternativeSheet(
         {},
         { horizontal: 'left', vertical: 'middle' }
       );
+      setPlainCell(
+        ws.getRow(rK1Eq).getCell(7),
+        fl.materialClass === 'BTN'
+          ? 'Công thức (12) — Điều 9.4.3'
+          : fl.materialClass === 'DA_SOI_GC'
+            ? 'Công thức (13) — Điều 9.4.3'
+            : 'Công thức (14) — Điều 9.4.3',
+        {},
+        { horizontal: 'left', vertical: 'middle' }
+      );
 
       const rK1Fl = cursor.next(15.75);
       setPlainCell(ws.getRow(rK1Fl).getCell(3), '=', {}, { horizontal: 'right', vertical: 'middle' });
@@ -2863,6 +2944,12 @@ function populateAlternativeSheet(
       const rRttEq = cursor.next(18.75);
       setCellMarkup(ws.getRow(rRttEq).getCell(3), 'R_{tt}^{ku} =', {}, { horizontal: 'right', vertical: 'middle' });
       setCellMarkup(ws.getRow(rRttEq).getCell(4), 'k_{1} * k_{2} * R_{ku}', {}, { horizontal: 'left', vertical: 'middle' });
+      setPlainCell(
+        ws.getRow(rRttEq).getCell(7),
+        'Công thức (11) — Điều 9.4.3',
+        {},
+        { horizontal: 'left', vertical: 'middle' }
+      );
 
       const rRtt = cursor.next(15.75);
       setPlainCell(ws.getRow(rRtt).getCell(3), '=', {}, { horizontal: 'right', vertical: 'middle' });
@@ -2887,7 +2974,7 @@ function populateAlternativeSheet(
         '"= "0.00'
       );
 
-      cursor.prose(2, 'Tra Bảng 8 (TCCS 38:2022/TCĐBVN), hệ số cường độ về chịu kéo uốn:');
+      cursor.prose(2, 'Tra Bảng 8, hệ số cường độ về chịu kéo uốn:');
       const rKcdKu = cursor.next(18.75);
       setCellMarkup(ws.getRow(rKcdKu).getCell(3), 'K_{cđ}^{ku}', {}, { horizontal: 'left', vertical: 'middle' });
       setFormulaCell(
@@ -2940,6 +3027,12 @@ function populateAlternativeSheet(
         '0.000'
       );
       setPlainCell(flCmpRow.getCell(7), '(MPa)', { bold: true }, { horizontal: 'left', vertical: 'middle' });
+      setPlainCell(
+        flCmpRow.getCell(8),
+        'Công thức (9) — Điều 9.4.1',
+        {},
+        { horizontal: 'left', vertical: 'middle' }
+      );
 
       cursor.blank(12.75);
       const flPassMsg = `Kết luận: Lớp ${fl.layerName} đảm bảo tiêu chuẩn chịu kéo uốn.`;
@@ -2952,6 +3045,7 @@ function populateAlternativeSheet(
         { bold: true, italic: true, color: fl.passed ? COLOR_PASS : COLOR_FAIL },
         { horizontal: 'left', vertical: 'middle' }
       );
+      addConclusionColorRule(ws, rFlConc);
       cursor.blank(12.75);
     });
   }

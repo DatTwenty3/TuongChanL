@@ -762,7 +762,16 @@ describe('Excel export (abc 111.xls layout + live formulas + TCCS 38:2022/TCĐBV
     expect(joined).toContain('φ');
     expect(joined).toContain('β');
     expect(joined).toContain('σ');
-    expect(joinedPa2).toContain('Công thức (E.1) (Phụ lục E, TCCS 38:2022/TCĐBVN)');
+    expect(joinedPa2).toContain('Công thức (E.1) — Phụ lục E');
+    // Dòng "Kết luận" tự đổi màu: KHÔNG đảm bảo → đỏ (định dạng có điều kiện, 3 dòng kết luận)
+    const cfs = (loaded.getWorksheet('Phương án 1') as unknown as {
+      conditionalFormattings: Array<{ rules: Array<{ formulae?: string[]; style?: { font?: { color?: { argb?: string } } } }> }>;
+    }).conditionalFormattings;
+    expect(cfs.length).toBeGreaterThanOrEqual(3);
+    for (const cf of cfs) {
+      expect(cf.rules[0].formulae?.[0]).toMatch(/SEARCH\("KHÔNG"/);
+      expect(cf.rules[0].style?.font?.color?.argb).toBe('FFFF0000');
+    }
     expect(joined).toContain('I. TÍNH SỐ TRỤC XE TÍNH TOÁN:');
     expect(joined).toContain('Bảng 1: Dự báo thành phần xe thông qua mặt cắt ngang điển hình');
     expect(joined).toContain('Bảng 2: Bảng tính số trục xe quy đổi về trục xe tính toán');
@@ -804,7 +813,7 @@ describe('Excel export (abc 111.xls layout + live formulas + TCCS 38:2022/TCĐBV
     // Bảng 2 & I.3 formulas
     expect(hasFormulaLike(formulas1, /^IF\(OR\(NOT\(ISNUMBER\(F\d+\)\),F\d+<25\),0,ROUND\(.*\^4\.4,3\)\)$/)).toBe(true);
     expect(hasFormulaLike(formulas1, /^IF\(OR\(NOT\(ISNUMBER\(F\d+\)\),F\d+<25\),0,ROUND\(.*\^4\.4,0\)\)$/)).toBe(true);
-    expect(hasFormulaLike(formulas1, /^SUM\(K\d+:K\d+\)$/)).toBe(true);
+    expect(hasFormulaLike(formulas1, /^ROUNDUP\(ROUND\(SUM\(K\d+:K\d+\),3\),0\)$/)).toBe(true);
     expect(hasFormulaLike(formulas1, /^ROUND\(K\d+\*G\d+,0\)$/)).toBe(true);
 
     // II.4 MAX & II.5 COUNTA
@@ -837,8 +846,9 @@ describe('Excel export (abc 111.xls layout + live formulas + TCCS 38:2022/TCĐBV
     }
 
     // Check specific cached result values against runFullVerification
-    const ntkFormula = formulas1.find((f) => /^SUM\(K\d+:K\d+\)$/.test(f.formula))!;
-    expect(Number(ntkFormula.result)).toBeCloseTo(liveVerification.traffic.Ntk_trucNgDem, 2);
+    // N_tk làm tròn LÊN thành số nguyên
+    const ntkFormula = formulas1.find((f) => /^ROUNDUP\(ROUND\(SUM\(K\d+:K\d+\),3\),0\)$/.test(f.formula))!;
+    expect(Number(ntkFormula.result)).toBe(Math.ceil(Number(liveVerification.traffic.Ntk_trucNgDem.toFixed(3))));
 
     const eycTtFormula = formulas1.find((f) => /^MAX\(E\d+,E\d+\)$/.test(f.formula))!;
     expect(Number(eycTtFormula.result)).toBeCloseTo(liveVerification.modulusResolved.Ett_MPa, 2);
@@ -912,8 +922,17 @@ describe('Excel export (abc 111.xls layout + live formulas + TCCS 38:2022/TCĐBV
     expect(joined).toContain('Theo tiêu chuẩn TCCS 38:2022/TCĐBVN');
     expect(joined).not.toContain('22TCN 211-06');
     expect(joined).toContain('Ví dụ I — Phụ lục D.1 (TCCS 38:2022/TCĐBVN)');
-    expect(joined).toContain('Tra Bảng 9 (TCCS 38:2022/TCĐBVN)');
-    expect(joined).toContain('Tra Bảng 10 (TCCS 38:2022/TCĐBVN)');
+    expect(joined).toContain('Tra Bảng 9 với P');
+    expect(joined).not.toContain('Tra Bảng 9 (TCCS 38:2022/TCĐBVN)');
+    expect(joined).toContain('Công thức (1) — Điều 7.7');
+    expect(joined).toContain('Công thức (3) — Điều 7.8');
+    expect(joined).toContain('Công thức (4) — Điều 9.2.1');
+    expect(joined).toContain('Công thức (5) — Điều 9.2.4');
+    expect(joined).toContain('Dải phân cách giữa');
+    expect(joined).not.toContain('iải phân cách');
+    expect(joined).not.toMatch(/[Mm]odule/);
+    expect(joined).toContain('Tra Bảng 10 với loại đường');
+    expect(joined).not.toContain('Tra Bảng 10 (TCCS 38:2022/TCĐBVN)');
 
     // Check Eq. (E.1) live Excel formula when H/D > 2.0
     const formulas = extractSheetFormulas(ws);
