@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { ResultSummaryBar, type ResultSummaryItem } from './ResultSummaryBar';
 import {
   RvKeoUonAllReport,
   RvKeoUonReport,
@@ -150,8 +151,32 @@ export function TabVerificationResult({
   const loaiTK = project.projectInfo.loaiTK;
   const rehabSummary = verification.rehabSummary;
 
+  const summaryItems: ResultSummaryItem[] = [
+    {
+      label: 'Độ võng đàn hồi',
+      value: `${fmt(verification.deflection.Ech_MPa, 1)} ≥ ${fmt(verification.deflection.Eyc_required_MPa, 1)} MPa`,
+      passed: verification.deflection.passed,
+    },
+    {
+      label: 'Cắt trượt',
+      value: verification.shearApplicable ? undefined : 'miễn kiểm toán',
+      passed: verification.shearApplicable ? verification.allShearPassed : null,
+    },
+    {
+      label: 'Kéo uốn',
+      value: verification.flexuralApplicable ? undefined : 'miễn kiểm toán',
+      passed: verification.flexuralApplicable ? verification.allFlexuralPassed : null,
+    },
+  ];
+
   return (
     <div className="adm-verify-split" data-testid={`tab-verify-${mode}`}>
+      <ResultSummaryBar
+        title={`Phương án: ${verification.alternativeName}`}
+        passed={verification.allPassed}
+        items={summaryItems}
+        testId="verify-summary"
+      />
       <div className="adm-verify-top" style={{ height: `${topHeight}px` }}>
         <ReductionTopGrid rows={topRows} modulusHeader={modulusHeader} />
       </div>

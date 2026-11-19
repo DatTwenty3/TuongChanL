@@ -20,6 +20,7 @@ import {
   type RigidVerification,
 } from '../engine';
 import { RvRigidReport } from '../reports/rigidReports';
+import { ResultSummaryBar, type ResultSummaryItem } from './ResultSummaryBar';
 import type {
   ProjectState,
   RigidAggregate,
@@ -671,14 +672,48 @@ export function TabRigidResult({
   verification: RigidVerification;
   onRun: () => void;
 }): React.ReactElement {
+  const checkShort: Record<string, string> = {
+    fatigue: 'Mỏi (6)',
+    maxload: 'Trục nặng (7)',
+    base: 'Móng (8)',
+  };
+  const items: ResultSummaryItem[] = verification.checks
+    .filter((c) => c.applicable)
+    .map((c) => ({
+      label: checkShort[c.id] ?? c.label,
+      value: `${fmtNum(c.lhs, 3)} ≤ ${fmtNum(c.rhs, 3)} MPa`,
+      passed: c.passed,
+    }));
+  if (verification.drain) {
+    items.push({ label: 'Thoát nước (Điều 7)', passed: verification.drain.passed });
+  }
+  const note = verification.allPassed
+    ? verification.minHc !== null
+      ? `Chiều dày tấm nhỏ nhất thoả mãn (bước 5 mm): ${fmtNum(verification.minHc, 3)} m.`
+      : undefined
+    : verification.minHc !== null
+      ? `Cần tăng chiều dày tấm tối thiểu lên ${fmtNum(verification.minHc, 3)} m (hiện ${fmtNum(verification.input.hc, 3)} m).`
+      : 'Không tìm được chiều dày tấm thoả mãn trong giới hạn tìm kiếm — xem lại mô hình tính và số liệu tải.';
   return (
-    <div className="adm-verify-bottom adm-selectable" data-testid="tab-cung-kiem-toan" style={{ height: '100%' }}>
-      <div style={{ padding: '8px 12px' }}>
-        <button type="button" className="adm-btn adm-btn-primary" onClick={onRun}>
-          Chạy kiểm toán (F5)
-        </button>
+    <div
+      data-testid="tab-cung-kiem-toan"
+      style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}
+    >
+      <ResultSummaryBar
+        title="Kiểm toán kết cấu mặt đường BTXM (TCCS 39:2022, Điều 8)"
+        passed={verification.allPassed}
+        items={items}
+        note={note}
+        testId="rigid-summary"
+      />
+      <div className="adm-verify-bottom adm-selectable" style={{ flex: 1 }}>
+        <div style={{ padding: '0 0 8px' }}>
+          <button type="button" className="adm-btn adm-btn-primary" onClick={onRun}>
+            Chạy kiểm toán (F5)
+          </button>
+        </div>
+        <RvRigidReport project={project} verification={verification} />
       </div>
-      <RvRigidReport project={project} verification={verification} />
     </div>
   );
 }

@@ -418,7 +418,7 @@ export const SAMPLE_TCCS38_EX1: ProjectState = {
   projectInfo: {
     congTrinh: 'Ví dụ I — Phụ lục D.1 (TCCS 38:2022/TCĐBVN)',
     diaDiem: 'Đường cấp II đồng bằng, 4 làn xe có dải phân cách giữa',
-    kySuThietKe: 'TCCS 38:2022/TCĐBVN',
+    kySuThietKe: '',
     doiTuongTK: 'KCAD',
     loaiTK: 'TK_MOI',
   },
@@ -637,7 +637,7 @@ export const SAMPLE_TCCS38_EX2: ProjectState = {
   projectInfo: {
     congTrinh: 'Ví dụ II — Phụ lục D.2 (TCCS 38:2022/TCĐBVN)',
     diaDiem: 'Đường cấp IV, 2 làn xe, mặt đường cấp cao A2',
-    kySuThietKe: 'TCCS 38:2022/TCĐBVN',
+    kySuThietKe: '',
     doiTuongTK: 'KCAD',
     loaiTK: 'TK_MOI',
   },
@@ -749,7 +749,7 @@ export const SAMPLE_TCCS38_CH10: ProjectState = {
   projectInfo: {
     congTrinh: 'Tăng cường mặt đường cũ QL.1A — Chương 10 (TCCS 38:2022/TCĐBVN)',
     diaDiem: 'Đoạn Km0+000 – Km0+800, Đường cấp III đồng bằng',
-    kySuThietKe: 'TCCS 38:2022/TCĐBVN (Chương 10)',
+    kySuThietKe: '',
     doiTuongTK: 'KCAD',
     loaiTK: 'CAI_TAO',
   },

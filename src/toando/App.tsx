@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { readTheme, writeTheme, type ThemeMode } from '../shared/theme';
 import {
   AlternativeNameModal,
@@ -8,6 +8,7 @@ import {
 } from './components/Dialogs';
 import { RibbonBar } from './components/RibbonBar';
 import { StatusBar } from './components/StatusBar';
+import { StepNav } from './components/StepNav';
 import { TabDesignParams } from './components/TabDesignParams';
 import { TabExistingPavement } from './components/TabExistingPavement';
 import { TabMaterialDb } from './components/TabMaterialDb';
@@ -29,8 +30,14 @@ import { TreeNav } from './components/TreeNav';
 import { createDefaultRehabilitationConfig, createDefaultRigidProjectData, resolveSubgrade } from './engine';
 import { computeLaneFactor } from './engine/traffic';
 import { AppStoreProvider, useAppStore } from './state/appStore';
-import { getVisibleMainTabs, type MainTabKey } from './state/navigation';
-import type { ProjectInfo, RigidProjectData, SurfaceGrade, ToanDoId } from './types/project';
+import { getEditedTabs, getVisibleMainTabs, type MainTabKey } from './state/navigation';
+import type {
+  ProjectInfo,
+  ProjectState,
+  RigidProjectData,
+  SurfaceGrade,
+  ToanDoId,
+} from './types/project';
 
 function MainWorkspace(): React.ReactElement {
   const store = useAppStore();
@@ -125,7 +132,22 @@ function MainWorkspace(): React.ReactElement {
   const loaiMat = store.project.projectInfo.loaiMatDuong ?? 'MEM';
   const visibleTabs = getVisibleMainTabs(loaiTK, loaiMat);
 
-  const handleProjectInfoChange = (patch: Partial<ProjectInfo>) =>
+  // Mốc so sánh = dự án ở lần mở / lưu gần nhất (lúc `dirty` = false) → chấm "đã sửa" ở cây điều hướng.
+  const baselineRef = useRef<ProjectState>(store.project);
+  if (!store.dirty) baselineRef.current = store.project;
+  const editedTabs = useMemo(
+    () => (store.dirty ? getEditedTabs(store.project, baselineRef.current) : new Set<MainTabKey>()),
+    [store.dirty, store.project],
+  );
+
+  const handleProjectInfoChange = (patch: Partial<ProjectInfo>) => {
+    if (patch.loaiMatDuong && patch.loaiMatDuong !== loaiMat) {
+      store.setStatusMessage(
+        patch.loaiMatDuong === 'CUNG'
+          ? 'Sẵn sàng — Mặt đường cứng BTXM (TCCS 39:2022/TCĐBVN)'
+          : 'Sẵn sàng — Áo đường mềm (TCCS 38:2022/TCĐBVN)',
+      );
+    }
     store.updateProject((prev) => {
       const nextInfo = { ...prev.projectInfo, ...patch };
       if (patch.loaiMatDuong === 'CUNG') {
@@ -142,6 +164,7 @@ function MainWorkspace(): React.ReactElement {
         roadScale: { ...prev.roadScale, heSoLan_fL: nextFl },
       };
     });
+  };
 
   const updateRigid = (fn: (prev: RigidProjectData) => RigidProjectData) =>
     store.updateProject((prev) => ({
@@ -418,6 +441,7 @@ function MainWorkspace(): React.ReactElement {
           loaiTK={loaiTK}
           loaiMat={loaiMat}
           rigidPassed={store.rigidVerification?.allPassed}
+          editedTabs={editedTabs}
           activePageTab={store.activePageTab}
           alternatives={store.project.alternatives}
           activeAlternativeId={store.activeAlternative.id}
@@ -475,6 +499,15 @@ function MainWorkspace(): React.ReactElement {
           </div>
 
           <div className="adm-page-body">{renderPageContent()}</div>
+
+          <StepNav
+            active={store.activePageTab}
+            loaiTK={loaiTK}
+            loaiMat={loaiMat}
+            isRunning={store.isRunning}
+            onGo={handleSelectPageTab}
+            onRun={store.runVerification}
+          />
         </main>
       </div>
 
@@ -523,6 +556,7 @@ function MainWorkspace(): React.ReactElement {
       />
 
       <StandardInfoModal
+        kind={loaiMat}
         open={modal.type === 'tieu-chuan'}
         onClose={() => setModal({ type: 'none' })}
       />

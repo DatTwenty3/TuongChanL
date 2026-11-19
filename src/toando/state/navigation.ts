@@ -1,5 +1,5 @@
 import { TREE_ICONS } from '../assets/iconRegistry';
-import type { DesignKindType, PavementKind } from '../types/project';
+import type { DesignKindType, PavementKind, ProjectState } from '../types/project';
 
 export type RibbonTabKey = 'HOME' | 'TOOLS' | 'HELP';
 
@@ -75,4 +75,77 @@ export function getVisibleMainTabs(
     if (t.kind && t.kind !== loaiMat) return false;
     return !t.rehabOnly || loaiTK === 'CAI_TAO';
   });
+}
+
+/** Thứ tự các trang nhập liệu (dùng cho nút "Trước / Tiếp theo"). */
+export function getInputSteps(loaiTK: DesignKindType, loaiMat: PavementKind = 'MEM'): MainTabKey[] {
+  if (loaiMat === 'CUNG') {
+    return [
+      'thong-tin',
+      'quy-mo',
+      'dat-nen',
+      'cung-giao-thong',
+      'cung-ket-cau',
+      'cung-khe-noi',
+      'cung-thoat-nuoc',
+    ];
+  }
+  return [
+    'thong-tin',
+    'quy-mo',
+    'luu-luong',
+    'dat-nen',
+    ...(loaiTK === 'CAI_TAO' ? (['ao-duong-cu'] as MainTabKey[]) : []),
+    'thong-so',
+    'ket-cau',
+  ];
+}
+
+/** Tên ngắn của trang trên nút "Tiếp theo". */
+export const STEP_SHORT_LABEL: Partial<Record<MainTabKey, string>> = {
+  'thong-tin': 'Thông tin dự án',
+  'quy-mo': 'Quy mô thiết kế',
+  'luu-luong': 'Lưu lượng xe',
+  'dat-nen': 'Đất nền',
+  'ao-duong-cu': 'Áo đường cũ',
+  'thong-so': 'Thông số thiết kế',
+  'ket-cau': 'Kết cấu áo đường',
+  'cung-giao-thong': 'Tải trọng trục & Ne',
+  'cung-ket-cau': 'Kết cấu tấm BTXM',
+  'cung-khe-noi': 'Khe nối',
+  'cung-thoat-nuoc': 'Thoát nước',
+};
+
+/**
+ * Các trang có thay đổi so với mốc `baseline` (lần mở / lưu gần nhất) — để hiện chấm "đã sửa, chưa lưu"
+ * ở cây điều hướng. So sánh theo từng phần dữ liệu mà trang đó chỉnh sửa.
+ */
+export function getEditedTabs(project: ProjectState, baseline: ProjectState): Set<MainTabKey> {
+  const edited = new Set<MainTabKey>();
+  if (project === baseline) return edited;
+  const differs = (a: unknown, b: unknown): boolean =>
+    a !== b && JSON.stringify(a) !== JSON.stringify(b);
+  const cur = project.rigid;
+  const base = baseline.rigid;
+  const checks: Array<[MainTabKey, unknown, unknown]> = [
+    ['thong-tin', project.projectInfo, baseline.projectInfo],
+    ['quy-mo', project.roadScale, baseline.roadScale],
+    ['luu-luong', [project.vehicles, project.forecast], [baseline.vehicles, baseline.forecast]],
+    ['dat-nen', project.subgrade, baseline.subgrade],
+    ['ao-duong-cu', project.rehabilitation, baseline.rehabilitation],
+    ['thong-so', project.designParams, baseline.designParams],
+    ['ket-cau', project.alternatives, baseline.alternatives],
+    ['cung-giao-thong', [cur?.traffic, cur?.neAuto], [base?.traffic, base?.neAuto]],
+    [
+      'cung-ket-cau',
+      [cur?.roadClass, cur?.region, cur?.aggregate, cur?.shoulder, cur?.input, cur?.e0FromSubgrade],
+      [base?.roadClass, base?.region, base?.aggregate, base?.shoulder, base?.input, base?.e0FromSubgrade],
+    ],
+    ['cung-khe-noi', cur?.joint, base?.joint],
+    ['cung-thoat-nuoc', cur?.drain, base?.drain],
+  ];
+  for (const [key, a, b] of checks) {
+    if (differs(a, b)) edited.add(key);
+  }
+  return edited;
 }

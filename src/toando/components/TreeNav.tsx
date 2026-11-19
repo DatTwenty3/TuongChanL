@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { TREE_ICONS } from '../assets/iconRegistry';
 import type { MainTabKey } from '../state/navigation';
 import type {
@@ -16,6 +16,8 @@ export interface TreeNavProps {
   loaiMat?: PavementKind;
   /** Kết quả tổng hợp kiểm toán tấm BTXM (undefined = chưa có). */
   rigidPassed?: boolean;
+  /** Các trang nhập liệu đã sửa nhưng chưa lưu (hiện chấm cam). */
+  editedTabs?: ReadonlySet<MainTabKey>;
   activePageTab: MainTabKey;
   alternatives: PavementAlternative[];
   activeAlternativeId: string;
@@ -42,6 +44,7 @@ export function TreeNav({
   loaiTK = 'TK_MOI',
   loaiMat = 'MEM',
   rigidPassed,
+  editedTabs,
   activePageTab,
   alternatives,
   activeAlternativeId,
@@ -60,6 +63,15 @@ export function TreeNav({
     kcad: true,
     results: true,
   });
+
+  // Giữ mục đang chọn trong tầm nhìn khi điều hướng bằng nút "Tiếp theo" / ribbon.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = scrollRef.current?.querySelector('[aria-selected="true"]');
+    if (el && typeof (el as HTMLElement).scrollIntoView === 'function') {
+      (el as HTMLElement).scrollIntoView({ block: 'nearest' });
+    }
+  }, [activePageTab, activeAlternativeId, selectedShearTargetId, selectedFlexuralLayerId]);
 
   const toggle = (key: string) =>
     setExpanded((prev) => ({ ...prev, [key]: !(prev[key] ?? true) }));
@@ -113,7 +125,7 @@ export function TreeNav({
             </button>
           )}
         </div>
-        <div className="adm-tree-scroll" role="tree">
+        <div className="adm-tree-scroll" role="tree" ref={scrollRef}>
           {rigidInputs.map((n) => (
             <div
               key={n.key}
@@ -128,6 +140,9 @@ export function TreeNav({
               <span className="adm-tree-toggle-spacer" />
               <img className="adm-tree-icon" src={n.icon} alt="" />
               <span>{n.label}</span>
+              {editedTabs?.has(n.key) && (
+                <i className="adm-tree-edited" title="Trang có thay đổi chưa lưu" aria-label="Có thay đổi chưa lưu" />
+              )}
             </div>
           ))}
           <div
@@ -172,7 +187,7 @@ export function TreeNav({
           </button>
         )}
       </div>
-      <div className="adm-tree-scroll" role="tree">
+      <div className="adm-tree-scroll" role="tree" ref={scrollRef}>
         {inputNodes.map((n) => (
           <div
             key={n.key}
@@ -187,6 +202,9 @@ export function TreeNav({
             <span className="adm-tree-toggle-spacer" />
             <img className="adm-tree-icon" src={n.icon} alt="" />
             <span>{n.label}</span>
+            {editedTabs?.has(n.key) && (
+              <i className="adm-tree-edited" title="Trang có thay đổi chưa lưu" aria-label="Có thay đổi chưa lưu" />
+            )}
           </div>
         ))}
 
@@ -224,6 +242,9 @@ export function TreeNav({
                   <span className="adm-tree-toggle-spacer" />
                   <img className="adm-tree-icon" src={TREE_ICONS.gridAdd} alt="" />
                   <span>Kết cấu áo đường - {alt.name}</span>
+                  {editedTabs?.has('ket-cau') && (
+                    <i className="adm-tree-edited" title="Trang có thay đổi chưa lưu" aria-label="Có thay đổi chưa lưu" />
+                  )}
                 </div>
               );
             })}

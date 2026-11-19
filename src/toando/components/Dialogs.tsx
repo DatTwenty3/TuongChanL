@@ -398,14 +398,67 @@ export function AlternativeNameModal({
 }
 
 /* ---------- 5. Standard Reference Modal (TCCS 38:2022/TCĐBVN) ---------- */
+function RigidStandardInfoModal({ onClose }: { onClose: () => void }): React.ReactElement {
+  return (
+    <div className="adm-modal-backdrop" onClick={onClose}>
+      <div
+        className="adm-modal"
+        style={{ width: 640 }}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tiêu chuẩn TCCS 39:2022/TCĐBVN"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="adm-modal-header">
+          <span>Tiêu chuẩn cơ sở TCCS 39:2022/TCĐBVN</span>
+          <button type="button" className="adm-modal-close" onClick={onClose}>
+            ✕
+          </button>
+        </div>
+        <div className="adm-modal-body adm-selectable" style={{ lineHeight: 1.6 }}>
+          <p style={{ marginTop: 0 }}>
+            <strong>TCCS 39:2022/TCĐBVN</strong>: <em>Mặt đường bê tông xi măng thông thường</em> — yêu cầu và chỉ dẫn thiết kế.
+          </p>
+          <ul style={{ paddingLeft: 18, margin: '6px 0' }}>
+            <li>
+              <strong>Điều 6</strong>: Cấu tạo khe nối (khe dọc, khe ngang, thanh liên kết, thanh truyền lực).
+            </li>
+            <li>
+              <strong>Điều 7</strong>: Thoát nước kết cấu áo đường (đường thấm, móng thoát nước, ống thoát nước dọc biên).
+            </li>
+            <li>
+              <strong>Điều 8 &amp; Bảng 9, 10, 11</strong>: Kiểm toán tấm BTXM theo các trạng thái giới hạn — điều kiện mỏi do tải trọng và gradien nhiệt <code>(6)</code>, chịu trục đơn nặng nhất và gradien nhiệt độ lớn nhất <code>(7)</code>, tấm trên móng <code>(8)</code>.
+            </li>
+            <li>
+              <strong>Phụ lục A</strong>: Quy đổi số trục xe tích luỹ <code>Ne</code> (công thức A.1–A.3).
+            </li>
+            <li>
+              <strong>Phụ lục B</strong>: Các ví dụ kiểm chứng <code>B.1</code> (đường cấp IV) và <code>B.2</code> (đường cấp III).
+            </li>
+          </ul>
+        </div>
+        <div className="adm-modal-footer">
+          <button type="button" className="adm-btn adm-btn-primary" onClick={onClose}>
+            Đóng
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function StandardInfoModal({
   open,
   onClose,
+  kind = 'MEM',
 }: {
   open: boolean;
   onClose: () => void;
+  /** 'CUNG' → thông tin TCCS 39:2022 (mặt đường cứng). */
+  kind?: 'MEM' | 'CUNG';
 }): React.ReactElement | null {
   if (!open) return null;
+  if (kind === 'CUNG') return <RigidStandardInfoModal onClose={onClose} />;
   return (
     <div className="adm-modal-backdrop" onClick={onClose}>
       <div

@@ -46,8 +46,32 @@ export interface RibbonBarProps {
   onOpenTieuChuan: () => void;
 }
 
+const RIBBON_PREF_KEY = 'ledat-toando:ribbon-collapsed';
+
+/** Mặc định thu gọn ribbon trên màn hình thấp/hẹp để nhường chỗ cho vùng làm việc; lựa chọn của người dùng được nhớ lại. */
+function readRibbonCollapsed(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const stored = window.localStorage.getItem(RIBBON_PREF_KEY);
+    if (stored === '1') return true;
+    if (stored === '0') return false;
+  } catch {
+    /* localStorage không dùng được: dùng mặc định theo kích thước màn hình */
+  }
+  return window.innerWidth <= 900 || window.innerHeight < 720;
+}
+
 export function RibbonBar(props: RibbonBarProps): React.ReactElement {
   const rigid = props.loaiMat === 'CUNG';
+  const [collapsed, setCollapsedState] = useState<boolean>(readRibbonCollapsed);
+  const setCollapsed = (next: boolean) => {
+    setCollapsedState(next);
+    try {
+      window.localStorage.setItem(RIBBON_PREF_KEY, next ? '1' : '0');
+    } catch {
+      /* bỏ qua */
+    }
+  };
   const [appMenuOpen, setAppMenuOpen] = useState(false);
   const [kindMenuOpen, setKindMenuOpen] = useState(false);
   const titleRef = useRef<HTMLDivElement>(null);
@@ -109,6 +133,11 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
     };
   }, [Boolean(saveMenuPos), Boolean(vlMenuPos)]);
 
+  const selectRibbonTab = (tab: RibbonTabKey) => {
+    props.onSelectRibbonTab(tab);
+    if (collapsed) setCollapsed(false);
+  };
+
   const titleSuffix = props.projectName.trim()
     ? ` *** Công trình: ${props.projectName.trim()}`
     : props.fileName
@@ -129,7 +158,7 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
             <b>
               LEDAT-<span className="wm-g">BIM</span>
             </b>
-            <small>Kiểm toán áo đường · TCCS 38:2022</small>
+            <small>{rigid ? 'Kiểm toán mặt đường cứng · TCCS 39:2022' : 'Kiểm toán áo đường · TCCS 38:2022'}</small>
           </div>
         </div>
 
@@ -203,49 +232,6 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
         </div>
 
         <div className="adm-titlebar-actions">
-          {rigid && props.onLoadSampleRigidProject ? (
-            <>
-              <button
-                type="button"
-                className="adm-sample-pill"
-                data-testid="btn-load-sample-b1"
-                title="Nạp nhanh ví dụ B.1 Phụ lục B (TCCS 39:2022/TCĐBVN): tấm 23 cm trên móng CPĐD, đường cấp IV"
-                onClick={() => props.onLoadSampleRigidProject?.('B1')}
-              >
-                Nạp ví dụ B.1 (TCCS 39)
-              </button>
-              <button
-                type="button"
-                className="adm-sample-pill adm-sample-pill-ch10"
-                data-testid="btn-load-sample-b2"
-                title="Nạp nhanh ví dụ B.2 Phụ lục B (TCCS 39:2022/TCĐBVN): tấm 26 cm trên móng CPĐD gia cố xi măng, đường cấp III"
-                onClick={() => props.onLoadSampleRigidProject?.('B2')}
-              >
-                Nạp ví dụ B.2 (TCCS 39)
-              </button>
-            </>
-          ) : (
-          <button
-            type="button"
-            className="adm-sample-pill"
-            data-testid="btn-load-sample"
-            title="Nạp nhanh dự án mẫu Phụ lục D (D.1 Ví dụ I — TCCS 38:2022/TCĐBVN)"
-            onClick={props.onLoadSampleProject}
-          >
-            Nạp ví dụ mẫu (TCCS 38:2022)
-          </button>
-          )}
-          {!rigid && props.onLoadSampleRehabProject && (
-            <button
-              type="button"
-              className="adm-sample-pill adm-sample-pill-ch10"
-              data-testid="btn-load-sample-ch10"
-              title="Nạp nhanh dự án mẫu Thiết kế tăng cường, cải tạo áo đường cũ (Chương 10 — TCCS 38:2022/TCĐBVN)"
-              onClick={() => props.onLoadSampleRehabProject?.('overlay')}
-            >
-              Nạp ví dụ cải tạo (Ch.10)
-            </button>
-          )}
           <button
             id="bTheme"
             type="button"
@@ -313,21 +299,21 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
             <button
               type="button"
               className={`adm-ribbon-tab ${props.activeRibbonTab === 'HOME' ? 'active' : ''}`}
-              onClick={() => props.onSelectRibbonTab('HOME')}
+              onClick={() => selectRibbonTab('HOME')}
             >
               HOME
             </button>
             <button
               type="button"
               className={`adm-ribbon-tab ${props.activeRibbonTab === 'TOOLS' ? 'active' : ''}`}
-              onClick={() => props.onSelectRibbonTab('TOOLS')}
+              onClick={() => selectRibbonTab('TOOLS')}
             >
               CÔNG CỤ
             </button>
             <button
               type="button"
               className={`adm-ribbon-tab ${props.activeRibbonTab === 'HELP' ? 'active' : ''}`}
-              onClick={() => props.onSelectRibbonTab('HELP')}
+              onClick={() => selectRibbonTab('HELP')}
             >
               GIÚP ĐỠ
             </button>
@@ -344,6 +330,80 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
               <span>Cây dự án</span>
             </button>
           )}
+
+          <div className="adm-topbar-right">
+            {/* Ví dụ mẫu: nằm cùng hàng với thanh Tệp/Ribbon để header chỉ còn một hàng (menu Tệp vẫn có đủ các ví dụ). */}
+            <div className="adm-topbar-samples">
+              {rigid && props.onLoadSampleRigidProject ? (
+                <>
+                  <button
+                    type="button"
+                    className="adm-sample-pill"
+                    data-testid="btn-load-sample-b1"
+                    title="Nạp nhanh ví dụ B.1 Phụ lục B (TCCS 39:2022/TCĐBVN): tấm 23 cm trên móng CPĐD, đường cấp IV"
+                    onClick={() => props.onLoadSampleRigidProject?.('B1')}
+                  >
+                    Ví dụ B.1
+                  </button>
+                  <button
+                    type="button"
+                    className="adm-sample-pill adm-sample-pill-ch10"
+                    data-testid="btn-load-sample-b2"
+                    title="Nạp nhanh ví dụ B.2 Phụ lục B (TCCS 39:2022/TCĐBVN): tấm 26 cm trên móng CPĐD gia cố xi măng, đường cấp III"
+                    onClick={() => props.onLoadSampleRigidProject?.('B2')}
+                  >
+                    Ví dụ B.2
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  className="adm-sample-pill"
+                  data-testid="btn-load-sample"
+                  title="Nạp nhanh dự án mẫu Phụ lục D (D.1 Ví dụ I — TCCS 38:2022/TCĐBVN)"
+                  onClick={props.onLoadSampleProject}
+                >
+                  Ví dụ mẫu
+                </button>
+              )}
+              {!rigid && props.onLoadSampleRehabProject && (
+                <button
+                  type="button"
+                  className="adm-sample-pill adm-sample-pill-ch10"
+                  data-testid="btn-load-sample-ch10"
+                  title="Nạp nhanh dự án mẫu Thiết kế tăng cường, cải tạo áo đường cũ (Chương 10 — TCCS 38:2022/TCĐBVN)"
+                  onClick={() => props.onLoadSampleRehabProject?.('overlay')}
+                >
+                  Ví dụ cải tạo
+                </button>
+              )}
+            </div>
+            {collapsed && (
+            <button
+              type="button"
+              className="adm-topbar-run"
+              data-testid="btn-run-quick"
+              disabled={props.isRunning}
+              title="Chạy kiểm toán (F5)"
+              onClick={props.onRunVerification}
+            >
+              <img src={UI_ICONS.runLarge} alt="" />
+              <span>Chạy kiểm toán</span>
+              <kbd>F5</kbd>
+            </button>
+            )}
+            <button
+              type="button"
+              className="adm-ribbon-collapse"
+              data-testid="btn-ribbon-collapse"
+              aria-expanded={!collapsed}
+              aria-label={collapsed ? 'Mở rộng thanh công cụ' : 'Thu gọn thanh công cụ'}
+              title={collapsed ? 'Mở rộng thanh công cụ' : 'Thu gọn thanh công cụ để có thêm chỗ làm việc'}
+              onClick={() => setCollapsed(!collapsed)}
+            >
+              {collapsed ? '▾' : '▴'}
+            </button>
+          </div>
         </div>
 
         {/* Application Menu Popup */}
@@ -459,6 +519,7 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
         )}
 
         {/* Ribbon Body */}
+        {!collapsed && (
         <div className="adm-ribbon-strip" ref={stripRef}>
           {props.activeRibbonTab === 'HOME' && (
             <>
@@ -827,13 +888,14 @@ export function RibbonBar(props: RibbonBarProps): React.ReactElement {
                   onClick={props.onOpenTieuChuan}
                 >
                   <img src={UI_ICONS.tieuChuanLarge} alt="" />
-                  <span>TCCS 38:2022</span>
+                  <span>{rigid ? 'TCCS 39:2022' : 'TCCS 38:2022'}</span>
                 </button>
               </div>
               <div className="adm-rib-group-label">Giúp đỡ</div>
             </div>
           )}
         </div>
+        )}
       </div>
     </div>
   );
