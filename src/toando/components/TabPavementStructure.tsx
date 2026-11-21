@@ -344,7 +344,7 @@ export function TabPavementStructure({
                           className="adm-btn"
                           data-mat-trigger={idx}
                           style={{ height: 22, padding: '0 6px', fontSize: 10 }}
-                          title="Chọn từ thư viện VatLieu.dat"
+                          title="Chọn vật liệu từ thư viện"
                           onClick={(e) => {
                             e.stopPropagation();
                             const btnEl = e.currentTarget as HTMLElement;
@@ -521,7 +521,7 @@ export function TabPavementStructure({
               maxHeight: pickerState.maxHeight,
             }}
           >
-            <div className="adm-mat-dropdown-head">Chọn vật liệu (VatLieu.dat)</div>
+            <div className="adm-mat-dropdown-head">Chọn vật liệu</div>
             {materials.map((m) => (
               <div
                 key={`${m.index}-${m.name}`}
