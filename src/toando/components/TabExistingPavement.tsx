@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { UI_ICONS } from '../assets/iconRegistry';
 import {
   assessBang13Severity,
@@ -85,7 +86,10 @@ export function TabExistingPavement({
     rowIndex: number;
     left: number;
     top: number;
+    width: number;
+    maxHeight: number;
   } | null>(null);
+  const wrapRef = useRef<HTMLDivElement>(null);
   const pickerRef = useRef<HTMLDivElement>(null);
 
   const readingsKey = rehabilitation.benkelman.readings_mm.join(',');
@@ -103,12 +107,24 @@ export function TabExistingPavement({
 
   useEffect(() => {
     const onDocDown = (e: MouseEvent) => {
+      const target = e.target as Element | null;
+      if (target?.closest?.('[data-mat-trigger]')) return;
       if (pickerRef.current && !pickerRef.current.contains(e.target as Node)) {
         setPickerState(null);
       }
     };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPickerState(null);
+    };
+    const onResize = () => setPickerState(null);
     document.addEventListener('mousedown', onDocDown);
-    return () => document.removeEventListener('mousedown', onDocDown);
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('resize', onResize);
+    return () => {
+      document.removeEventListener('mousedown', onDocDown);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('resize', onResize);
+    };
   }, []);
 
   const subgradeResolved = useMemo(() => resolveSubgrade(project.subgrade), [project.subgrade]);
@@ -241,7 +257,7 @@ export function TabExistingPavement({
   };
 
   return (
-    <div className="adm-tab-pad" style={{ maxWidth: 1080 }} data-testid="tab-ao-duong-cu">
+    <div ref={wrapRef} className="adm-tab-pad" style={{ maxWidth: 1080 }} data-testid="tab-ao-duong-cu">
       <div className="adm-ch10-stack">
         {/* BLOCK 1: Giải pháp cải tạo & Đánh giá hiện trạng Bảng 13 */}
         <fieldset className="adm-groupbox">
@@ -914,15 +930,31 @@ export function TabExistingPavement({
                                 <button
                                   type="button"
                                   className="adm-btn"
+                                  data-mat-trigger={idx}
                                   style={{ height: 22, padding: '0 6px', fontSize: 10 }}
                                   title="Chọn từ thư viện VatLieu.dat"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                                    setPickerState({
-                                      rowIndex: idx,
-                                      left: Math.max(8, Math.min(rect.left - 240, window.innerWidth - 395)),
-                                      top: Math.min(rect.bottom + 2, window.innerHeight - 320),
+                                    const btnEl = e.currentTarget as HTMLElement;
+                                    const cellEl = btnEl.closest('td') ?? btnEl.parentElement ?? btnEl;
+                                    const rect = cellEl.getBoundingClientRect();
+                                    setPickerState((prev) => {
+                                      if (prev?.rowIndex === idx) return null;
+                                      const vw = window.innerWidth;
+                                      const vh = window.innerHeight;
+                                      const width = Math.min(Math.max(390, Math.round(rect.width)), vw - 16);
+                                      const left = Math.max(8, Math.min(Math.round(rect.left), vw - width - 8));
+                                      const spaceBelow = vh - rect.bottom - 10;
+                                      const spaceAbove = rect.top - 10;
+                                      const openAbove = spaceBelow < 200 && spaceAbove > spaceBelow;
+                                      const maxHeight = Math.max(
+                                        140,
+                                        Math.min(320, Math.floor(openAbove ? spaceAbove : spaceBelow)),
+                                      );
+                                      const top = openAbove
+                                        ? Math.max(8, Math.round(rect.top - maxHeight - 2))
+                                        : Math.max(8, Math.round(rect.bottom + 2));
+                                      return { rowIndex: idx, left, top, width, maxHeight };
                                     });
                                   }}
                                 >
@@ -1112,24 +1144,31 @@ export function TabExistingPavement({
       </div>
 
       {/* Material Picker Dropdown for Existing Layers */}
-      {pickerState && (
-        <div
-          ref={pickerRef}
-          className="adm-mat-dropdown"
-          style={{ left: pickerState.left, top: pickerState.top }}
-        >
-          <div className="adm-mat-dropdown-head">Chọn vật liệu lớp cũ (VatLieu.dat)</div>
-          {materials.map((m) => (
-            <div
-              key={`${m.index}-${m.name}`}
-              className={`adm-mat-opt ${m.isGroupHeader ? 'group' : ''}`}
-              onClick={() => applyMaterialToExistingRow(pickerState.rowIndex, m)}
-            >
-              {m.isGroupHeader ? m.name.replace(/^\(\*\)/, '') : m.name}
-            </div>
-          ))}
-        </div>
-      )}
+      {pickerState &&
+        createPortal(
+          <div
+            ref={pickerRef}
+            className="adm-mat-dropdown"
+            style={{
+              left: pickerState.left,
+              top: pickerState.top,
+              width: pickerState.width,
+              maxHeight: pickerState.maxHeight,
+            }}
+          >
+            <div className="adm-mat-dropdown-head">Chọn vật liệu lớp cũ (VatLieu.dat)</div>
+            {materials.map((m) => (
+              <div
+                key={`${m.index}-${m.name}`}
+                className={`adm-mat-opt ${m.isGroupHeader ? 'group' : ''}`}
+                onClick={() => applyMaterialToExistingRow(pickerState.rowIndex, m)}
+              >
+                {m.isGroupHeader ? m.name.replace(/^\(\*\)/, '') : m.name}
+              </div>
+            ))}
+          </div>,
+          wrapRef.current?.closest('.adm-shell') ?? document.body,
+        )}
 
       <Bang13DistressModal open={bang13Open} onClose={() => setBang13Open(false)} />
     </div>

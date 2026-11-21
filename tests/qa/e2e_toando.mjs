@@ -269,6 +269,39 @@ async function run() {
     await page.locator('button:has-text("Thêm lớp tầng móng")').click();
     await page.locator('[data-testid="table-kcad"] tbody tr').first().locator('button:has-text("▾")').click();
     await page.waitForSelector('.adm-mat-dropdown');
+    const matDropdownInfo = await page.evaluate(() => {
+      const dd = document.querySelector('.adm-mat-dropdown');
+      const cell = document.querySelector('[data-testid="table-kcad"] tbody tr td:nth-child(3)');
+      const dr = dd.getBoundingClientRect();
+      const cr = cell.getBoundingClientRect();
+      const firstOpt = dd.querySelector('.adm-mat-opt:not(.group)');
+      const or = firstOpt.getBoundingClientRect();
+      const topEl = document.elementFromPoint(or.left + or.width / 2, or.top + or.height / 2);
+      return {
+        ddLeft: dr.left,
+        ddTop: dr.top,
+        ddBottom: dr.bottom,
+        ddRight: dr.right,
+        cellLeft: cr.left,
+        cellBottom: cr.bottom,
+        vw: window.innerWidth,
+        vh: window.innerHeight,
+        optClickable: Boolean(topEl && (topEl === firstOpt || firstOpt.contains(topEl))),
+      };
+    });
+    assert.ok(
+      Math.abs(matDropdownInfo.ddLeft - matDropdownInfo.cellLeft) <= 4,
+      `Material dropdown left (${matDropdownInfo.ddLeft}) misaligned with cell left (${matDropdownInfo.cellLeft})`,
+    );
+    assert.ok(
+      Math.abs(matDropdownInfo.ddTop - (matDropdownInfo.cellBottom + 2)) <= 4,
+      `Material dropdown top (${matDropdownInfo.ddTop}) misaligned with cell bottom (${matDropdownInfo.cellBottom})`,
+    );
+    assert.ok(
+      matDropdownInfo.ddBottom <= matDropdownInfo.vh && matDropdownInfo.ddRight <= matDropdownInfo.vw,
+      `Material dropdown clipped by viewport: ${JSON.stringify(matDropdownInfo)}`,
+    );
+    assert.ok(matDropdownInfo.optClickable, 'Material dropdown option obscured at center');
     await page.locator('.adm-mat-opt:not(.group)').first().click();
     await page.locator('[data-testid="btn-save-kcad"]').click();
     await page.keyboard.press('F5');

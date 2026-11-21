@@ -1036,8 +1036,6 @@ textarea,
   border: 1px solid var(--float-ring);
   border-radius: 14px;
   box-shadow: var(--card-shadow);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   overflow: hidden;
 }
 
@@ -1445,7 +1443,7 @@ textarea,
 
 .adm-mat-dropdown {
   position: fixed;
-  z-index: 150;
+  z-index: 320;
   width: 390px;
   max-width: calc(100vw - 16px);
   max-height: 320px;
